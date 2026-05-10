@@ -19,7 +19,6 @@ use crate::infrastructure::persistence::event_repo::EventRepository;
 use crate::infrastructure::persistence::expense_repo::ExpenseRepository;
 use crate::infrastructure::persistence::expense_version_repo::ExpenseVersionRepository;
 use crate::infrastructure::persistence::expense_version_share_repo::ExpenseVersionShareRepository;
-use crate::infrastructure::persistence::member_repo::EventMemberRepository;
 use crate::services::expense_service::ExpenseService;
 
 /// GET /v1/events/:id/expenses — list expenses.
@@ -47,7 +46,6 @@ pub async fn list_expenses(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
-        EventMemberRepository::new(state.db_client.clone()),
     );
 
     let (items, has_more, next_cursor) = svc.list_expenses(
@@ -92,7 +90,6 @@ pub async fn create_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
-        EventMemberRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.create_expense(event_id, req, user_id)?;
@@ -122,7 +119,6 @@ pub async fn get_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
-        EventMemberRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.get_expense(expense_id)?;
@@ -155,7 +151,6 @@ pub async fn update_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
-        EventMemberRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.update_expense(event_id, expense_id, req, user_id)?;
@@ -185,7 +180,6 @@ pub async fn delete_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
-        EventMemberRepository::new(state.db_client.clone()),
     );
 
     svc.delete_expense(event_id, expense_id)?;
@@ -215,7 +209,6 @@ pub async fn list_expense_versions(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
-        EventMemberRepository::new(state.db_client.clone()),
     );
 
     let versions = svc.get_expense_with_versions(expense_id)?;

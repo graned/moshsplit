@@ -13,7 +13,6 @@ use crate::infrastructure::persistence::event_repo::EventRepository;
 use crate::infrastructure::persistence::expense_repo::ExpenseRepository;
 use crate::infrastructure::persistence::expense_version_repo::ExpenseVersionRepository;
 use crate::infrastructure::persistence::expense_version_share_repo::ExpenseVersionShareRepository;
-use crate::infrastructure::persistence::member_repo::EventMemberRepository;
 use crate::schema_enums::SplitType;
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 
@@ -22,7 +21,6 @@ pub struct ExpenseService {
     expense_repo: ExpenseRepository,
     version_repo: ExpenseVersionRepository,
     share_repo: ExpenseVersionShareRepository,
-    member_repo: EventMemberRepository,
 }
 
 impl ExpenseService {
@@ -31,9 +29,8 @@ impl ExpenseService {
         expense_repo: ExpenseRepository,
         version_repo: ExpenseVersionRepository,
         share_repo: ExpenseVersionShareRepository,
-        member_repo: EventMemberRepository,
     ) -> Self {
-        Self { event_repo, expense_repo, version_repo, share_repo, member_repo }
+        Self { event_repo, expense_repo, version_repo, share_repo }
     }
 
     /// Parse a split_type string into a SplitType enum.
@@ -44,6 +41,63 @@ impl ExpenseService {
             "percentage" => Ok(SplitType::Percentage),
             "shares" => Ok(SplitType::Shares),
             _ => Err(ServiceError::Validation(format!("Unknown split_type: {}", s))),
+        }
+    }
+
+    /// Extract member IDs from split_data based on split_type.
+    /// "equal"     → split_data.shares is an array of UUID strings.
+    /// "custom"/"shares" → split_data.shares is an object keyed by UUID.
+    /// "percentage" → split_data.percentages is an object keyed by UUID.
+    fn extract_member_ids(
+        split_type: &SplitType,
+        split_data: &Value,
+    ) -> Result<Vec<Uuid>, ServiceError> {
+        match split_type {
+            SplitType::Equal => {
+                let arr = split_data
+                    .get("shares")
+                    .and_then(|s| s.as_array())
+                    .ok_or_else(|| {
+                        ServiceError::Validation("equal split requires 'shares' array".into())
+                    })?;
+                arr.iter()
+                    .map(|v| {
+                        v.as_str()
+                            .and_then(|s| Uuid::parse_str(s).ok())
+                            .ok_or_else(|| {
+                                ServiceError::Validation("Invalid UUID in shares array".into())
+                            })
+                    })
+                    .collect()
+            }
+            SplitType::Custom | SplitType::Shares => {
+                let obj = split_data
+                    .get("shares")
+                    .and_then(|s| s.as_object())
+                    .ok_or_else(|| {
+                        ServiceError::Validation(
+                            "split requires 'shares' object with member UUID keys".into(),
+                        )
+                    })?;
+                Ok(obj
+                    .keys()
+                    .filter_map(|k| Uuid::parse_str(k).ok())
+                    .collect())
+            }
+            SplitType::Percentage => {
+                let obj = split_data
+                    .get("percentages")
+                    .and_then(|s| s.as_object())
+                    .ok_or_else(|| {
+                        ServiceError::Validation(
+                            "percentage split requires 'percentages' object".into(),
+                        )
+                    })?;
+                Ok(obj
+                    .keys()
+                    .filter_map(|k| Uuid::parse_str(k).ok())
+                    .collect())
+            }
         }
     }
 
@@ -183,11 +237,10 @@ impl ExpenseService {
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
-        // Get active members
-        let members = self.member_repo.find_active_by_event_id(event_id)?;
-        let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
-
         let split_type = Self::parse_split_type(&req.split_type)?;
+
+        // Extract member IDs from split_data (subset of event members)
+        let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
         // Compute shares
         let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
@@ -260,11 +313,10 @@ impl ExpenseService {
             return Err(ServiceError::BusinessRule("Cannot update a deleted expense".into()));
         }
 
-        // Get active members
-        let members = self.member_repo.find_active_by_event_id(event_id)?;
-        let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
-
         let split_type = Self::parse_split_type(&req.split_type)?;
+
+        // Extract member IDs from split_data (subset of event members)
+        let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
         // Compute shares
         let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;

@@ -100,39 +100,53 @@ impl BalanceRepository {
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
                 ORDER BY ev.expense_id, ev.version_number DESC
+            ),
+            expense_paid AS (
+                SELECT lv.paid_by AS user_id, SUM(lv.amount_cents) AS amount
+                FROM latest_versions lv
+                GROUP BY lv.paid_by
+            ),
+            expense_shares AS (
+                SELECT sh.user_id, SUM(sh.share_cents) AS amount
+                FROM latest_versions lv
+                JOIN app.expense_version_share sh ON sh.expense_version_id = lv.id
+                GROUP BY sh.user_id
+            ),
+            payments_out AS (
+                SELECT from_user AS user_id, SUM(amount_cents) AS amount
+                FROM app.payment WHERE event_id = $1
+                GROUP BY from_user
+            ),
+            payments_in AS (
+                SELECT to_user AS user_id, SUM(amount_cents) AS amount
+                FROM app.payment WHERE event_id = $1
+                GROUP BY to_user
+            ),
+            settlements_out AS (
+                SELECT from_user AS user_id, SUM(amount_cents) AS amount
+                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
+                GROUP BY from_user
+            ),
+            settlements_in AS (
+                SELECT to_user AS user_id, SUM(amount_cents) AS amount
+                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
+                GROUP BY to_user
             )
             SELECT
                 m.user_id,
-                COALESCE(SUM(paid.amount_cents), 0)::INTEGER AS paid_cents,
-                COALESCE(SUM(share.share_cents), 0)::INTEGER AS owes_cents,
-                (COALESCE(SUM(paid.amount_cents), 0) - COALESCE(SUM(share.share_cents), 0)
-                 - COALESCE(pmts_out.amount, 0) + COALESCE(pmts_in.amount, 0)
-                 - COALESCE(stlmts_out.amount, 0) + COALESCE(stlmts_in.amount, 0)
+                COALESCE(ep.amount, 0)::INTEGER AS paid_cents,
+                COALESCE(es.amount, 0)::INTEGER AS owes_cents,
+                (COALESCE(ep.amount, 0) - COALESCE(es.amount, 0)
+                 - COALESCE(po.amount, 0) + COALESCE(pi.amount, 0)
+                 - COALESCE(so.amount, 0) + COALESCE(si.amount, 0)
                 )::INTEGER AS balance_cents
             FROM active_members m
-            LEFT JOIN latest_versions paid ON paid.paid_by = m.user_id
-            LEFT JOIN app.expense_version_share share ON share.expense_version_id = paid.id AND share.user_id = m.user_id
-            LEFT JOIN (
-                SELECT from_user, SUM(amount_cents) AS amount
-                FROM app.payment WHERE event_id = $1
-                GROUP BY from_user
-            ) pmts_out ON pmts_out.from_user = m.user_id
-            LEFT JOIN (
-                SELECT to_user, SUM(amount_cents) AS amount
-                FROM app.payment WHERE event_id = $1
-                GROUP BY to_user
-            ) pmts_in ON pmts_in.to_user = m.user_id
-            LEFT JOIN (
-                SELECT from_user, SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
-                GROUP BY from_user
-            ) stlmts_out ON stlmts_out.from_user = m.user_id
-            LEFT JOIN (
-                SELECT to_user, SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
-                GROUP BY to_user
-            ) stlmts_in ON stlmts_in.to_user = m.user_id
-            GROUP BY m.user_id, pmts_out.amount, pmts_in.amount, stlmts_out.amount, stlmts_in.amount
+            LEFT JOIN expense_paid ep ON ep.user_id = m.user_id
+            LEFT JOIN expense_shares es ON es.user_id = m.user_id
+            LEFT JOIN payments_out po ON po.user_id = m.user_id
+            LEFT JOIN payments_in pi ON pi.user_id = m.user_id
+            LEFT JOIN settlements_out so ON so.user_id = m.user_id
+            LEFT JOIN settlements_in si ON si.user_id = m.user_id
             ORDER BY m.user_id
         "#;
 
@@ -163,15 +177,23 @@ impl BalanceRepository {
             )
             SELECT
                 $2::uuid AS user_id,
-                COALESCE(SUM(paid.amount_cents), 0)::INTEGER AS paid_cents,
-                COALESCE(SUM(share.share_cents), 0)::INTEGER AS owes_cents,
-                (COALESCE(SUM(paid.amount_cents), 0) - COALESCE(SUM(share.share_cents), 0)
+                COALESCE(paid.amount, 0)::INTEGER AS paid_cents,
+                COALESCE(shares.amount, 0)::INTEGER AS owes_cents,
+                (COALESCE(paid.amount, 0) - COALESCE(shares.amount, 0)
                  - COALESCE(pmts_out.amount, 0) + COALESCE(pmts_in.amount, 0)
                  - COALESCE(stlmts_out.amount, 0) + COALESCE(stlmts_in.amount, 0)
                 )::INTEGER AS balance_cents
             FROM (SELECT $2::uuid AS user_id) m
-            LEFT JOIN latest_versions paid ON paid.paid_by = m.user_id
-            LEFT JOIN app.expense_version_share share ON share.expense_version_id = paid.id AND share.user_id = m.user_id
+            LEFT JOIN (
+                SELECT SUM(amount_cents) AS amount
+                FROM latest_versions WHERE paid_by = $2
+            ) paid ON 1=1
+            LEFT JOIN (
+                SELECT SUM(sh.share_cents) AS amount
+                FROM latest_versions lv
+                JOIN app.expense_version_share sh ON sh.expense_version_id = lv.id
+                WHERE sh.user_id = $2
+            ) shares ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
                 FROM app.payment WHERE event_id = $1 AND from_user = $2
@@ -188,7 +210,6 @@ impl BalanceRepository {
                 SELECT SUM(amount_cents) AS amount
                 FROM app.settlement WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
             ) stlmts_in ON 1=1
-            GROUP BY pmts_out.amount, pmts_in.amount, stlmts_out.amount, stlmts_in.amount
         "#;
 
         let result = sql_query(sql)

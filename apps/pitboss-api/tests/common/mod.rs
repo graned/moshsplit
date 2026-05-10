@@ -33,6 +33,59 @@ pub async fn get_json(path: &str) -> (StatusCode, Value) {
     (status, body)
 }
 
+/// POST JSON body and deserialize the response.
+pub async fn post_json(path: &str, body: &Value) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .post(format!("{BASE_URL}{path}"))
+        .json(body)
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
+/// PATCH JSON body and deserialize the response.
+pub async fn patch_json(path: &str, body: &Value) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .patch(format!("{BASE_URL}{path}"))
+        .json(body)
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
+/// DELETE and deserialize the response.
+pub async fn delete_json(path: &str) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .delete(format!("{BASE_URL}{path}"))
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
 /// Assert the response body matches Sentinel's standard envelope.
 pub fn assert_valid_envelope(body: &Value, expected_success: bool) {
     for field in ENVELOPE_FIELDS {
