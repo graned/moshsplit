@@ -1,0 +1,101 @@
+# MoshSplit — Production Docker Compose
+# ======================================
+# Optimised for deployment.  No bind-mounts, health checks, restart policies,
+# and env-var substitution from a .env file.
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-moshsplit}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── pitboss-api (Rust / Axum) ──────────────────────────────────────────────
+  pitboss-api:
+    build:
+      context: ../../
+      dockerfile: infra/docker/pitboss-api.Dockerfile
+      target: prod
+    ports:
+      - "${PITBOSS_API_PORT:-8080}:8080"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RUST_LOG: ${RUST_LOG:-info}
+      SENTINEL_PUBLIC_KEY: ${SENTINEL_PUBLIC_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Sentinel (auth service) ─────────────────────────────────────────────────
+  # Sentinel is an external vendored auth service.
+  # Uncomment the block below once the vendored code is present at vendor/sentinel/.
+  #
+  # sentinel:
+  #   build:
+  #     context: ../../vendor/sentinel
+  #     dockerfile: apps/sentinel-core/Dockerfile
+  #   ports:
+  #     - "${SENTINEL_PORT:-9000}:8000"
+  #   environment:
+  #     HEX_KEY: ${HEX_KEY}
+  #     CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY}
+  #     RUST_LOG: ${RUST_LOG:-info}
+  #     CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+  #     DATABASE_URL: ${SENTINEL_DATABASE_URL}
+  #     PGOPTIONS: "-c search_path=auth"
+  #     FRONTEND_URL: ${FRONTEND_URL}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - app-net
+  #   restart: unless-stopped
+
+  # ── Web (React PWA) ────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../../
+      dockerfile: infra/docker/web.Dockerfile
+      target: prod
+    ports:
+      - "${WEB_PORT:-80}:80"
+    environment:
+      VITE_SENTINEL_URL: ${VITE_SENTINEL_URL:-http://localhost:9000}
+    depends_on:
+      - pitboss-api
+    networks:
+      - app-net
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
+networks:
+  app-net:
+    driver: bridge

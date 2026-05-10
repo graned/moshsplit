@@ -14,9 +14,11 @@ MoshSplit is built around three invariants that make expense tracking trustworth
 |---|---|---|
 | **Expenses can change** | Expenses are mutable until settled. Splits can be edited, amounts corrected, details updated. The group always sees the latest intent. | Real life is messy — people forget costs, prices change, someone buys an extra round. Don't lock people into wrong numbers. |
 | **Payments are immutable** | Once a payment is recorded, it is never deleted or altered. Corrections are new payments. | Immutability creates an auditable trail. No one can "unpay" or rewrite history. Trust comes from transparency. |
-| **Balances are computed** | Balances are never stored. They are derived from the difference between expenses and payments. | No sync bugs, no stale state, no "the app says I owe €50 but I swear I paid." Balances are always correct by construction. |
+| **Balances are computed** | Balances are never stored. They are derived from the difference between expenses and payments. | No sync bugs, no stale state, no "the app says I owe EUR 50 but I swear I paid." Balances are always correct by construction. |
 
-> **Trust through explainability.** Every number in MoshSplit can be traced back to its source. If someone asks "why do I owe €47.32?", the app can show the exact chain of expenses, payments, and splits that produced that number.
+> **Trust through explainability.** Every number in MoshSplit can be traced back to its source. If someone asks "why do I owe EUR 47.32?", the app can show the exact chain of expenses, payments, and splits that produced that number.
+
+> **This is not an accounting application.** This is a transparent shared-expense coordination app for friend groups, trips, and festivals. The most important feature is explainability.
 
 ---
 
@@ -24,54 +26,8 @@ MoshSplit is built around three invariants that make expense tracking trustworth
 
 - **Group:** Vira Latas
 - **Event:** Wacken 2026
-- **Members:** ~10 friends sharing fuel, food, camping, merch, and chaos
+- **Members:** ~15 friends sharing fuel, food, camping, merch, and chaos
 - **Goal:** Zero arguments about money, maximum fun at Wacken
-
----
-
-## Architecture Overview
-
-```
-┌──────────────┐     ┌──────────────┐     ┌────────────┐
-│   React PWA  │────▶│  Pitboss API │────▶│ PostgreSQL │
-│  (apps/web/) │     │ (Rust/Axum)  │     │            │
-└──────────────┘     └──────────────┘     └────────────┘
-        │                    │
-        │                    │
-        ▼                    ▼
-┌──────────────┐     ┌──────────────┐
-│  Service     │     │   Sentinel   │
-│  Worker      │     │   (Auth)     │
-│  (offline)   │     │  (vendored)  │
-└──────────────┘     └──────────────┘
-```
-
-- **Frontend:** React SPA with PWA offline support. State managed with Zustand, server state cached with TanStack Query. Service worker handles offline mutations with a sync queue.
-- **Backend:** Axum REST API. Domain-driven design with clean module boundaries. SQLx for compile-time checked SQL against PostgreSQL.
-- **Auth:** Sentinel — a vendored auth service running as a separate Docker container. Handles registration, login, session management.
-- **Infra:** Fully Dockerized for development. Pulumi for production deployments. Everything runs in Compose locally.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 19, TypeScript, Vite, TanStack Query, Zustand, Tailwind CSS |
-| PWA | Vite PWA plugin, Service Worker, IndexedDB (Dexie) |
-| Backend | Rust, Axum, SQLx, tokio, serde |
-| Database | PostgreSQL 16 |
-| Auth | Sentinel (vendored) |
-| Container | Docker, Docker Compose |
-| Infra (prod) | Pulumi (AWS) |
-| Package mgmt | pnpm (workspaces), Cargo |
-
-### Currency Model
-
-- **Base currency:** EUR
-- **All amounts stored as integer cents** (€47.32 → `4732`)
-- Other currencies are display-only via real-time exchange rates
-- No multi-currency splitting — simplifies the math and avoids floating-point disasters
 
 ---
 
@@ -81,54 +37,155 @@ MoshSplit is built around three invariants that make expense tracking trustworth
 # Clone and start everything
 git clone <repo-url> moshsplit
 cd moshsplit
-docker compose up
+docker compose -f infra/compose/dev.yml up
 ```
 
 This starts:
-- **PostgreSQL** on `:5432`
-- **Pitboss API** on `:3000`
-- **Web frontend** on `:5173` (with HMR)
-- **Sentinel auth** on `:8080`
+- **PostgreSQL 16** on `:5432` (with `auth` and `moshsplit` schemas)
+- **Pitboss API** (Rust/Axum) on `:8080` (hot-reload via cargo-watch)
+- **Web frontend** (React PWA) on `:5173` (Vite HMR)
+- **Sentinel auth** placeholder (vendored, uncomment in `dev.yml` to enable)
 
-See [`infra/compose/`](./infra/compose/) for Compose files.
+For production: `docker compose -f infra/compose/prod.yml up` (healthchecks, restart policies, env var substitution).
 
 ---
 
-## Monorepo Structure
+## Project Structure
 
 ```
 moshsplit/
 ├── apps/
-│   ├── web/                    # React PWA (Vite + TypeScript)
-│   └── pitboss-api/            # Axum REST API (Rust)
-├── packages/                   # Shared packages (TypeScript, configs, etc.)
+│   ├── pitboss-api/                    # Rust Axum backend (26 source files)
+│   │   ├── src/
+│   │   │   ├── main.rs                 # Binary entrypoint
+│   │   │   ├── lib.rs                  # Library root, public modules
+│   │   │   ├── errors.rs               # 4-layer error hierarchy
+│   │   │   ├── applications/           # Use-case orchestrators (thin)
+│   │   │   ├── domain/                 # Domain logic, entities, traits
+│   │   │   │   └── repositories/       # Repository trait definitions
+│   │   │   ├── services/               # Domain services (stateless logic)
+│   │   │   ├── infrastructure/
+│   │   │   │   ├── clients/
+│   │   │   │   │   └── pg_client.rs    # PgPool wrapper (max 20 connections)
+│   │   │   │   └── http/
+│   │   │   │       ├── app.rs          # build_app() DI container
+│   │   │   │       ├── server.rs       # HttpServer with graceful shutdown
+│   │   │   │       └── api/
+│   │   │   │           ├── handlers/   # Route handlers (health, livez)
+│   │   │   │           ├── middlewares/ # RequestId + ResponseWrapper layers
+│   │   │   │           ├── routes/     # api_router with full middleware stack
+│   │   │   │           ├── types/      # ApiResponse<T> envelope + RequestId
+│   │   │   │           └── dtos/       # Request/response DTOs (placeholder)
+│   │   │   └── utils/
+│   │   │       └── impl_repository.rs  # SQLx CRUD macro
+│   │   ├── tests/
+│   │   │   └── health_check.rs         # 5 integration tests
+│   │   ├── scripts/
+│   │   │   ├── gen_diesel_types.sh     # Diesel schema/models/enums generator
+│   │   │   └── update_schema_patch.sh  # schema.patch regeneration
+│   │   ├── Cargo.toml
+│   │   ├── Cargo.lock
+│   │   ├── diesel.toml                 # Diesel config for app schema
+│   │   └── .env.example
+│   │
+│   └── web/                            # React PWA (scaffold — not yet implemented)
+│
+├── packages/                           # Shared TypeScript packages (future)
+│
 ├── docs/
-│   ├── architecture/           # ADRs, system design docs
-│   ├── decisions/              # Decision records
-│   └── integrations/           # Third-party integration docs
+│   ├── architecture/                   # System design documentation
+│   │   ├── overview.md                 # Context, principles, component diagram
+│   │   ├── data-model.md               # Core entities, relationships, balance computation
+│   │   ├── api-design.md               # REST conventions, endpoints, error handling
+│   │   ├── security.md                 # Sentinel auth, authorization, data isolation
+│   │   ├── database-schema.md          # Full DDL, Mermaid ERD, indexes, query patterns
+│   │   ├── rust-db-mapping.md          # Type mapping, SQLx patterns, error handling
+│   │   └── pitboss-api-scaffold.md     # Project structure following Clean Architecture
+│   ├── decisions/
+│   │   └── README.md                   # ADR index and template
+│   └── integrations/                   # Third-party integration docs (future)
+│
 ├── infra/
-│   ├── compose/                # Docker Compose files
-│   ├── docker/                 # Dockerfiles
-│   ├── pulumi/                 # Pulumi IaC (AWS)
-│   └── scripts/                # Infra helper scripts
-├── scripts/                    # Development scripts
-├── vendor/                     # Vendored dependencies (gitignored)
-│   └── sentinel/               # Auth service
-└── .opencode/                  # AI agent configuration
+│   ├── compose/
+│   │   ├── dev.yml                     # Dev compose (hot-reload, bind mounts)
+│   │   ├── prod.yml                    # Prod compose (healthchecks, restart)
+│   │   └── init/
+│   │       └── 01-init-schemas.sql     # DB init: auth + moshsplit schemas, roles
+│   ├── docker/
+│   │   ├── pitboss-api.Dockerfile      # Multi-stage (dev: cargo-watch, prod: release)
+│   │   └── web.Dockerfile              # Multi-stage (dev: HMR, prod: nginx)
+│   └── pulumi/                         # Pulumi IaC for AWS (future)
+│
+├── scripts/
+│   ├── starter.sh                      # Dev environment setup
+│   └── create-opencode-agents.sh       # AI agent scaffolding
+│
+├── vendor/
+│   └── sentinel/                       # Vendored auth service (gitignored, pending)
+│
+├── .opencode/                          # AI agent configuration
+│   ├── AGENTS.md
+│   ├── agents/
+│   ├── skills/
+│   └── ...
+│
+├── .gitignore                          # 11 categories (Node, Rust, IDE, etc.)
+├── .dockerignore
+├── .npmrc
+├── package.json                        # pnpm workspace root
+├── pnpm-workspace.yaml                 # apps/* and packages/*
+└── README.md
 ```
 
 ---
 
-## Key Principles
+## Tech Stack
 
-1. **Trust through explainability** — Every number is traceable. No black-box calculations.
-2. **Offline-first** — The PWA must work without internet. Mutations queue and sync when connectivity returns.
-3. **Integer cents** — No floating-point money. Store `4732`, display `€47.32`.
-4. **EUR base** — Single currency for calculations. Display-only conversions.
-5. **Immutable payments** — Payments are audit logs. Corrections are new entries.
-6. **Computed balances** — Never store what can be derived. Balances = expenses − payments.
-7. **Structured monolith** — DDD boundaries within a single deployable backend. No premature microservices.
-8. **Stable, versioned APIs** — API changes are additive and versioned. No breaking changes without a new version.
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript 5, Vite 6, TanStack Query, Zustand, Tailwind CSS |
+| PWA | vite-plugin-pwa, Service Worker, IndexedDB (Dexie) |
+| Backend | Rust (edition 2021), Axum 0.8, SQLx 0.8, tokio, serde, thiserror, tower-http |
+| Database | PostgreSQL 16 (two schemas: `auth` + `moshsplit`) |
+| Auth | Sentinel (vendored — PASETO tokens, RBAC, MFA, OIDC) |
+| Container | Docker, Docker Compose (multi-stage Dockerfiles) |
+| Infrastructure (prod) | Pulumi (AWS — target) |
+| Package management | pnpm 9+ (workspaces), Cargo |
+| Tooling | diesel-cli (schema introspection only), cargo-watch (dev hot-reload) |
+
+### Currency Model
+
+- **Base currency:** EUR — all calculations in integer cents
+- **Exchange rates NEVER affect balances** — display-layer conversion only
+- **No floating-point money** — store `4732`, display `EUR 47.32`
+- **Deterministic rounding** — penny rounding distributes remainder
+
+---
+
+## Architecture
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────────────┐
+│   React PWA  │────▶│  Pitboss API │────▶│   PostgreSQL 16      │
+│  (apps/web/) │     │ (Rust/Axum)  │     │  ┌────────┐          │
+└──────────────┘     └──────────────┘     │  │ auth   │ Sentinel │
+        │                    │            │  │ schema │──────────│
+        │                    │            │  ├────────┤          │
+        ▼                    ▼            │  │moshsplit│pitboss   │
+┌──────────────┐     ┌──────────────┐     │  │ schema │  API     │
+│  Service     │     │   Sentinel   │     └──┴────────┴──────────┘
+│  Worker      │     │   (Auth)     │
+│  (offline)   │     │  (vendored)  │
+└──────────────┘     └──────────────┘
+```
+
+- **Frontend:** React SPA with PWA offline support. Zustand for client state, TanStack Query for server state caching and offline mutation queue.
+- **Backend:** Axum REST API with Clean Architecture (applications -> services -> domain -> infrastructure). SQLx for compile-time checked SQL. Sentinel-compatible `ApiResponse<T>` envelope with `{ success, data, error, timestamp, request_id }`.
+- **Auth:** Sentinel — vendored auth service in a separate Docker container. PASETO tokens, RBAC, MFA, OIDC. Zero custom auth code.
+- **Infra:** Fully Dockerized (dev: hot-reload bind mounts, prod: healthchecks, restart policies). Pulumi target for AWS production.
+- **Structured monolith:** Domain boundaries in code, not networks. No premature microservices.
+
+See [Architecture Overview](docs/architecture/overview.md) for full details.
 
 ---
 
@@ -138,24 +195,33 @@ moshsplit/
 
 - Node.js >= 20
 - pnpm >= 9
-- Rust (latest stable)
+- Rust (latest stable, edition 2021)
 - Docker & Docker Compose
 - PostgreSQL 16 (optional — Docker handles this)
 
-### Local (without Docker)
+### Run with Docker (recommended)
+
+```bash
+# Full stack
+docker compose -f infra/compose/dev.yml up
+
+# Rebuild after Cargo.toml changes
+docker compose -f infra/compose/dev.yml build pitboss-api
+docker compose -f infra/compose/dev.yml up
+```
+
+### Run locally (without Docker)
 
 ```bash
 # Install frontend dependencies
 pnpm install
 
 # Start PostgreSQL (or use Docker)
-docker compose up -d postgres
+docker compose -f infra/compose/dev.yml up postgres
 
-# Run database migrations
+# Run pitboss-api
 cd apps/pitboss-api
-cargo sqlx migrate run
-
-# Start backend
+cp .env.example .env          # edit DATABASE_URL if needed
 cargo run
 
 # In another terminal, start frontend
@@ -163,25 +229,73 @@ cd apps/web
 pnpm dev
 ```
 
+### Run tests
+
+```bash
+# pitboss-api integration tests (no DB required — tests middleware stack)
+cd apps/pitboss-api
+cargo test
+
+# Run with output
+cargo test -- --nocapture
+```
+
 ### Environment Variables
 
-See `.env.example` files in each app directory. Key variables:
+See `apps/pitboss-api/.env.example` for the backend. Key variables:
 
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `SENTINEL_URL` | Sentinel auth service URL |
-| `JWT_SECRET` | JWT signing secret |
+| `HOST` | Server bind address (default: `0.0.0.0`) |
+| `PORT` | Server port (default: `8080`) |
+| `RUST_LOG` | Logging verbosity (default: `info`) |
 
 ### Commit Conventions
 
-This project uses conventional commits:
-- `feat:` — new feature
-- `fix:` — bug fix
-- `docs:` — documentation
-- `refactor:` — code restructuring
-- `test:` — adding/updating tests
-- `chore:` — maintenance tasks
+```
+feat:     new feature
+fix:      bug fix
+docs:     documentation
+refactor: code restructuring
+test:     adding/updating tests
+chore:    maintenance tasks
+```
+
+---
+
+## Key Principles
+
+1. **Trust through explainability** — Every number is traceable. No black-box calculations.
+2. **Offline-first** — The PWA must work without internet. Mutations queue and sync when connectivity returns.
+3. **Integer cents** — No floating-point money. Store `4732`, display `EUR 47.32`.
+4. **EUR base, display-only conversions** — Single currency for calculations. Exchange rates never affect balances.
+5. **Immutable payments** — Payments are audit logs. Corrections are new entries.
+6. **Computed balances** — Never store what can be derived. Balances = expenses - payments.
+7. **Expense versioning** — Expenses are versioned, never overwritten. Full change history.
+8. **Structured monolith** — DDD boundaries within a single deployable backend. No premature microservices.
+9. **Stable, versioned APIs** — API changes are additive and URL-prefix versioned.
+10. **Schema-level isolation** — `auth` schema (Sentinel) and `moshsplit` schema (pitboss-api) in the same database with separate credentials.
+
+---
+
+## Documentation
+
+### Architecture
+
+| Document | Description |
+|---|---|
+| [Overview](docs/architecture/overview.md) | System context, principles, component diagram, technology rationale, deployment |
+| [Data Model](docs/architecture/data-model.md) | Core entities, relationships, balance computation, currency model |
+| [API Design](docs/architecture/api-design.md) | REST conventions, endpoint catalog, error handling, rate limiting |
+| [Security](docs/architecture/security.md) | Sentinel auth, authorization model, data isolation, CORS |
+| [Database Schema](docs/architecture/database-schema.md) | Full DDL, Mermaid ERD, 17 indexes, 6 critical query patterns |
+| [Rust-PG Mapping](docs/architecture/rust-db-mapping.md) | Rust type mapping, SQLx query patterns, error handling, testing strategy |
+| [pitboss-api Scaffold](docs/architecture/pitboss-api-scaffold.md) | Project structure design following Sentinel's Clean Architecture |
+
+### Decisions
+
+- [ADR Index](docs/decisions/README.md) — ADR catalog with template and pending decisions
 
 ---
 

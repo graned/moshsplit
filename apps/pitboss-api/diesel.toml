@@ -1,0 +1,20 @@
+# Diesel configuration for pitboss-api
+# ====================================
+# This project uses SQLx at runtime, but Diesel is retained as a
+# schema-introspection tool for generating schema.rs and related types.
+
+[print_schema]
+# Where to write the generated schema
+file = "src/schema.rs"
+
+# The PostgreSQL schema to introspect (not "public")
+schema = "app"
+
+# Patch file applied on top of the raw Diesel output to preserve
+# manual customisations across re-generations
+patch_file = "src/schema.patch"
+
+[migrations_directory]
+# Directory containing Diesel migration SQL files (used only for
+# the diesel_cli tooling; runtime migrations are handled by SQLx)
+dir = "migrations/"

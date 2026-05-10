@@ -1,0 +1,97 @@
+# MoshSplit — Development Docker Compose
+# ======================================
+# Uses hot-reload for pitboss-api (cargo-watch) and web (Vite HMR).
+# Source directories are mounted as bind volumes so edits take effect immediately.
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: moshsplit
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── pitboss-api (Rust / Axum) ──────────────────────────────────────────────
+  pitboss-api:
+    build:
+      context: ../../
+      dockerfile: infra/docker/pitboss-api.Dockerfile
+      target: dev
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount source directory for hot-reload via cargo-watch.
+      # The target/ directory stays inside the container to preserve the
+      # dependency cache from the image build.
+      - ../../apps/pitboss-api/src:/app/src
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
+      RUST_LOG: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  # ── Sentinel (auth service) ─────────────────────────────────────────────────
+  # Sentinel is an external vendored auth service.
+  # Uncomment the block below once the vendored code is present at vendor/sentinel/.
+  #
+  # sentinel:
+  #   build:
+  #     context: ../../vendor/sentinel
+  #     dockerfile: apps/sentinel-core/Dockerfile
+  #   ports:
+  #     - "9000:8000"
+  #   environment:
+  #     HEX_KEY: ${HEX_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+  #     CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+  #     RUST_LOG: info
+  #     CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+  #     DATABASE_URL: postgres://sentinel:${POSTGRES_PASSWORD:-sentinel_dev}@postgres:5432/synra
+  #     PGOPTIONS: "-c search_path=auth"
+  #     FRONTEND_URL: http://localhost:5173
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - app-net
+
+  # ── Web (React PWA) ────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../../
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the full web app directory for Vite HMR.
+      - ../../apps/web:/app/apps/web
+    environment:
+      VITE_SENTINEL_URL: http://localhost:9000
+    depends_on:
+      - pitboss-api
+    networks:
+      - app-net
+
+volumes:
+  pgdata:
+
+networks:
+  app-net:
+    driver: bridge
