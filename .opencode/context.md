@@ -12,6 +12,10 @@
 - Expense versioning, balance computation with greedy debt simplification
 - Settlement workflow (pending → confirmed/disputed)
 
+### Architecture
+- **Repositories moved from `infrastructure/persistence` to `domain/repositories`**
+- Clean Architecture: services → domain/repositories → infrastructure
+
 ### Key Configuration
 - **Currency defaults to EUR** (not USD)
 - DELETE endpoints return 204 No Content
@@ -29,6 +33,7 @@ cargo test
 ```
 
 ### Recent Commits
+- Move repositories to domain/repositories
 - Fix expense split bug (extract_member_ids)
 - Add 22 validation tests (P0/P1)
 - Fix list endpoint response format

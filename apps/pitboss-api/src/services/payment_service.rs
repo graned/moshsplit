@@ -7,9 +7,9 @@ use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::payment_dtos::{
     CreatePaymentRequest, PaymentListItem, PaymentResponse,
 };
-use crate::infrastructure::persistence::event_repo::EventRepository;
-use crate::infrastructure::persistence::member_repo::EventMemberRepository;
-use crate::infrastructure::persistence::payment_repo::PaymentRepository;
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::schema_models::Payment;
 
 pub struct PaymentService {

@@ -1,15 +1,12 @@
-//! Repository traits and implementations.
+//! Repository implementations.
 //!
-//! Each repository defines a trait (interface) in this module and a
-//! concrete implementation in `infrastructure/persistence/`.
-//!
-//! Example:
-//! ```ignore
-//! #[async_trait]
-//! pub trait EventRepository: Send + Sync {
-//!     async fn find_by_id(&self, id: Uuid) -> Result<Event, RepositoryError>;
-//!     async fn create(&self, event: NewEvent) -> Result<Event, RepositoryError>;
-//! }
-//! ```
+//! All repositories live here (moved from infrastructure/persistence).
 
-// Placeholder for repository traits.
+pub mod balance_repo;
+pub mod event_repo;
+pub mod expense_repo;
+pub mod expense_version_repo;
+pub mod expense_version_share_repo;
+pub mod member_repo;
+pub mod payment_repo;
+pub mod settlement_repo;

@@ -11,8 +11,8 @@ use crate::infrastructure::http::api::dtos::balance_dtos::{
     BalancesResponse, ExplainBalanceResponse, SimplifiedDebtsResponse, UserBalanceResponse,
 };
 use crate::infrastructure::http::AppState;
-use crate::infrastructure::persistence::balance_repo::BalanceRepository;
-use crate::infrastructure::persistence::event_repo::EventRepository;
+use crate::domain::repositories::balance_repo::BalanceRepository;
+use crate::domain::repositories::event_repo::EventRepository;
 use crate::services::balance_service::BalanceService;
 
 /// GET /v1/events/:id/balances — all balances for an event.

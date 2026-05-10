@@ -7,9 +7,9 @@ use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
     CreateSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
 };
-use crate::infrastructure::persistence::event_repo::EventRepository;
-use crate::infrastructure::persistence::member_repo::EventMemberRepository;
-use crate::infrastructure::persistence::settlement_repo::{SettlementRepository, SettlementStatusUpdate};
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::domain::repositories::settlement_repo::{SettlementRepository, SettlementStatusUpdate};
 use crate::schema_enums::SettlementStatus;
 use std::str::FromStr;
 use crate::schema_models::Settlement;

@@ -9,10 +9,10 @@ use crate::infrastructure::http::api::dtos::expense_dtos::{
     CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
     ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
 };
-use crate::infrastructure::persistence::event_repo::EventRepository;
-use crate::infrastructure::persistence::expense_repo::ExpenseRepository;
-use crate::infrastructure::persistence::expense_version_repo::ExpenseVersionRepository;
-use crate::infrastructure::persistence::expense_version_share_repo::ExpenseVersionShareRepository;
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::expense_repo::ExpenseRepository;
+use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
+use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::schema_enums::SplitType;
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 

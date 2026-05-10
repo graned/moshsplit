@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::event_dtos::{CreateEventRequest, EventListItem, EventResponse, UpdateEventRequest};
-use crate::infrastructure::persistence::event_repo::{EventRepository, EventUpdateChangeset};
-use crate::infrastructure::persistence::member_repo::EventMemberRepository;
+use crate::domain::repositories::event_repo::{EventRepository, EventUpdateChangeset};
+use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::schema_enums::{EventMemberRole, EventStatus};
 use crate::schema_models::{Event, EventMember};
 

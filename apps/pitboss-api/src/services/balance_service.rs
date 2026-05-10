@@ -7,8 +7,8 @@ use crate::infrastructure::http::api::dtos::balance_dtos::{
     BalancesResponse, DebtTransfer, ExplainBalanceResponse, ExpenseBreakdown, PaymentBreakdown,
     SettlementBreakdown, SimplifiedDebtsResponse, UserBalanceItem, UserBalanceResponse,
 };
-use crate::infrastructure::persistence::balance_repo::BalanceRepository;
-use crate::infrastructure::persistence::event_repo::EventRepository;
+use crate::domain::repositories::balance_repo::BalanceRepository;
+use crate::domain::repositories::event_repo::EventRepository;
 
 pub struct BalanceService {
     event_repo: EventRepository,

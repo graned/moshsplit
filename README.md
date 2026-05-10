@@ -61,8 +61,10 @@ moshsplit/
 │   │   │   ├── lib.rs                  # Library root, public modules
 │   │   │   ├── errors.rs               # 4-layer error hierarchy
 │   │   │   ├── applications/           # Use-case orchestrators (thin)
-│   │   │   ├── domain/                 # Domain logic, entities, traits
-│   │   │   │   └── repositories/       # Repository trait definitions
+│   │   │   ├── domain/                 # Domain logic
+│   │   │   │   ├── repositories/       # Repository implementations (moved from infrastructure/persistence)
+│   │   │   │   ├── schema_enums.rs     # Database enums
+│   │   │   │   └── schema_models.rs    # Diesel-generated models
 │   │   │   ├── services/               # Domain services (stateless logic)
 │   │   │   ├── infrastructure/
 │   │   │   │   ├── clients/
@@ -70,14 +72,12 @@ moshsplit/
 │   │   │   │   └── http/
 │   │   │   │       ├── app.rs          # build_app() DI container
 │   │   │   │       ├── server.rs       # HttpServer with graceful shutdown
-│   │   │   │       └── api/
+│   │   │   │       ├── api/
 │   │   │   │           ├── handlers/   # 27 REST endpoint handlers
 │   │   │   │           ├── middlewares/ # RequestId + ResponseWrapper layers
 │   │   │   │           ├── routes/     # api_router with full middleware stack
 │   │   │   │           ├── types/      # ApiResponse<T> envelope + RequestId
 │   │   │   │           └── dtos/       # Request/response DTOs
-│   │   │   ├── schema_enums.rs         # Database enums (SplitType, EventStatus, etc.)
-│   │   │   ├── schema_models.rs        # Diesel-generated models
 │   │   │   └── utils/
 │   │   │       └── impl_repository.rs  # Diesel CRUD macro
 │   │   ├── tests/                      # 62 integration tests
