@@ -55,7 +55,7 @@ For production: `docker compose -f infra/compose/prod.yml up` (healthchecks, res
 ```
 moshsplit/
 ├── apps/
-│   ├── pitboss-api/                    # Rust Axum backend (26 source files)
+│   ├── pitboss-api/                    # Rust Axum backend
 │   │   ├── src/
 │   │   │   ├── main.rs                 # Binary entrypoint
 │   │   │   ├── lib.rs                  # Library root, public modules
@@ -71,15 +71,22 @@ moshsplit/
 │   │   │   │       ├── app.rs          # build_app() DI container
 │   │   │   │       ├── server.rs       # HttpServer with graceful shutdown
 │   │   │   │       └── api/
-│   │   │   │           ├── handlers/   # Route handlers (health, livez)
+│   │   │   │           ├── handlers/   # 27 REST endpoint handlers
 │   │   │   │           ├── middlewares/ # RequestId + ResponseWrapper layers
 │   │   │   │           ├── routes/     # api_router with full middleware stack
 │   │   │   │           ├── types/      # ApiResponse<T> envelope + RequestId
-│   │   │   │           └── dtos/       # Request/response DTOs (placeholder)
+│   │   │   │           └── dtos/       # Request/response DTOs
+│   │   │   ├── schema_enums.rs         # Database enums (SplitType, EventStatus, etc.)
+│   │   │   ├── schema_models.rs        # Diesel-generated models
 │   │   │   └── utils/
-│   │   │       └── impl_repository.rs  # SQLx CRUD macro
-│   │   ├── tests/
-│   │   │   └── health_check.rs         # 5 integration tests
+│   │   │       └── impl_repository.rs  # Diesel CRUD macro
+│   │   ├── tests/                      # 62 integration tests
+│   │   │   ├── common/mod.rs           # Test helpers
+│   │   │   ├── balances_api.rs         # 5 tests
+│   │   │   ├── events_api.rs           # 15 tests
+│   │   │   ├── expenses_api.rs         # 14 tests
+│   │   │   ├── payments_api.rs         # 9 tests
+│   │   │   └── settlements_api.rs      # 12 tests
 │   │   ├── scripts/
 │   │   │   ├── gen_diesel_types.sh     # Diesel schema/models/enums generator
 │   │   │   └── update_schema_patch.sh  # schema.patch regeneration
@@ -145,13 +152,13 @@ moshsplit/
 |---|---|
 | Frontend | React 19, TypeScript 5, Vite 6, TanStack Query, Zustand, Tailwind CSS |
 | PWA | vite-plugin-pwa, Service Worker, IndexedDB (Dexie) |
-| Backend | Rust (edition 2021), Axum 0.8, SQLx 0.8, tokio, serde, thiserror, tower-http |
+| Backend | Rust (edition 2021), Axum 0.8, Diesel 2.x, tokio, serde, thiserror, tower-http |
 | Database | PostgreSQL 16 (two schemas: `auth` + `moshsplit`) |
 | Auth | Sentinel (vendored — PASETO tokens, RBAC, MFA, OIDC) |
 | Container | Docker, Docker Compose (multi-stage Dockerfiles) |
 | Infrastructure (prod) | Pulumi (AWS — target) |
 | Package management | pnpm 9+ (workspaces), Cargo |
-| Tooling | diesel-cli (schema introspection only), cargo-watch (dev hot-reload) |
+| Tooling | diesel-cli (schema/models), cargo-watch (dev hot-reload) |
 
 ### Currency Model
 
@@ -180,7 +187,7 @@ moshsplit/
 ```
 
 - **Frontend:** React SPA with PWA offline support. Zustand for client state, TanStack Query for server state caching and offline mutation queue.
-- **Backend:** Axum REST API with Clean Architecture (applications -> services -> domain -> infrastructure). SQLx for compile-time checked SQL. Sentinel-compatible `ApiResponse<T>` envelope with `{ success, data, error, timestamp, request_id }`.
+- **Backend:** Axum REST API with Clean Architecture (services -> repositories -> infrastructure). Diesel for type-safe SQL. All 27 endpoints implemented with OpenAPI/Swagger docs.
 - **Auth:** Sentinel — vendored auth service in a separate Docker container. PASETO tokens, RBAC, MFA, OIDC. Zero custom auth code.
 - **Infra:** Fully Dockerized (dev: hot-reload bind mounts, prod: healthchecks, restart policies). Pulumi target for AWS production.
 - **Structured monolith:** Domain boundaries in code, not networks. No premature microservices.
@@ -232,13 +239,25 @@ pnpm dev
 ### Run tests
 
 ```bash
-# pitboss-api integration tests (no DB required — tests middleware stack)
+# Start Docker services first
+docker compose -f infra/compose/dev.yml up -d
+
+# pitboss-api integration tests (against real Docker API)
 cd apps/pitboss-api
 cargo test
 
-# Run with output
-cargo test -- --nocapture
+# Run specific test file
+cargo test --test events_api
 ```
+
+**Test Suite:** 62 tests across 6 test files covering:
+- Events CRUD (15 tests)
+- Expenses with versioning (14 tests)
+- Payments (9 tests)
+- Settlements with status workflow (12 tests)
+- Balances with greedy debt simplification (5 tests)
+- Envelope structure (2 tests)
+- Health checks (5 tests)
 
 ### Environment Variables
 
@@ -276,6 +295,7 @@ chore:    maintenance tasks
 8. **Structured monolith** — DDD boundaries within a single deployable backend. No premature microservices.
 9. **Stable, versioned APIs** — API changes are additive and URL-prefix versioned.
 10. **Schema-level isolation** — `auth` schema (Sentinel) and `moshsplit` schema (pitboss-api) in the same database with separate credentials.
+11. **Input validation at API boundary** — Invalid UUIDs, negative amounts, empty names, non-member payers all rejected with 400 errors.
 
 ---
 
