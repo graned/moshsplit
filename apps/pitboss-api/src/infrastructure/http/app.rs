@@ -6,8 +6,11 @@
 use std::sync::Arc;
 
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::infrastructure::clients::PostgresClient;
+use crate::infrastructure::http::api::openapi::ApiDoc;
 use crate::infrastructure::http::api::routes::api_router;
 use crate::infrastructure::http::AppState;
 
@@ -45,7 +48,12 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     });
 
     // ── Router ───────────────────────────────────────────────────────
-    let router = api_router::build_router(state);
+    // Swagger UI is mounted outside the API middleware stack so the
+    // ResponseWrapper doesn't JSON-encode the Swagger assets.
+    let router = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui")
+            .url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(api_router::build_router(state));
 
     Ok(router)
 }

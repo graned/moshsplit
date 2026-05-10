@@ -3,5 +3,6 @@
 pub mod dtos;
 pub mod handlers;
 pub mod middlewares;
+pub mod openapi;
 pub mod routes;
 pub mod types;
