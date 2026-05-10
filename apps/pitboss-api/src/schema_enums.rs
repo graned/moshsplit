@@ -5,14 +5,59 @@ use diesel::sql_types::Text;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 
+// ── Custom SQL types for PostgreSQL enums ─────────────────────────────────────
+
+/// SQL type for `app.event_status` enum.
+#[derive(diesel::sql_types::SqlType, Debug, Clone)]
+#[diesel(postgres_type(name = "event_status", schema = "app"))]
+pub struct EventStatusType;
+
+/// SQL type for `app.event_member_role` enum.
+#[derive(diesel::sql_types::SqlType, Debug, Clone)]
+#[diesel(postgres_type(name = "event_member_role", schema = "app"))]
+pub struct EventMemberRoleType;
+
+/// SQL type for `app.split_type` enum.
+#[derive(diesel::sql_types::SqlType, Debug, Clone)]
+#[diesel(postgres_type(name = "split_type", schema = "app"))]
+pub struct SplitTypeType;
+
+/// SQL type for `app.settlement_status` enum.
+#[derive(diesel::sql_types::SqlType, Debug, Clone)]
+#[diesel(postgres_type(name = "settlement_status", schema = "app"))]
+pub struct SettlementStatusType;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = EventStatusType)]
 pub enum EventStatus {
     Active,
     Archived,
     Deleted,
 }
 
+impl ToSql<EventStatusType, Pg> for EventStatus {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Active => out.write_all(b"active")?,
+            Self::Archived => out.write_all(b"archived")?,
+            Self::Deleted => out.write_all(b"deleted")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<EventStatusType, Pg> for EventStatus {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"active" => Ok(Self::Active),
+            b"archived" => Ok(Self::Archived),
+            b"deleted" => Ok(Self::Deleted),
+            _ => Err("Unrecognized EventStatus variant".into()),
+        }
+    }
+}
+
+// Also implement Text-based ToSql/FromSql for use in raw SQL contexts
 impl ToSql<Text, Pg> for EventStatus {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
         match self {
@@ -36,10 +81,30 @@ impl FromSql<Text, Pg> for EventStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = EventMemberRoleType)]
 pub enum EventMemberRole {
     Admin,
     Member,
+}
+
+impl ToSql<EventMemberRoleType, Pg> for EventMemberRole {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Admin => out.write_all(b"admin")?,
+            Self::Member => out.write_all(b"member")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<EventMemberRoleType, Pg> for EventMemberRole {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"admin" => Ok(Self::Admin),
+            b"member" => Ok(Self::Member),
+            _ => Err("Unrecognized EventMemberRole variant".into()),
+        }
+    }
 }
 
 impl ToSql<Text, Pg> for EventMemberRole {
@@ -63,12 +128,36 @@ impl FromSql<Text, Pg> for EventMemberRole {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = SplitTypeType)]
 pub enum SplitType {
     Equal,
     Custom,
     Percentage,
     Shares,
+}
+
+impl ToSql<SplitTypeType, Pg> for SplitType {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Equal => out.write_all(b"equal")?,
+            Self::Custom => out.write_all(b"custom")?,
+            Self::Percentage => out.write_all(b"percentage")?,
+            Self::Shares => out.write_all(b"shares")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<SplitTypeType, Pg> for SplitType {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"equal" => Ok(Self::Equal),
+            b"custom" => Ok(Self::Custom),
+            b"percentage" => Ok(Self::Percentage),
+            b"shares" => Ok(Self::Shares),
+            _ => Err("Unrecognized SplitType variant".into()),
+        }
+    }
 }
 
 impl ToSql<Text, Pg> for SplitType {
@@ -96,11 +185,33 @@ impl FromSql<Text, Pg> for SplitType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
-#[diesel(sql_type = Text)]
+#[diesel(sql_type = SettlementStatusType)]
 pub enum SettlementStatus {
     Pending,
     Confirmed,
     Disputed,
+}
+
+impl ToSql<SettlementStatusType, Pg> for SettlementStatus {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Pending => out.write_all(b"pending")?,
+            Self::Confirmed => out.write_all(b"confirmed")?,
+            Self::Disputed => out.write_all(b"disputed")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<SettlementStatusType, Pg> for SettlementStatus {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"pending" => Ok(Self::Pending),
+            b"confirmed" => Ok(Self::Confirmed),
+            b"disputed" => Ok(Self::Disputed),
+            _ => Err("Unrecognized SettlementStatus variant".into()),
+        }
+    }
 }
 
 impl ToSql<Text, Pg> for SettlementStatus {

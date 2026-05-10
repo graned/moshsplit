@@ -1,6 +1,7 @@
 //! API layer — request/response types, handlers, middleware, routes.
 
 pub mod dtos;
+pub mod extractors;
 pub mod handlers;
 pub mod middlewares;
 pub mod openapi;

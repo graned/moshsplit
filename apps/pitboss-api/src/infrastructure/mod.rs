@@ -2,3 +2,4 @@
 
 pub mod clients;
 pub mod http;
+pub mod persistence;

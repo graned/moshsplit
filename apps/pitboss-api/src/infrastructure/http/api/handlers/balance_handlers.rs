@@ -1,0 +1,122 @@
+//! Handlers for Balance endpoints.
+
+use std::sync::Arc;
+
+use axum::extract::{Path, State};
+use axum::Json;
+use uuid::Uuid;
+
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::balance_dtos::{
+    BalancesResponse, ExplainBalanceResponse, SimplifiedDebtsResponse, UserBalanceResponse,
+};
+use crate::infrastructure::http::AppState;
+use crate::infrastructure::persistence::balance_repo::BalanceRepository;
+use crate::infrastructure::persistence::event_repo::EventRepository;
+use crate::services::balance_service::BalanceService;
+
+/// GET /v1/events/:id/balances — all balances for an event.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/balances",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+    ),
+    responses(
+        (status = 200, description = "All user balances", body = BalancesResponse),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Balances"
+)]
+pub async fn all_balances(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+) -> Result<Json<BalancesResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        BalanceRepository::new(state.db_client.clone()),
+    );
+
+    let balances = svc.all_balances(event_id)?;
+    Ok(Json(balances))
+}
+
+/// GET /v1/events/:id/balances/:user_id — single user balance.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/balances/{user_id}",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("user_id" = Uuid, Path, description = "User ID"),
+    ),
+    responses(
+        (status = 200, description = "User balance", body = UserBalanceResponse),
+        (status = 404, description = "Event or user not found"),
+    ),
+    tag = "Balances"
+)]
+pub async fn user_balance(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, user_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<UserBalanceResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        BalanceRepository::new(state.db_client.clone()),
+    );
+
+    let balance = svc.user_balance(event_id, user_id)?;
+    Ok(Json(balance))
+}
+
+/// GET /v1/events/:id/balances/simplified — simplified debts.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/balances/simplified",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+    ),
+    responses(
+        (status = 200, description = "Simplified debt transfers", body = SimplifiedDebtsResponse),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Balances"
+)]
+pub async fn simplified_debts(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+) -> Result<Json<SimplifiedDebtsResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        BalanceRepository::new(state.db_client.clone()),
+    );
+
+    let debts = svc.simplified_debts(event_id)?;
+    Ok(Json(debts))
+}
+
+/// GET /v1/events/:id/balances/:user_id/explain — explain balance.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/balances/{user_id}/explain",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("user_id" = Uuid, Path, description = "User ID"),
+    ),
+    responses(
+        (status = 200, description = "Balance explanation", body = ExplainBalanceResponse),
+        (status = 404, description = "Event or user not found"),
+    ),
+    tag = "Balances"
+)]
+pub async fn explain_balance(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, user_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<ExplainBalanceResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        BalanceRepository::new(state.db_client.clone()),
+    );
+
+    let explanation = svc.explain_balance(event_id, user_id)?;
+    Ok(Json(explanation))
+}

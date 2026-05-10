@@ -49,16 +49,93 @@ pub struct FieldErrorSchema {
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(
+        // system
         super::handlers::system_handlers::health_check,
         super::handlers::system_handlers::livez,
+        // events
+        super::handlers::event_handlers::list_events,
+        super::handlers::event_handlers::create_event,
+        super::handlers::event_handlers::get_event,
+        super::handlers::event_handlers::patch_event,
+        super::handlers::event_handlers::delete_event,
+        // members
+        super::handlers::member_handlers::list_members,
+        super::handlers::member_handlers::add_member,
+        super::handlers::member_handlers::remove_member,
+        // expenses
+        super::handlers::expense_handlers::list_expenses,
+        super::handlers::expense_handlers::create_expense,
+        super::handlers::expense_handlers::get_expense,
+        super::handlers::expense_handlers::update_expense,
+        super::handlers::expense_handlers::delete_expense,
+        super::handlers::expense_handlers::list_expense_versions,
+        // payments
+        super::handlers::payment_handlers::list_payments,
+        super::handlers::payment_handlers::create_payment,
+        super::handlers::payment_handlers::get_payment,
+        // settlements
+        super::handlers::settlement_handlers::list_settlements,
+        super::handlers::settlement_handlers::propose_settlement,
+        super::handlers::settlement_handlers::update_settlement_status,
+        super::handlers::settlement_handlers::get_settlement,
+        // balances
+        super::handlers::balance_handlers::all_balances,
+        super::handlers::balance_handlers::user_balance,
+        super::handlers::balance_handlers::simplified_debts,
+        super::handlers::balance_handlers::explain_balance,
     ),
     components(schemas(
+        // envelope
         ApiResponseEnvelope,
         ApiErrorSchema,
         FieldErrorSchema,
+        // event
+        super::dtos::event_dtos::CreateEventRequest,
+        super::dtos::event_dtos::UpdateEventRequest,
+        super::dtos::event_dtos::EventResponse,
+        super::dtos::event_dtos::EventListItem,
+        // member
+        super::dtos::member_dtos::AddMemberRequest,
+        super::dtos::member_dtos::MemberListItem,
+        // expense
+        super::dtos::expense_dtos::CreateExpenseRequest,
+        super::dtos::expense_dtos::UpdateExpenseRequest,
+        super::dtos::expense_dtos::ExpenseResponse,
+        super::dtos::expense_dtos::ExpenseListItem,
+        super::dtos::expense_dtos::ExpenseVersionResponse,
+        super::dtos::expense_dtos::ExpenseVersionDetail,
+        super::dtos::expense_dtos::ExpenseVersionShareItem,
+        // payment
+        super::dtos::payment_dtos::CreatePaymentRequest,
+        super::dtos::payment_dtos::PaymentResponse,
+        super::dtos::payment_dtos::PaymentListItem,
+        // settlement
+        super::dtos::settlement_dtos::CreateSettlementRequest,
+        super::dtos::settlement_dtos::UpdateSettlementStatusRequest,
+        super::dtos::settlement_dtos::SettlementResponse,
+        super::dtos::settlement_dtos::SettlementListItem,
+        // balance
+        super::dtos::balance_dtos::UserBalanceItem,
+        super::dtos::balance_dtos::UserBalanceResponse,
+        super::dtos::balance_dtos::BalancesResponse,
+        super::dtos::balance_dtos::DebtTransfer,
+        super::dtos::balance_dtos::SimplifiedDebtsResponse,
+        super::dtos::balance_dtos::ExpenseBreakdown,
+        super::dtos::balance_dtos::PaymentBreakdown,
+        super::dtos::balance_dtos::SettlementBreakdown,
+        super::dtos::balance_dtos::ExplainBalanceResponse,
+        // common
+        super::dtos::common::PaginatedResponse<super::dtos::event_dtos::EventListItem>,
+        super::dtos::common::PaginationMeta,
     )),
     tags(
-        (name = "System", description = "System health and readiness endpoints")
+        (name = "System", description = "System health and readiness endpoints"),
+        (name = "Events", description = "Event CRUD operations"),
+        (name = "Members", description = "Event member management"),
+        (name = "Expenses", description = "Expense CRUD with versioning"),
+        (name = "Payments", description = "Payment recording"),
+        (name = "Settlements", description = "Settlement proposal and confirmation"),
+        (name = "Balances", description = "Balance computation and debt simplification"),
     ),
 )]
 pub struct ApiDoc;

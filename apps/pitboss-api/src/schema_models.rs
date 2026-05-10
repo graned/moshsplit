@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
+use crate::schema_enums::{EventMemberRole, EventStatus, SettlementStatus, SplitType};
 use diesel::prelude::*;
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -13,7 +14,7 @@ pub struct Event {
     pub name: String,
     pub description: Option<String>,
     pub currency: String,
-    pub status: String,
+    pub status: EventStatus,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -25,7 +26,7 @@ pub struct EventMember {
     pub id: uuid::Uuid,
     pub event_id: uuid::Uuid,
     pub user_id: uuid::Uuid,
-    pub role: String,
+    pub role: EventMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
     pub left_at: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -51,7 +52,7 @@ pub struct ExpenseVersion {
     pub description: Option<String>,
     pub amount_cents: i32,
     pub paid_by: uuid::Uuid,
-    pub split_type: String,
+    pub split_type: SplitType,
     pub split_data: serde_json::Value,
     pub notes: Option<String>,
     pub created_by: uuid::Uuid,
@@ -91,7 +92,7 @@ pub struct Settlement {
     pub from_user: uuid::Uuid,
     pub to_user: uuid::Uuid,
     pub amount_cents: i32,
-    pub status: String,
+    pub status: SettlementStatus,
     pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,

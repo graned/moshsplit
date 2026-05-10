@@ -31,8 +31,14 @@ impl DbClient {
     }
 
     /// Run all pending Diesel migrations (idempotent).
+    /// Sets `search_path` to `app, public` before running so that
+    /// Diesel's internal migration tracking table is created in the
+    /// `public` schema (accessible by the app user).
     pub fn run_migrations(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.pool.get()?;
+        sql_query("SET search_path TO app, public")
+            .execute(&mut conn)
+            .ok();
         conn.run_pending_migrations(MIGRATIONS).map(|_| ())?;
         Ok(())
     }

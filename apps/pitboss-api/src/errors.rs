@@ -219,6 +219,13 @@ impl From<ServiceError> for ApiError {
 }
 
 /// Default 500 for unexpected ApiError construction without explicit status.
+impl IntoResponse for ServiceError {
+    fn into_response(self) -> Response {
+        let api_error: ApiError = self.into();
+        api_error.into_response()
+    }
+}
+
 impl Default for ApiError {
     fn default() -> Self {
         Self {
@@ -233,11 +240,7 @@ impl Default for ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let status = self.status;
-        let response = crate::infrastructure::http::api::types::ApiResponse::<()>::error_raw(
-            self,
-            crate::infrastructure::http::api::types::RequestId::current(),
-        );
-        let mut resp = axum::Json(response).into_response();
+        let mut resp = axum::Json(self).into_response();
         *resp.status_mut() = status;
         resp
     }

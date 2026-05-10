@@ -32,10 +32,11 @@
 //! - `EventRepository::create(&self, row: &EventRow)` → inserts a row
 //! - `EventRepository::find_by_id(&self, id: Uuid)` → fetch by PK
 //! - `EventRepository::find_all(&self)` → fetch all rows
-//! - `EventRepository::update(&self, id: Uuid, changes: &EventRow)` → update by PK
 //! - `EventRepository::delete(&self, id: Uuid)` → delete by PK
 //! - `EventRepository::count(&self)` → row count
 //! - `EventRepository::exists(&self, id: Uuid)` → check existence
+//!
+//! For updates, hand-write methods with explicit changeset structs.
 //!
 //! # Note
 //!
@@ -70,7 +71,6 @@ macro_rules! impl_repository {
 
             /// Insert a new row.
             pub fn create(&self, row: &$entity) -> Result<(), $crate::errors::RepositoryError> {
-                use diesel::RunQueryDsl;
                 let mut conn = self.db_client.get_conn()?;
                 diesel::insert_into($table)
                     .values(row)
@@ -99,31 +99,12 @@ macro_rules! impl_repository {
             pub fn find_all(
                 &self,
             ) -> Result<Vec<$entity>, $crate::errors::RepositoryError> {
-                use diesel::QueryDsl;
                 use diesel::RunQueryDsl;
                 let mut conn = self.db_client.get_conn()?;
                 let results = $table
                     .load::<$entity>(&mut conn)
                     .map_err($crate::errors::RepositoryError::from)?;
                 Ok(results)
-            }
-
-            /// Update a row by primary key using the provided changeset.
-            /// `changes` should be a struct with `AsChangeset` derive.
-            pub fn update(
-                &self,
-                id: $pk_type,
-                changes: &$entity,
-            ) -> Result<usize, $crate::errors::RepositoryError> {
-                use diesel::ExpressionMethods;
-                use diesel::QueryDsl;
-                use diesel::RunQueryDsl;
-                let mut conn = self.db_client.get_conn()?;
-                let affected = diesel::update($table.filter($pk_column.eq(id)))
-                    .set(changes)
-                    .execute(&mut conn)
-                    .map_err($crate::errors::RepositoryError::from)?;
-                Ok(affected)
             }
 
             /// Delete a row by primary key.  Returns the number of rows affected.
