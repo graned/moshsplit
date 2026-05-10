@@ -11,3 +11,8 @@ and workflows are in the respective agent files under `.opencode/skills/`.
 | **DevOps** | Infrastructure | Dockerfiles, Compose orchestration, Pulumi IaC, CI/CD, deployment scripts |
 
 Each agent loads its skill file for full instructions, conventions, and workflows.
+
+## Testing Rules
+- Integration tests make real HTTP calls against a running Docker container.
+  Never use in-process mock servers for API-level tests.
+- Unit tests for pure domain logic use standard Rust test patterns.

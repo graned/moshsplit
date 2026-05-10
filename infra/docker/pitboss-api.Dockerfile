@@ -22,6 +22,9 @@ COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
 RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
 RUN cargo build --release 2>/dev/null || true
 
+# Copy migrations so SQLx can find and apply them.
+COPY apps/pitboss-api/migrations/ /app/migrations/
+
 # Copy real source (overrides dummy main.rs). In dev the src/ directory
 # is typically mounted as a volume for live editing; this COPY is the
 # fallback so the image is self-contained.
@@ -42,6 +45,9 @@ WORKDIR /app
 COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
 RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
 RUN cargo build --release 2>/dev/null || true
+
+# Copy migrations for the release build too.
+COPY apps/pitboss-api/migrations/ /app/migrations/
 
 # Copy the full source and build the release binary.
 COPY apps/pitboss-api/ /app/

@@ -1,0 +1,74 @@
+//! Shared test helpers — HTTP client, envelope assertions, constants.
+
+use reqwest::StatusCode;
+use serde_json::Value;
+
+/// Sentinel's standard JSON response envelope fields.
+pub const ENVELOPE_FIELDS: &[&str] = &["success", "data", "error", "timestamp", "request_id"];
+
+/// Base URL of the running pitboss-api Docker container.
+pub const BASE_URL: &str = "http://localhost:8080";
+
+/// Returns a `reqwest::Client` pre-configured to call the test server.
+pub fn test_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .build()
+        .expect("Failed to build reqwest client")
+}
+
+/// Fetch a path and deserialize the JSON body.
+pub async fn get_json(path: &str) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .get(format!("{BASE_URL}{path}"))
+        .send()
+        .await
+        .expect("HTTP request failed — is the pitboss-api container running?");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
+/// Assert the response body matches Sentinel's standard envelope.
+pub fn assert_valid_envelope(body: &Value, expected_success: bool) {
+    for field in ENVELOPE_FIELDS {
+        assert!(
+            body.get(field).is_some(),
+            "envelope missing field: {field}"
+        );
+    }
+
+    assert_eq!(body["success"], expected_success, "success mismatch");
+
+    let ts = body["timestamp"]
+        .as_str()
+        .expect("timestamp should be a string");
+    assert!(
+        chrono::DateTime::parse_from_rfc3339(ts).is_ok(),
+        "timestamp should be valid RFC 3339 / ISO 8601, got: {ts}"
+    );
+
+    let rid = body["request_id"]
+        .as_str()
+        .expect("request_id should be a string");
+    let parsed = uuid::Uuid::parse_str(rid);
+    assert!(parsed.is_ok(), "request_id should be a valid UUID, got: {rid}");
+    assert_eq!(
+        parsed.unwrap().get_version(),
+        Some(uuid::Version::Random),
+        "request_id should be UUIDv4"
+    );
+
+    if expected_success {
+        assert!(body["error"].is_null(), "error should be null on success");
+    } else {
+        assert!(body["error"].is_object(), "error should be an object");
+        let err = &body["error"];
+        assert!(err["code"].is_string(), "error.code should be a string");
+        assert!(err["message"].is_string(), "error.message should be a string");
+    }
+}

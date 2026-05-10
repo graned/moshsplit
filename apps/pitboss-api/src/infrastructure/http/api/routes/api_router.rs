@@ -46,7 +46,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     // also applies the auth middleware.
 
     let api_routes = Router::new()
-        .nest("/", public_routes)
+        .merge(public_routes)
         // ── Innermost (closest to handler) ──────────────────────
         .layer(middleware::from_fn(
             response_wrapper::response_wrapper_middleware,
