@@ -190,3 +190,131 @@ async fn test_list_settlements_filtered_by_status() {
         assert_eq!(item["status"], "confirmed");
     }
 }
+
+// ── Validation Tests ─────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_create_settlement_negative_amount_returns_error() {
+    let fix = TestFixture::new(&format!("sett-neg {}", Uuid::new_v4())).await;
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/settlements", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": fix.members[1],
+            "amount_cents": -1000
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_settlement_zero_amount_returns_error() {
+    let fix = TestFixture::new(&format!("sett-zero {}", Uuid::new_v4())).await;
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/settlements", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": fix.members[1],
+            "amount_cents": 0
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_settlement_from_not_member_returns_error() {
+    let fix = TestFixture::new(&format!("sett-from-unknown {}", Uuid::new_v4())).await;
+    let non_member = Uuid::new_v4().to_string();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/settlements", fix.event_id),
+        &json!({
+            "from_user": non_member,
+            "to_user": fix.members[0],
+            "amount_cents": 500
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_settlement_to_not_member_returns_error() {
+    let fix = TestFixture::new(&format!("sett-to-unknown {}", Uuid::new_v4())).await;
+    let non_member = Uuid::new_v4().to_string();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/settlements", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": non_member,
+            "amount_cents": 500
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_update_settlement_invalid_status_returns_error() {
+    let fix = TestFixture::new(&format!("sett-bad-status {}", Uuid::new_v4())).await;
+
+    let (_, create_body) = post_json(
+        &format!("/v1/events/{}/settlements", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": fix.members[1],
+            "amount_cents": 1000
+        }),
+    )
+    .await;
+    let settlement_id = create_body["data"]["id"].as_str().unwrap().to_string();
+
+    let (status, body) = patch_json(
+        &format!("/v1/events/{}/settlements/{}", fix.event_id, settlement_id),
+        &json!({"status": "invalid_status"}),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_list_settlements_pagination() {
+    let fix = TestFixture::new(&format!("sett-pag {}", Uuid::new_v4())).await;
+
+    // Create multiple settlements
+    for i in 0..3 {
+        post_json(
+            &format!("/v1/events/{}/settlements", fix.event_id),
+            &json!({
+                "from_user": fix.members[0],
+                "to_user": fix.members[1],
+                "amount_cents": 100 + i * 100
+            }),
+        )
+        .await;
+    }
+
+    // Test with limit
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements?limit=2", fix.event_id)).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_valid_envelope(&body, true);
+    let items = body["data"].as_array().unwrap();
+    assert!(items.len() <= 2);
+}

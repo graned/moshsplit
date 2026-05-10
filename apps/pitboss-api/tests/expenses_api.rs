@@ -233,3 +233,176 @@ async fn test_delete_expense_soft_deletes() {
     assert_eq!(get_status, StatusCode::OK);
     assert!(get_body["data"]["deleted_at"].is_string());
 }
+
+// ── Validation Tests ─────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_create_expense_negative_amount_returns_error() {
+    let fix = TestFixture::new(&unique_name("exp-neg-amt")).await;
+    let paid_by = fix.members[0].clone();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Negative",
+            "amount_cents": -100,
+            "paid_by": paid_by,
+            "split_type": "equal",
+            "split_data": {"shares": [paid_by]}
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_expense_zero_amount_returns_error() {
+    let fix = TestFixture::new(&unique_name("exp-zero-amt")).await;
+    let paid_by = fix.members[0].clone();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Zero",
+            "amount_cents": 0,
+            "paid_by": paid_by,
+            "split_type": "equal",
+            "split_data": {"shares": [paid_by]}
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_expense_invalid_split_type_returns_error() {
+    let fix = TestFixture::new(&unique_name("exp-bad-split")).await;
+    let paid_by = fix.members[0].clone();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Bad Split",
+            "amount_cents": 1000,
+            "paid_by": paid_by,
+            "split_type": "invalid_type",
+            "split_data": {"shares": [paid_by]}
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_expense_split_type_mismatch_returns_error() {
+    let fix = TestFixture::new(&unique_name("exp-type-mismatch")).await;
+    let paid_by = fix.members[0].clone();
+
+    // Use percentage split_type but provide shares array instead of percentages object
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Mismatch",
+            "amount_cents": 1000,
+            "paid_by": paid_by,
+            "split_type": "percentage",
+            "split_data": {"shares": [paid_by]}  // Should be "percentages" object
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_expense_missing_paid_by_returns_error() {
+    let fix = TestFixture::new(&unique_name("exp-missing-paid")).await;
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "No payer",
+            "amount_cents": 1000,
+            "paid_by": "",
+            "split_type": "equal",
+            "split_data": {"shares": fix.members.clone()}
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_expense_paid_by_not_member_returns_error() {
+    let fix = TestFixture::new(&unique_name("exp-payer-not-member")).await;
+    let non_member = Uuid::new_v4().to_string();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Not a member",
+            "amount_cents": 1000,
+            "paid_by": non_member,
+            "split_type": "equal",
+            "split_data": {"shares": fix.members.clone()}
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_list_expenses_with_invalid_event_uuid_returns_400() {
+    let (status, body) = get_json("/v1/events/invalid-uuid/expenses").await;
+
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_list_expenses_pagination() {
+    let fix = TestFixture::new(&unique_name("exp-pagination")).await;
+    let paid_by = fix.members[0].clone();
+
+    // Create 3 expenses
+    for i in 0..3 {
+        post_json(
+            &format!("/v1/events/{}/expenses", fix.event_id),
+            &json!({
+                "title": format!("Expense {}", i),
+                "amount_cents": 1000 + i * 100,
+                "paid_by": paid_by,
+                "split_type": "equal",
+                "split_data": {"shares": [paid_by]}
+            }),
+        )
+        .await;
+    }
+
+    // Test default limit
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/expenses", fix.event_id)).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_valid_envelope(&body, true);
+    assert!(body["data"]["items"].is_array());
+
+    // Test with limit param
+    let (status2, body2) =
+        get_json(&format!("/v1/events/{}/expenses?limit=2", fix.event_id)).await;
+
+    assert_eq!(status2, StatusCode::OK);
+    let items = body2["data"]["items"].as_array().unwrap();
+    assert!(items.len() <= 2);
+}

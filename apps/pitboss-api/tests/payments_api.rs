@@ -129,3 +129,111 @@ async fn test_create_payment_self_payment_fails() {
     assert!(!status.is_success());
     assert_valid_envelope(&body, false);
 }
+
+// ── Validation Tests ─────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_create_payment_negative_amount_returns_error() {
+    let fix = TestFixture::new(&format!("pay-neg {}", Uuid::new_v4())).await;
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/payments", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": fix.members[1],
+            "amount_cents": -500,
+            "currency": "EUR"
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_payment_zero_amount_returns_error() {
+    let fix = TestFixture::new(&format!("pay-zero {}", Uuid::new_v4())).await;
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/payments", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": fix.members[1],
+            "amount_cents": 0,
+            "currency": "EUR"
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_payment_from_user_not_member_returns_error() {
+    let fix = TestFixture::new(&format!("pay-from-unknown {}", Uuid::new_v4())).await;
+    let non_member = Uuid::new_v4().to_string();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/payments", fix.event_id),
+        &json!({
+            "from_user": non_member,
+            "to_user": fix.members[0],
+            "amount_cents": 500,
+            "currency": "EUR"
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_create_payment_to_user_not_member_returns_error() {
+    let fix = TestFixture::new(&format!("pay-to-unknown {}", Uuid::new_v4())).await;
+    let non_member = Uuid::new_v4().to_string();
+
+    let (status, body) = post_json(
+        &format!("/v1/events/{}/payments", fix.event_id),
+        &json!({
+            "from_user": fix.members[0],
+            "to_user": non_member,
+            "amount_cents": 500,
+            "currency": "EUR"
+        }),
+    )
+    .await;
+
+    assert!(!status.is_success());
+    assert_valid_envelope(&body, false);
+}
+
+#[tokio::test]
+async fn test_list_payments_pagination() {
+    let fix = TestFixture::new(&format!("pay-pag {}", Uuid::new_v4())).await;
+
+    // Create multiple payments
+    for i in 0..3 {
+        post_json(
+            &format!("/v1/events/{}/payments", fix.event_id),
+            &json!({
+                "from_user": fix.members[0],
+                "to_user": fix.members[1],
+                "amount_cents": 100 + i * 50,
+                "currency": "EUR"
+            }),
+        )
+        .await;
+    }
+
+    // Test with limit
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/payments?limit=2", fix.event_id)).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_valid_envelope(&body, true);
+    let items = body["data"].as_array().unwrap();
+    assert!(items.len() <= 2);
+}
