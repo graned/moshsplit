@@ -242,6 +242,13 @@ impl ExpenseService {
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
+        // Validate paid_by is in the split members
+        if !member_ids.contains(&req.paid_by) {
+            return Err(ServiceError::Validation(
+                "paid_by user must be one of the members in the split".into(),
+            ));
+        }
+
         // Compute shares
         let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
 
@@ -317,6 +324,13 @@ impl ExpenseService {
 
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
+
+        // Validate paid_by is in the split members
+        if !member_ids.contains(&req.paid_by) {
+            return Err(ServiceError::Validation(
+                "paid_by user must be one of the members in the split".into(),
+            ));
+        }
 
         // Compute shares
         let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;

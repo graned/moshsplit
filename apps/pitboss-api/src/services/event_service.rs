@@ -22,6 +22,10 @@ impl EventService {
 
     /// Create a new event and automatically add the creator as an admin member.
     pub fn create_event(&self, req: CreateEventRequest, created_by: Uuid) -> Result<EventResponse, ServiceError> {
+        if req.name.trim().is_empty() {
+            return Err(ServiceError::Validation("Event name cannot be empty".into()));
+        }
+
         let now = Utc::now();
         let event_id = Uuid::new_v4();
 

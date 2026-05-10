@@ -69,7 +69,7 @@ pub async fn patch_json(path: &str, body: &Value) -> (StatusCode, Value) {
     (status, body)
 }
 
-/// DELETE and deserialize the response.
+/// DELETE and deserialize the response. Returns empty Value for 204 responses.
 pub async fn delete_json(path: &str) -> (StatusCode, Value) {
     let client = test_client();
     let resp = client
@@ -79,6 +79,10 @@ pub async fn delete_json(path: &str) -> (StatusCode, Value) {
         .expect("HTTP request failed");
 
     let status = resp.status();
+    // 204 No Content has no body
+    if status == StatusCode::NO_CONTENT {
+        return (status, Value::Null);
+    }
     let body: Value = resp
         .json()
         .await

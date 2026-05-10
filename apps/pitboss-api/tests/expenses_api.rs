@@ -223,11 +223,11 @@ async fn test_delete_expense_soft_deletes() {
     .await;
     let expense_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
-    let (status, body) =
+    let (status, _body) =
         delete_json(&format!("/v1/events/{}/expenses/{}", fix.event_id, expense_id)).await;
 
-    assert_eq!(status, StatusCode::OK);
-    assert_valid_envelope(&body, true);
+    // DELETE returns 204 No Content
+    assert_eq!(status, StatusCode::NO_CONTENT);
 
     let (get_status, get_body) =
         get_json(&format!("/v1/events/{}/expenses/{}", fix.event_id, expense_id)).await;
