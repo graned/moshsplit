@@ -33,7 +33,7 @@ impl EventService {
             id: event_id,
             name: req.name,
             description: req.description,
-            currency: req.currency.unwrap_or_else(|| "USD".to_string()),
+            currency: req.currency.unwrap_or_else(|| "EUR".to_string()),
             status: EventStatus::Active,
             created_by,
             created_at: now,

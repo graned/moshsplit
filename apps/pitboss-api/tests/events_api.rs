@@ -38,8 +38,8 @@ async fn test_create_event_defaults_currency() {
 
     assert_eq!(status, StatusCode::CREATED);
     assert_valid_envelope(&body, true);
-    // API defaults to USD
-    assert_eq!(body["data"]["currency"], "USD");
+    // API defaults to EUR
+    assert_eq!(body["data"]["currency"], "EUR");
 }
 
 #[tokio::test]
