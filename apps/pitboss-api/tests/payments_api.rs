@@ -107,8 +107,8 @@ async fn test_list_payments_returns_200() {
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
-    assert!(body["data"].is_array());
-    assert!(body["data"].as_array().unwrap().len() >= 1);
+    assert!(body["data"]["items"].is_array());
+    assert!(body["data"]["items"].as_array().unwrap().len() >= 1);
 }
 
 #[tokio::test]
@@ -234,6 +234,6 @@ async fn test_list_payments_pagination() {
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
-    let items = body["data"].as_array().unwrap();
-    assert!(items.len() <= 2);
+    let items = body["data"]["items"].as_array().unwrap();
+    assert!(items.len() <= 2, "limit param should restrict results");
 }

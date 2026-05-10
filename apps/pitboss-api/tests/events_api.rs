@@ -80,7 +80,7 @@ async fn test_list_events_returns_200() {
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
-    assert!(body["data"].is_array());
+    assert!(body["data"]["items"].is_array());
 }
 
 #[tokio::test]
@@ -165,7 +165,7 @@ async fn test_list_members_returns_200() {
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
-    let members = &body["data"]["members"];
+    let members = &body["data"];
     assert!(members.as_array().unwrap().len() >= 2);
 }
 
