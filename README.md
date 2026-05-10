@@ -62,9 +62,9 @@ moshsplit/
 │   │   │   ├── errors.rs               # 4-layer error hierarchy
 │   │   │   ├── applications/           # Use-case orchestrators (thin)
 │   │   │   ├── domain/                 # Domain logic
-│   │   │   │   ├── repositories/       # Repository implementations (moved from infrastructure/persistence)
-│   │   │   │   ├── schema_enums.rs     # Database enums
-│   │   │   │   └── schema_models.rs    # Diesel-generated models
+│   │   │   │   └── repositories/       # Repository implementations
+│   │   │   ├── schema_enums.rs        # Database enums (at src root)
+│   │   │   ├── schema_models.rs        # Diesel-generated models (at src root)
 │   │   │   ├── services/               # Domain services (stateless logic)
 │   │   │   ├── infrastructure/
 │   │   │   │   ├── clients/
