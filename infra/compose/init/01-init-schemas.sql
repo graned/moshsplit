@@ -10,13 +10,13 @@
 
 -- ── Roles (idempotent) ───────────────────────────────────────────────────────
 
--- pitboss_user: used by the pitboss-api service (Rust / Axum)
+-- pitboss: used by the pitboss-api service (Rust / Axum)
 -- Password: override via environment variable PITBOSS_PASSWORD at deployment.
---           Dev default: pitboss_dev
+--           Dev default: password
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'pitboss_user') THEN
-        CREATE ROLE pitboss_user LOGIN PASSWORD 'pitboss_dev';
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'pitboss') THEN
+        CREATE ROLE pitboss LOGIN PASSWORD 'password';
     END IF;
 END
 $$;
@@ -34,8 +34,8 @@ $$;
 
 -- ── Schemas (idempotent) ─────────────────────────────────────────────────────
 
-CREATE SCHEMA IF NOT EXISTS auth      AUTHORIZATION postgres;
-CREATE SCHEMA IF NOT EXISTS moshsplit AUTHORIZATION postgres;
+CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION postgres;
+CREATE SCHEMA IF NOT EXISTS app  AUTHORIZATION postgres;
 
 -- ── Schema permissions ───────────────────────────────────────────────────────
 
@@ -54,21 +54,25 @@ GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel_user;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel_user;
 
--- === moshsplit schema → pitboss_user ===
--- The moshsplit schema is managed by pitboss-api (SQLx migrations).
-GRANT USAGE ON SCHEMA moshsplit TO pitboss_user;
+-- === app schema → pitboss ===
+-- The app schema is managed by pitboss-api (Diesel migrations).
+GRANT USAGE ON SCHEMA app TO pitboss;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA moshsplit
-    GRANT ALL PRIVILEGES ON TABLES    TO pitboss_user;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA moshsplit
-    GRANT ALL PRIVILEGES ON SEQUENCES TO pitboss_user;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA moshsplit
-    GRANT ALL PRIVILEGES ON FUNCTIONS TO pitboss_user;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA app
+    GRANT ALL PRIVILEGES ON TABLES    TO pitboss;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA app
+    GRANT ALL PRIVILEGES ON SEQUENCES TO pitboss;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA app
+    GRANT ALL PRIVILEGES ON FUNCTIONS TO pitboss;
 
-GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA moshsplit TO pitboss_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA moshsplit TO pitboss_user;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA moshsplit TO pitboss_user;
+GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA app TO pitboss;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA app TO pitboss;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA app TO pitboss;
 
--- ── Default search_path for postgres role ────────────────────────────────────
+-- ── Default search_path for roles ────────────────────────────────────────────
 -- Ensures bare table references resolve in the correct order.
-ALTER ROLE postgres SET search_path TO moshsplit, auth, public;
+ALTER ROLE postgres SET search_path TO app, auth, public;
+ALTER ROLE pitboss  SET search_path TO app, public;
+
+-- Diesel stores its __diesel_schema_migrations tracking table in public.
+GRANT ALL ON SCHEMA public TO pitboss;

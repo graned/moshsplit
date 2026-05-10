@@ -26,6 +26,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── pitboss-api migrations (run as postgres superuser) ──────────────────────
+  pitboss-api-migrations:
+    build:
+      context: ../../
+      dockerfile: infra/docker/pitboss-api.Dockerfile
+      target: dev
+    container_name: pitboss-api-migrations
+    volumes:
+      - ../../apps/pitboss-api/src:/app/src
+      - ../../apps/pitboss-api/migrations:/app/migrations
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
+      RUST_LOG: info
+    command: ["cargo", "run", "--", "--migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+
   # ── pitboss-api (Rust / Axum) ──────────────────────────────────────────────
   pitboss-api:
     build:
@@ -36,17 +56,14 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Mount source and migrations for hot-reload via cargo-watch.
-      # The target/ directory stays inside the container to preserve the
-      # dependency cache from the image build.
       - ../../apps/pitboss-api/src:/app/src
       - ../../apps/pitboss-api/migrations:/app/migrations
     environment:
-      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
+      DATABASE_URL: postgres://pitboss:password@postgres:5432/moshsplit
       RUST_LOG: debug
     depends_on:
-      postgres:
-        condition: service_healthy
+      pitboss-api-migrations:
+        condition: service_completed_successfully
     networks:
       - app-net
 
@@ -75,23 +92,23 @@ services:
   #     - app-net
 
   # ── Web (React PWA) ────────────────────────────────────────────────────────
-  web:
-    build:
-      context: ../../
-      dockerfile: infra/docker/web.Dockerfile
-      target: dev
-    container_name: moshsplit-web
-    ports:
-      - "5173:5173"
-    volumes:
-      # Mount the full web app directory for Vite HMR.
-      - ../../apps/web:/app/apps/web
-    environment:
-      VITE_SENTINEL_URL: http://localhost:9000
-    depends_on:
-      - pitboss-api
-    networks:
-      - app-net
+  # web:
+  #  build:
+  #    context: ../../
+  #    dockerfile: infra/docker/web.Dockerfile
+  #    target: dev
+  #  container_name: moshsplit-web
+  #  ports:
+  #    - "5173:5173"
+  #  volumes:
+  #    # Mount the full web app directory for Vite HMR.
+  #    - ../../apps/web:/app/apps/web
+  #  environment:
+  #    VITE_SENTINEL_URL: http://localhost:9000
+  #  depends_on:
+  #    - pitboss-api
+  #  networks:
+  #    - app-net
 
 volumes:
   pgdata:
