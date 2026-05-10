@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS app.event_member CASCADE;

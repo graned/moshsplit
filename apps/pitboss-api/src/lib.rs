@@ -2,7 +2,7 @@
 //!
 //! # Architecture
 //!
-//! Follows the Sentinel Clean Architecture pattern adapted for SQLx:
+//! Follows the Sentinel Clean Architecture pattern adapted for Diesel:
 //!
 //! ```text
 //! applications/      Use-case orchestrators (thin)
@@ -20,6 +20,10 @@ pub mod applications;
 pub mod domain;
 pub mod errors;
 pub mod infrastructure;
+pub mod schema;
+pub mod schema_enums;
+pub mod schema_enums_impls;
+pub mod schema_models;
 pub mod services;
 pub mod utils;
 

@@ -4,7 +4,7 @@ pub mod api;
 pub mod app;
 pub mod server;
 
-use crate::infrastructure::clients::PostgresClient;
+use crate::infrastructure::clients::DbClient;
 
 /// Shared application state injected via `Extension<AppState>` into all
 /// handler functions.
@@ -19,5 +19,5 @@ use crate::infrastructure::clients::PostgresClient;
 /// ```
 #[derive(Clone)]
 pub struct AppState {
-    pub pg_client: PostgresClient,
+    pub db_client: DbClient,
 }

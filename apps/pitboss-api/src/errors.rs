@@ -47,30 +47,27 @@ pub enum RepositoryError {
     Transaction(String),
 }
 
-impl From<sqlx::Error> for RepositoryError {
-    fn from(err: sqlx::Error) -> Self {
+impl From<diesel::result::Error> for RepositoryError {
+    fn from(err: diesel::result::Error) -> Self {
         match &err {
-            sqlx::Error::RowNotFound => RepositoryError::NotFound(err.to_string()),
-            sqlx::Error::Database(db_err) => {
-                // Try to match Postgres error codes
-                if let Some(pg_err) = db_err.try_downcast_ref::<sqlx::postgres::PgDatabaseError>() {
-                    let code = pg_err.code();
-                    let message = pg_err.message().to_string();
-                    match code {
-                        "23503" | "23505" | "23514" => {
-                            RepositoryError::Validation(format!("{} (code: {})", message, code))
-                        }
-                        "40001" | "2D000" => {
-                            RepositoryError::Transaction(format!("{} (code: {})", message, code))
-                        }
-                        _ => RepositoryError::Database(format!("{} (code: {})", message, code)),
-                    }
-                } else {
-                    RepositoryError::Database(err.to_string())
+            diesel::result::Error::NotFound => RepositoryError::NotFound(err.to_string()),
+            diesel::result::Error::DatabaseError(db_kind, info) => {
+                match db_kind {
+                    diesel::result::DatabaseErrorKind::UniqueViolation =>
+                        RepositoryError::Validation(format!("Unique constraint: {}", info.message())),
+                    diesel::result::DatabaseErrorKind::ForeignKeyViolation =>
+                        RepositoryError::Validation(format!("Foreign key violation: {}", info.message())),
+                    _ => RepositoryError::Database(info.message().to_string()),
                 }
             }
             _ => RepositoryError::Database(err.to_string()),
         }
+    }
+}
+
+impl From<diesel::r2d2::PoolError> for RepositoryError {
+    fn from(err: diesel::r2d2::PoolError) -> Self {
+        RepositoryError::Database(err.to_string())
     }
 }
 
@@ -138,8 +135,8 @@ impl From<DomainError> for ServiceError {
     }
 }
 
-impl From<sqlx::Error> for ServiceError {
-    fn from(err: sqlx::Error) -> Self {
+impl From<diesel::result::Error> for ServiceError {
+    fn from(err: diesel::result::Error) -> Self {
         let repo_err: RepositoryError = err.into();
         ServiceError::from(repo_err)
     }

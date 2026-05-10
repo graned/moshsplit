@@ -1,7 +1,7 @@
 # Diesel configuration for pitboss-api
 # ====================================
-# This project uses SQLx at runtime, but Diesel is retained as a
-# schema-introspection tool for generating schema.rs and related types.
+# Diesel is the primary database driver (via r2d2 connection pool).
+# The CLI is also used for schema introspection.
 
 [print_schema]
 # Where to write the generated schema

@@ -43,7 +43,7 @@ impl std::fmt::Display for RequestId {
 
 /// Standard JSON envelope for every API response.
 ///
-/// ```
+/// ```json
 /// {
 ///   "success": true,
 ///   "data": { ... },
