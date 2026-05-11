@@ -1,41 +1,31 @@
 ## Current Project Status
 
 ### Integration Tests
-- **62 tests passing** against real Docker-deployed API
-- Tests run against `http://localhost:8080`
-- All major endpoints covered: events, members, expenses, payments, settlements, balances, health
-- Run with: `cargo test` in `apps/pitboss-api`
+- **62 tests passing** in pitboss-api (tests against real Docker API)
+- **15 tests passing** in sentinel-client SDK (unit + integration tests)
 
-### API Implementation
-- Full REST API implemented with Axum
-- All 27 REST endpoints documented via OpenAPI/Swagger at `/swagger-ui/`
-- Expense versioning, balance computation with greedy debt simplification
-- Settlement workflow (pending → confirmed/disputed)
+### Sentinel SDK (Rust)
+- `packages/sentinel-client/` - Rust SDK for Sentinel Auth
+- Tests: `tests/integration.rs` (6 tests), `tests/middleware.rs` (6 tests)
+- All tests pass against Sentinel at localhost:9000
 
 ### Architecture
-- **Repositories moved from `infrastructure/persistence` to `domain/repositories`**
-- Clean Architecture: services → domain/repositories → infrastructure
-
-### Key Configuration
-- **Currency defaults to EUR** (not USD)
-- DELETE endpoints return 204 No Content
-- Empty name validation on event creation
-- paid_by must be one of the split members
+- **Repositories**: `domain/repositories` (moved from infrastructure/persistence)
+- **Auth**: Using sentinel-client SDK for token validation middleware
+- **Currency**: EUR (default)
 
 ### Running Tests
 ```bash
-# Start Docker services first
-docker compose -f infra/compose/dev.yml up -d
+# Pitboss API tests
+cd apps/pitboss-api && cargo test
 
-# Run integration tests
-cd apps/pitboss-api
-cargo test
+# Sentinel client tests
+cd packages/sentinel-client && cargo test --tests
 ```
 
 ### Recent Commits
+- Add integration and middleware tests for sentinel-client SDK
+- Create Rust sentinel-client SDK
 - Move repositories to domain/repositories
-- Fix expense split bug (extract_member_ids)
 - Add 22 validation tests (P0/P1)
 - Fix list endpoint response format
-- Add empty name and non-member payer validation
-- Change default currency to EUR

@@ -2,11 +2,27 @@
 //!
 //! These tests run against a real Sentinel instance at http://localhost:9000.
 //!
-//! Prerequisites:
-//! - Sentinel must be running at http://localhost:9000
-//! - Database must be initialized with test data
+//! ## Prerequisites
 //!
-//! Run with: cargo test --test integration
+//! - Sentinel must be running at http://localhost:9000
+//! - For local development, uncomment the Sentinel service in infra/compose/dev.yml
+//! - Run: `docker compose -f infra/compose/dev.yml up -d sentinel`
+//!
+//! ## Running Tests
+//!
+//! ```bash
+//! # Start Sentinel
+//! docker compose -f infra/compose/dev.yml up -d
+//!
+//! # Run integration tests
+//! cargo test --test integration
+//! ```
+//!
+//! ## Notes
+//!
+//! - Tests that hit the network may be skipped if Sentinel is not available
+//! - Integration tests verify SDK works with real API
+//! - Middleware tests are unit tests that don't require Sentinel
 
 use sentinel_client::{SentinelClient, SentinelClientBuilder, SentinelConfig, SentinelError};
 
