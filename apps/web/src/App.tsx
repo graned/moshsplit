@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppLayout from './components/AppLayout';
 import HomePage from './pages/app/HomePage';
@@ -17,7 +18,7 @@ import SettingsProfilePage from './pages/app/settings/SettingsProfilePage';
 import SettingsSecurityPage from './pages/app/settings/SettingsSecurityPage';
 
 // Create the Sentinel auth client with the base URL from env
-const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:3000';
+const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
 const authClient = new AuthClient(sentinelUrl);
 
 function AppContent() {
@@ -29,6 +30,7 @@ function AppContent() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/invitation/accept" element={<InvitationAcceptPage />} />
 
       <Route element={<ProtectedRoute />}>

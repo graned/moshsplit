@@ -95,4 +95,8 @@ export const authApi = {
     // TODO: Implement using Sentinel SDK or custom endpoint
     throw new Error('Not implemented');
   },
+
+  verifyEmail: async (token: string): Promise<void> => {
+    await authClient.verifyEmail(token);
+  },
 };

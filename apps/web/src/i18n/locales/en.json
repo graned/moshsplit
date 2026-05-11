@@ -47,7 +47,25 @@
     "successMessage": "Password has been reset successfully.",
     "errorMessage": "Failed to reset password. The link may have expired.",
     "passwordMismatch": "Passwords do not match",
-    "passwordRequirements": "At least 8 characters"
+    "passwordRequirements": "At least 8 characters",
+    "invalidToken": "Invalid or expired reset link"
+  },
+  "verifyEmail": {
+    "verifying": "Verifying your email...",
+    "pleaseWait": "Please wait a moment",
+    "successTitle": "Email verified!",
+    "successMessage": "Your email has been verified successfully.",
+    "successAlert": "You can now sign in to your account.",
+    "signIn": "Sign in",
+    "passwordChangeRequired": "Password change required",
+    "passwordChangeMessage": "You need to set a new password before continuing.",
+    "passwordChangeAlert": "Your account requires a password change.",
+    "setNewPassword": "Set new password",
+    "backToLogin": "Back to sign in",
+    "errorTitle": "Verification failed",
+    "errorMessage": "The verification link may have expired or already been used.",
+    "requestNewLink": "Request a new link",
+    "invalidToken": "Invalid verification link"
   },
   "invitation": {
     "title": "Accept invitation",
