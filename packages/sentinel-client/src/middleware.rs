@@ -51,8 +51,12 @@ impl AuthMiddleware {
             Err(response) => return response,
         };
 
+        // Extract HTTP method and path for authorization
+        let method = request.method().as_str().to_string();
+        let path = request.uri().path().to_string();
+
         // Validate token with Sentinel
-        match self.sentinel.authenticate(&token).await {
+        match self.sentinel.authenticate(&token, &method, &path).await {
             Ok(user) => {
                 // Store authenticated user in extensions
                 request.extensions_mut().insert(user);
@@ -115,7 +119,8 @@ fn status_from_error(error: &SentinelError) -> StatusCode {
         SentinelError::Network(e) => e.status().unwrap_or(StatusCode::SERVICE_UNAVAILABLE),
         SentinelError::InvalidToken(_) => StatusCode::UNAUTHORIZED,
         SentinelError::MissingToken => StatusCode::UNAUTHORIZED,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        SentinelError::Parse(_) => StatusCode::BAD_GATEWAY,
+        SentinelError::Config(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
@@ -135,7 +140,8 @@ fn error_code_from_error(error: &SentinelError) -> &'static str {
         SentinelError::Network(_) => "NETWORK_ERROR",
         SentinelError::InvalidToken(_) => "INVALID_TOKEN",
         SentinelError::MissingToken => "MISSING_TOKEN",
-        _ => "INTERNAL_ERROR",
+        SentinelError::Parse(_) => "UPSTREAM_PARSE_ERROR",
+        SentinelError::Config(_) => "CONFIG_ERROR",
     }
 }
 

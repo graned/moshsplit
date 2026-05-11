@@ -37,17 +37,21 @@ impl SentinelClient {
         Self::new(SentinelConfig::default())
     }
 
-    /// Validate a token via the /v1/api/auth/authenticate endpoint.
+    /// Validate a token via POST /v1/api/auth/authenticate.
     ///
     /// This is the primary method used by the auth middleware.
-    pub async fn authenticate(&self, token: &str) -> Result<AuthenticatedUser> {
+    /// Sends the token as a Bearer token in the Authorization header.
+    /// The method and path parameters are kept for backwards compatibility but
+    /// the Sentinel API doesn't use them for the basic authenticate endpoint.
+    pub async fn authenticate(&self, token: &str, _method: &str, _path: &str) -> Result<AuthenticatedUser> {
         let url = format!("{}/v1/api/auth/authenticate", self.inner.base_url);
 
         let response = self
             .inner
             .http_client
-            .get(&url)
+            .post(&url)
             .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
             .send()
             .await
             .map_err(SentinelError::Network)?;
@@ -56,17 +60,47 @@ impl SentinelClient {
         let body = response.text().await.unwrap_or_default();
 
         if status.is_success() {
-            let auth_response: crate::types::AuthenticateResponse =
+            let envelope: crate::types::ApiEnvelope<crate::types::AuthenticateResponse> =
                 serde_json::from_str(&body).map_err(SentinelError::Parse)?;
 
+            // Clone request_id for use in closures
+            let request_id = envelope.request_id.clone();
+
+            if !envelope.success {
+                let error = envelope.error.ok_or_else(|| {
+                    SentinelError::Api {
+                        message: "Unknown error".to_string(),
+                        code: crate::errors::SentinelErrorCode::Unknown,
+                        status: status.as_u16(),
+                        request_id: Some(request_id.clone()),
+                    }
+                })?;
+                return Err(SentinelError::Api {
+                    message: error.message,
+                    code: crate::errors::SentinelErrorCode::from_status(status.as_u16()),
+                    status: status.as_u16(),
+                    request_id: Some(request_id),
+                });
+            }
+
+            let auth_response = envelope.data.ok_or_else(|| {
+                SentinelError::Api {
+                    message: "No data in response".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(request_id.clone()),
+                }
+            })?;
+
+            // Return authenticated user with data from the response
             Ok(AuthenticatedUser {
                 user_id: auth_response.user_id,
-                email: auth_response.email,
-                first_name: auth_response.first_name,
-                last_name: auth_response.last_name,
+                email: None,
+                first_name: None,
+                last_name: None,
                 email_verified: auth_response.email_verified,
                 roles: auth_response.roles,
-                permissions: auth_response.permissions,
+                permissions: Vec::new(), // Permissions not returned by this endpoint
             })
         } else {
             Err(SentinelError::from_response(

@@ -2,8 +2,29 @@
 //!
 //! These types mirror the TypeScript sentinel-auth-sdk.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Common Types (ApiEnvelope)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Sentinel API response wrapper format
+#[derive(Debug, Clone, Deserialize)]
+pub struct ApiEnvelope<T> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub error: Option<ApiError>,
+    pub timestamp: String,
+    #[serde(rename = "request_id")]
+    pub request_id: String,
+}
+
+/// Sentinel API error response
+#[derive(Debug, Clone, Deserialize)]
+pub struct ApiError {
+    pub code: String,
+    pub message: String,
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth Types
@@ -15,22 +36,42 @@ pub struct AuthenticateRequest {
     pub token: String,
 }
 
-/// Response from authenticate endpoint
+/// Response from authenticate endpoint (POST /v1/api/auth/authenticate)
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthenticateResponse {
     #[serde(rename = "user_id")]
     pub user_id: String,
-    pub email: Option<String>,
-    #[serde(rename = "first_name")]
-    pub first_name: Option<String>,
-    #[serde(rename = "last_name")]
-    pub last_name: Option<String>,
+    #[serde(rename = "session_id")]
+    pub session_id: Option<String>,
+    pub roles: Vec<String>,
     #[serde(rename = "email_verified")]
     pub email_verified: bool,
-    pub roles: Vec<String>,
+    #[serde(rename = "must_change_password")]
+    pub must_change_password: bool,
+}
+
+/// Request to authenticate and authorize (validate token + check permissions)
+#[derive(Debug, Clone, Serialize)]
+pub struct AuthenticateAndAuthorizeRequest {
+    #[serde(rename = "access_token")]
+    pub access_token: String,
+    pub method: String,
+    pub path: String,
+}
+
+/// Response from authenticate-and-authorize endpoint
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthenticateAndAuthorizeResponse {
+    pub authorized: bool,
+    pub roles: Option<Vec<UserRole>>,
+}
+
+/// User role from Sentinel
+#[derive(Debug, Clone, Deserialize)]
+pub struct UserRole {
+    pub id: String,
+    pub name: String,
     pub permissions: Vec<String>,
-    #[serde(rename = "expires_at")]
-    pub expires_at: Option<String>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

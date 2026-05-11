@@ -137,6 +137,7 @@
   },
   "nav": {
     "home": "Home",
+    "groups": "Groups",
     "events": "Events",
     "expenses": "Expenses",
     "balances": "Balances",

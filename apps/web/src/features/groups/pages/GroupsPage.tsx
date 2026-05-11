@@ -10,87 +10,22 @@ import {
   CircularProgress,
   Alert,
   Stack,
-  IconButton,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import {
   Add as AddIcon,
   GroupAdd as JoinIcon,
   Group as GroupsIcon,
-  MoreVert as MoreIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
-import { groupsApi, GroupListItem, CreateGroupRequest } from '../../api/groups.api';
-import { CreateGroupDialog } from '../../features/groups/components/CreateGroupDialog';
-import { JoinGroupDialog } from '../../features/groups/components/JoinGroupDialog';
+import { groupsApi, GroupListItem, CreateGroupRequest } from '../../../api/groups.api';
+import { GroupCard } from '../components/GroupCard';
+import { CreateGroupDialog } from '../components/CreateGroupDialog';
+import { JoinGroupDialog } from '../components/JoinGroupDialog';
 
-function GroupCard({ group, onClick, onDelete }: { 
-  group: GroupListItem; 
-  onClick: () => void;
-  onDelete?: () => void;
-}) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  return (
-    <Card
-      sx={{
-        cursor: 'pointer',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: 4,
-        },
-      }}
-      onClick={onClick}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              {group.name}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Typography variant="body2" color="text.secondary">
-                {group.member_count} member{group.member_count !== 1 ? 's' : ''}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {group.currency}
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-              {group.status}
-            </Typography>
-            {onDelete && (
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-              >
-                <MoreIcon fontSize="small" />
-              </IconButton>
-            )}
-          </Box>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          Created {formatDate(group.created_at)}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function EventsPage() {
+export function GroupsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -120,7 +55,7 @@ export default function EventsPage() {
 
   // Delete group mutation
   const deleteMutation = useMutation({
-    mutationFn: (groupId: string) => groupsApi.delete(groupId),
+    mutationFn: groupsApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -134,12 +69,13 @@ export default function EventsPage() {
   };
 
   const handleJoinGroup = async (_inviteCode: string) => {
+    // TODO: Implement when backend supports invite codes
+    // For now, this would need to call an API to accept an invite
     throw new Error('Invite functionality not yet implemented');
   };
 
   const handleGroupClick = (group: GroupListItem) => {
-    // Navigate to group detail - show expenses for this group
-    navigate(`/app/expenses?groupId=${group.id}`);
+    navigate(`/app/groups/${group.id}`);
   };
 
   const handleDeleteGroup = async (groupId: string) => {
@@ -149,6 +85,7 @@ export default function EventsPage() {
   };
 
   const groups = data?.data || [];
+  const hasMore = data?.hasMore || false;
 
   return (
     <Box>
@@ -245,26 +182,42 @@ export default function EventsPage() {
 
       {/* Groups list */}
       {!isLoading && !error && groups.length > 0 && (
-        <Grid container spacing={2}>
-          {groups.map((group) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={group.id}>
-              <GroupCard
-                group={group}
-                onClick={() => handleGroupClick(group)}
-                onDelete={() => handleDeleteGroup(group.id)}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <Box>
+          <Grid container spacing={2}>
+            {groups.map((group) => (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={group.id}>
+                <GroupCard
+                  group={group}
+                  onClick={() => handleGroupClick(group)}
+                  onDelete={() => handleDeleteGroup(group.id)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Load more indicator */}
+          {hasMore && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => refetch()}
+              >
+                Load More
+              </Button>
+            </Box>
+          )}
+        </Box>
       )}
 
-      {/* Dialogs */}
+      {/* Create Group Dialog */}
       <CreateGroupDialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onSubmit={handleCreateGroup}
       />
 
+      {/* Join Group Dialog */}
       <JoinGroupDialog
         open={joinDialogOpen}
         onClose={() => setJoinDialogOpen(false)}

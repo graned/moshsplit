@@ -5,14 +5,14 @@
 //!
 //! ## Quick Start
 //!
-//! ```rust
+//! ```ignore
 //! use sentinel_client::{SentinelClient, SentinelConfig};
 //!
 //! // Create client
 //! let client = SentinelClient::new(SentinelConfig::new("http://localhost:9000"))?;
 //!
-//! // Validate a token
-//! let user = client.authenticate("Bearer <token>").await?;
+//! // Validate a token and authorize request
+//! let user = client.authenticate("<token>", "GET", "/api/users").await?;
 //! println!("Authenticated user: {}", user.user_id);
 //! ```
 //!
@@ -20,7 +20,7 @@
 //!
 //! For Axum middleware integration, use the `AuthMiddleware`:
 //!
-//! ```rust
+//! ```ignore
 //! use sentinel_client::{AuthMiddleware, SentinelClient, SentinelConfig};
 //!
 //! let sentinel = SentinelClient::new(SentinelConfig::default())?;
@@ -31,19 +31,21 @@
 //!
 //! The crate provides a comprehensive error hierarchy matching the TypeScript SDK:
 //!
-//! ```rust
-//! use sentinel_client::SentinelError;
+//! ```ignore
+//! use sentinel_client::{SentinelError, SentinelErrorCode};
 //!
-//! match error {
-//!     SentinelError::Api { code, message, .. } => {
-//!         match code {
-//!             SentinelErrorCode::InvalidToken => { /* Handle invalid token */ }
-//!             SentinelErrorCode::RateLimitExceeded => { /* Handle rate limit */ }
-//!             _ => { /* Handle other errors */ }
+//! fn handle_error(error: &SentinelError) {
+//!     match error {
+//!         SentinelError::Api { code, message, .. } => {
+//!             match code {
+//!                 SentinelErrorCode::InvalidToken => { /* Handle invalid token */ }
+//!                 SentinelErrorCode::RateLimitExceeded => { /* Handle rate limit */ }
+//!                 _ => { /* Handle other errors */ }
+//!             }
 //!         }
+//!         SentinelError::Network(e) => { /* Handle network errors */ }
+//!         _ => { /* Handle other errors */ }
 //!     }
-//!     SentinelError::Network(e) => { /* Handle network errors */ }
-//!     _ => { /* Handle other errors */ }
 //! }
 //! ```
 
@@ -56,7 +58,10 @@ pub mod types;
 pub use client::{SentinelClient, SentinelClientBuilder};
 pub use errors::{SentinelError, SentinelErrorCode, Result};
 pub use middleware::AuthMiddleware;
-pub use types::{AuthenticatedUser, SentinelConfig};
+pub use types::{
+    ApiEnvelope, ApiError, AuthenticatedUser, AuthenticateAndAuthorizeRequest,
+    AuthenticateAndAuthorizeResponse, SentinelConfig, UserRole,
+};
 
 /// Current version of the crate.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

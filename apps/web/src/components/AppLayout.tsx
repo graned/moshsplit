@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import {
   AppBar,
@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
+  MenuOpen as MenuOpenIcon,
   Home as HomeIcon,
   Event as EventIcon,
   Receipt as ReceiptIcon,
@@ -37,7 +38,7 @@ const DRAWER_WIDTH = 280;
 
 const navItems = [
   { path: '/app/home', label: 'nav.home', icon: <HomeIcon /> },
-  { path: '/app/events', label: 'nav.events', icon: <EventIcon /> },
+  { path: '/app/events', label: 'nav.groups', icon: <EventIcon /> },
   { path: '/app/expenses', label: 'nav.expenses', icon: <ReceiptIcon /> },
   { path: '/app/balances', label: 'nav.balances', icon: <BalanceIcon /> },
   { path: '/app/settlements', label: 'nav.settlements', icon: <SettlementIcon /> },
@@ -52,16 +53,24 @@ function AppLayout() {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const navigate = useNavigate();
   const location = useLocation();
   const { firstName, lastName, userEmail } = useAuthStore();
   const { logout } = useAuth();
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Mobile: drawer is temporary (overlay)
+  // Desktop: drawer is persistent (can be toggled)
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleDrawerToggle = () => {
-    setDrawerOpen(!drawerOpen);
+  const handleMobileDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const handleDesktopDrawerToggle = () => {
+    setDesktopOpen(!desktopOpen);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -74,10 +83,25 @@ function AppLayout() {
 
   const handleNavigation = (path: string) => {
     navigate(path);
-    if (isMobile) {
-      setDrawerOpen(false);
-    }
+    // Close mobile drawer on navigation
+    setMobileOpen(false);
   };
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Keyboard accessibility: close drawer on Escape
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
 
   const handleLogout = async () => {
     handleMenuClose();
@@ -170,13 +194,17 @@ function AppLayout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Mobile: Temporary drawer (overlay) */}
       {isMobile && (
         <Drawer
           variant="temporary"
-          open={drawerOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
+          open={mobileOpen}
+          onClose={handleMobileDrawerToggle}
+          ModalProps={{
+            keepMounted: true, // Better mobile performance
+          }}
           sx={{
+            display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
@@ -188,19 +216,28 @@ function AppLayout() {
         </Drawer>
       )}
 
-      {!isMobile && (
+      {/* Desktop: Persistent drawer (collapsible) */}
+      {isDesktop && (
         <Drawer
-          variant="permanent"
+          variant="persistent"
+          open={desktopOpen}
           sx={{
+            display: { xs: 'none', md: 'block' },
+            width: desktopOpen ? DRAWER_WIDTH : 0,
+            flexShrink: 0,
             '& .MuiDrawer-paper': {
+              width: desktopOpen ? DRAWER_WIDTH : 0,
               boxSizing: 'border-box',
-              width: DRAWER_WIDTH,
+              overflowX: 'hidden',
               backgroundColor: 'background.paper',
-              borderRight: '1px solid',
+              borderRight: desktopOpen ? '1px solid' : 'none',
               borderColor: 'divider',
+              transition: theme.transitions.create('width', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
             },
           }}
-          open
         >
           {drawerContent}
         </Drawer>
@@ -213,7 +250,20 @@ function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
-          width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
+          width: {
+            xs: '100%',
+            md: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
+          },
+          // Keep drawer attached to left edge - no negative margin
+          // When collapsed, drawer width becomes 0 but stays in place
+          ml: {
+            xs: 0,
+            md: 0,
+          },
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <AppBar
@@ -225,12 +275,39 @@ function AppLayout() {
           }}
         >
           <Toolbar>
+            {/* Mobile menu button */}
             {isMobile && (
               <IconButton
                 color="inherit"
                 edge="start"
-                onClick={handleDrawerToggle}
+                onClick={handleMobileDrawerToggle}
                 sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+
+            {/* Desktop toggle button (only show when drawer is open) */}
+            {isDesktop && desktopOpen && (
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDesktopDrawerToggle}
+                sx={{ mr: 2 }}
+                aria-label="close sidebar"
+              >
+                <MenuOpenIcon />
+              </IconButton>
+            )}
+
+            {/* Desktop: Show toggle to open sidebar when closed */}
+            {isDesktop && !desktopOpen && (
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDesktopDrawerToggle}
+                sx={{ mr: 2 }}
+                aria-label="open sidebar"
               >
                 <MenuIcon />
               </IconButton>

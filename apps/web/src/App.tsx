@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
 import {
@@ -6,6 +7,7 @@ import {
   ForgotPasswordPage,
   ResetPasswordPage,
   ChangePasswordForcedPage,
+  useAuthStore,
 } from '@moshsplit/auth-react';
 
 import LoginPage from './features/auth/pages/LoginPage';
@@ -19,10 +21,22 @@ import BalancesPage from './pages/app/BalancesPage';
 import SettlementsPage from './pages/app/SettlementsPage';
 import SettingsProfilePage from './pages/app/settings/SettingsProfilePage';
 import SettingsSecurityPage from './pages/app/settings/SettingsSecurityPage';
+import { apiClient } from './api/client';
 
 // Create the Sentinel auth client with the base URL from env
 const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
 const authClient = new AuthClient(sentinelUrl);
+
+// Sync token from sentinel-auth-react store to apiClient
+function TokenSync() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  useEffect(() => {
+    apiClient.setToken(accessToken);
+  }, [accessToken]);
+
+  return null;
+}
 
 function AppContent() {
   // The store auto-initializes from localStorage via persist middleware
@@ -90,6 +104,7 @@ function App() {
       }}
       theme={moshSplitTheme}
     >
+      <TokenSync />
       <AppContent />
     </SentinelAuthProvider>
   );

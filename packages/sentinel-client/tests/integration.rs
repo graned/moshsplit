@@ -39,13 +39,13 @@ async fn test_client_connection() {
 #[tokio::test]
 async fn test_authenticate_invalid_token() {
     let client = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
-    
-    let result = client.authenticate("invalid-token").await;
-    
+
+    let result = client.authenticate("invalid-token", "GET", "/api/test").await;
+
     // Should fail with an error
     assert!(result.is_err());
     let err = result.unwrap_err();
-    
+
     // Just verify some error occurred - could be network, API, etc.
     // The important thing is it's not success
     println!("Error type: {:?}", std::mem::discriminant(&err));
@@ -55,9 +55,9 @@ async fn test_authenticate_invalid_token() {
 #[tokio::test]
 async fn test_authenticate_empty_token() {
     let client = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
-    
-    let result = client.authenticate("").await;
-    
+
+    let result = client.authenticate("", "GET", "/api/test").await;
+
     // Should fail
     assert!(result.is_err());
 }
@@ -66,10 +66,10 @@ async fn test_authenticate_empty_token() {
 #[tokio::test]
 async fn test_sentinel_reachable() {
     let client = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
-    
+
     // Try to authenticate - this will fail but proves we can reach the service
-    let _ = client.authenticate("test").await;
-    
+    let _ = client.authenticate("test", "GET", "/api/test").await;
+
     // If we get here, the service is reachable (even if auth fails)
     // This test just validates we can make HTTP requests
 }
