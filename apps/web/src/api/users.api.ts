@@ -65,17 +65,26 @@ export const usersApi = {
   },
 
   list: async (): Promise<UserListItem[]> => {
-    const response = await sentinelFetch('/v1/api/admin/users');
-    const result = await response.json();
+    console.log('[usersApi] Fetching users from Sentinel...');
+    try {
+      const response = await sentinelFetch('/v1/api/admin/users');
+      console.log('[usersApi] Response status:', response.status);
+      const result = await response.json();
+      console.log('[usersApi] Result:', result);
+      
+      // Transform Sentinel response to UserListItem format
+      const items = (result.data?.items || []).map((user: any) => ({
+        id: user.user_id,
+        email: user.email || '',
+        name: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Unknown',
+        avatarUrl: user.avatar_url,
+      }));
 
-    // Transform Sentinel response to UserListItem format
-    const items = (result.data?.items || []).map((user: any) => ({
-      id: user.user_id,
-      email: user.email || '',
-      name: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Unknown',
-      avatarUrl: user.avatar_url,
-    }));
-
-    return items;
+      console.log('[usersApi] Transformed items:', items.length);
+      return items;
+    } catch (err) {
+      console.error('[usersApi] Error fetching users:', err);
+      throw err;
+    }
   },
 };
