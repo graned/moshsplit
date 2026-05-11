@@ -50,6 +50,21 @@
     "passwordRequirements": "At least 8 characters",
     "invalidToken": "Invalid or expired reset link"
   },
+  "changePassword": {
+    "title": "Change your password",
+    "subtitle": "A temporary password was set for your account. Choose a new password to continue.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "submitButton": "Set new password",
+    "successTitle": "Password updated!",
+    "successMessage": "Your password has been changed. All previous sessions have been signed out.",
+    "goToApp": "Go to app",
+    "passwordMismatch": "Passwords do not match",
+    "requirementsNotMet": "Password does not meet all requirements",
+    "errorMessage": "Failed to change password. Please check your current password.",
+    "noSession": "No active session. Please sign in again."
+  },
   "verifyEmail": {
     "verifying": "Verifying your email...",
     "pleaseWait": "Please wait a moment",

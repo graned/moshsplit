@@ -53,16 +53,25 @@ export function useAuth() {
       try {
         const result = await client.login(data);
         if (result.type === "session") {
-          const profile = await client.user.getMe(result.session.accessToken);
-          setUserProfile(profile.email, profile.first_name, profile.last_name);
-          if (!profile.email_verified) {
-            setSession(
-              result.session.userId,
-              result.session.accessToken,
-              result.session.refreshToken,
-              false,
-            );
-            return { success: true as const, mfa: false as const, emailUnverified: true, email: data.email };
+          // Skip getMe() when mustChangePassword is true - backend returns 403
+          // until password is changed. The profile can be fetched after password change.
+          if (!result.mustChangePassword) {
+            const profile = await client.user.getMe(result.session.accessToken);
+            setUserProfile(profile.email, profile.first_name, profile.last_name);
+            if (!profile.email_verified) {
+              setSession(
+                result.session.userId,
+                result.session.accessToken,
+                result.session.refreshToken,
+                false,
+              );
+              return { success: true as const, mfa: false as const, emailUnverified: true, email: data.email };
+            }
+            if (result.mfaSetupRequired) {
+              setMfaSetupRequired(true);
+              return { success: true as const, mfa: false as const, mfaSetupRequired: true };
+            }
+            await detectAndSetAdmin(client, result.session.accessToken);
           }
           setSession(
             result.session.userId,
@@ -74,11 +83,6 @@ export function useAuth() {
           if (result.mustChangePassword) {
             return { success: true as const, mfa: false as const, mustChangePassword: true };
           }
-          if (result.mfaSetupRequired) {
-            setMfaSetupRequired(true);
-            return { success: true as const, mfa: false as const, mfaSetupRequired: true };
-          }
-          await detectAndSetAdmin(client, result.session.accessToken);
           return { success: true as const, mfa: false as const };
         }
         return {

@@ -203,6 +203,7 @@ export class AuthClient {
       fetch: fetchImpl,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     });
 
@@ -353,13 +354,15 @@ export class AuthClient {
     };
   }
 
-  /**
+/**
    * Verify email from email link
-   * GET /v1/api/auth/verify-email
+   * POST /v1/api/auth/verify-email
+   *
+   * The token is passed in the request body as JSON.
    */
   async verifyEmail(token: string): Promise<void> {
-    const response = await this.api.get('v1/api/auth/verify-email', {
-      searchParams: { token },
+    const response = await this.api.post('v1/api/auth/verify-email', {
+      json: { token },
     });
 
     if (!response.ok) {
