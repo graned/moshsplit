@@ -1,4 +1,4 @@
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
 
 // User types for admin management
 export type UserRole = 'user' | 'admin' | 'super_admin';
