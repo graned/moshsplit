@@ -13,11 +13,17 @@ import {
   Box,
   Typography,
 } from '@mui/material';
+import { UserSelect } from '../../../components/UserSelect';
 
 interface CreateGroupDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; description?: string; currency: string }) => Promise<void>;
+  onSubmit: (data: {
+    name: string;
+    description?: string;
+    currency: string;
+    memberIds: string[];
+  }) => Promise<void>;
 }
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'BRL', 'JPY', 'CAD', 'AUD'];
@@ -26,6 +32,7 @@ export function CreateGroupDialog({ open, onClose, onSubmit }: CreateGroupDialog
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [currency, setCurrency] = useState('EUR');
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,11 +51,13 @@ export function CreateGroupDialog({ open, onClose, onSubmit }: CreateGroupDialog
         name: name.trim(),
         description: description.trim() || undefined,
         currency,
+        memberIds: selectedMembers,
       });
       // Reset form on success
       setName('');
       setDescription('');
       setCurrency('EUR');
+      setSelectedMembers([]);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create group');
@@ -61,6 +70,7 @@ export function CreateGroupDialog({ open, onClose, onSubmit }: CreateGroupDialog
     setName('');
     setDescription('');
     setCurrency('EUR');
+    setSelectedMembers([]);
     setError('');
     onClose();
   };
@@ -103,6 +113,12 @@ export function CreateGroupDialog({ open, onClose, onSubmit }: CreateGroupDialog
                 ))}
               </Select>
             </FormControl>
+            <UserSelect
+              label="Add members"
+              placeholder="Search and select members"
+              value={selectedMembers}
+              onChange={setSelectedMembers}
+            />
             {error && (
               <Typography variant="body2" color="error">
                 {error}

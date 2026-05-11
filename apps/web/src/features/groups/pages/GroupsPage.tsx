@@ -47,7 +47,15 @@ export function GroupsPage() {
 
   // Create group mutation
   const createMutation = useMutation({
-    mutationFn: (data: CreateGroupRequest) => groupsApi.create(data),
+    mutationFn: async (data: CreateGroupRequest & { memberIds: string[] }) => {
+      const { memberIds, ...groupData } = data;
+      const group = await groupsApi.create(groupData);
+      // Add selected members to the group
+      for (const memberId of memberIds) {
+        await groupsApi.addMember(group.id, { user_id: memberId });
+      }
+      return group;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -61,7 +69,12 @@ export function GroupsPage() {
     },
   });
 
-  const handleCreateGroup = async (data: { name: string; description?: string; currency: string }) => {
+  const handleCreateGroup = async (data: {
+    name: string;
+    description?: string;
+    currency: string;
+    memberIds: string[];
+  }) => {
     if (!userId) {
       throw new Error('User not authenticated');
     }

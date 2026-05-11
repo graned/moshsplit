@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   users: {
     profile: '/api/v1/users/profile',
     updateProfile: '/api/v1/users/profile',
+    list: '/api/v1/users',
   },
   admin: {
     users: '/api/v1/admin/users',
