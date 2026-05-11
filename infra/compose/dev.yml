@@ -73,19 +73,25 @@ services:
       - app-net
 
   # ── Sentinel migrations ─────────────────────────────────────────────────────
+  # Runs Sentinel migrations in auth schema - idempotent and handles schema transformation
   sentinel-migrations:
     build:
       context: ../../
       dockerfile: infra/docker/sentinel-migrate.Dockerfile
     container_name: sentinel-migrations
     environment:
-      DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
-      PGOPTIONS: "-c search_path=auth"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sentinel_auth
+      SENTINEL_VERSION: v1.1.0
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - app-net
+    restart: "no"
 
   # ── Sentinel (auth service) ─────────────────────────────────────────────────
   sentinel:

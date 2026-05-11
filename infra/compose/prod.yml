@@ -57,14 +57,15 @@ services:
     restart: unless-stopped
 
   # ── Sentinel migrations (runs before Sentinel, creates tables in 'auth' schema) ─
+  # Idempotent: Safe to run multiple times. Transforms public schema refs to auth.
   sentinel-migrations:
     build:
       context: ../../
       dockerfile: infra/docker/sentinel-migrate.Dockerfile
     environment:
-      # Use shared moshsplit database - the DATABASE_URL should point to the same
-      # database as pitboss-api but without the schema prefix (diesel handles schema via diesel.toml)
+      # Use shared database - DATABASE_URL format: postgres://user:pass@host:port/database
       DATABASE_URL: ${DATABASE_URL}
+      SENTINEL_VERSION: ${SENTINEL_VERSION:-v1.1.0}
     depends_on:
       postgres:
         condition: service_healthy
