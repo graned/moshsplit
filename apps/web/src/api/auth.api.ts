@@ -52,14 +52,15 @@ export interface InvitationAcceptResponse {
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await authClient.login(data);
-    if ('mfa_required' in response && response.mfa_required) {
+    const result = await authClient.login(data);
+    if (result.type === 'mfa') {
       throw new Error('MFA required');
     }
+    // Successfully got a session
     return {
-      token: response.access_token,
+      token: result.session.accessToken,
       user: {
-        id: response.user_id,
+        id: result.session.userId,
         email: data.email,
         name: '',
         mfaEnabled: false,
@@ -90,7 +91,8 @@ export const authApi = {
     return { message: 'Password reset successful' };
   },
 
-  acceptInvitation: async (data: InvitationAcceptRequest): Promise<InvitationAcceptResponse> => {
+  acceptInvitation: async (_data: InvitationAcceptRequest): Promise<InvitationAcceptResponse> => {
+    // TODO: Implement using Sentinel SDK or custom endpoint
     throw new Error('Not implemented');
   },
 };

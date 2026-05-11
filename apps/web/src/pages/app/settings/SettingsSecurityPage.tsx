@@ -15,12 +15,13 @@ import {
   Lock as LockIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../../stores/authStore';
 import { settingsApi } from '../../../api/settings.api';
 
 function SettingsSecurityPage() {
   const { t } = useTranslation();
-  const user = useAuthStore((state) => state.user);
+  // Note: MFA status is not directly available in the auth store
+  // For now, we'll show the MFA feature as disabled/not configured
+  const mfaEnabled = false;
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -92,12 +93,12 @@ function SettingsSecurityPage() {
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Chip
-                label={user?.mfaEnabled ? t('settings.security.mfaEnabled') : t('settings.security.mfaDisabled')}
-                color={user?.mfaEnabled ? 'success' : 'default'}
+                label={mfaEnabled ? t('settings.security.mfaEnabled') : t('settings.security.mfaDisabled')}
+                color={mfaEnabled ? 'success' : 'default'}
                 size="small"
               />
               <Switch
-                checked={user?.mfaEnabled || false}
+                checked={mfaEnabled}
                 // TODO: Implement MFA toggle
                 disabled
               />

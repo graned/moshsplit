@@ -17,16 +17,15 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../../stores/authStore';
+import { useAuthStore } from '@moshsplit/auth-react';
 import { usersApi } from '../../../api/users.api';
 
 function SettingsProfilePage() {
   const { t } = useTranslation();
-  const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
+  const { firstName, lastName, userEmail, setUserProfile } = useAuthStore();
 
-  const [name, setName] = useState(user?.name || '');
-  const [email] = useState(user?.email || '');
+  const [name, setName] = useState(firstName && lastName ? `${firstName} ${lastName}` : '');
+  const [email] = useState(userEmail || '');
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -40,8 +39,9 @@ function SettingsProfilePage() {
 
     try {
       const response = await usersApi.updateProfile({ name: name.trim() });
-      if (user) {
-        setUser({ ...user, name: response.user.name });
+      // Update the store with the new profile data
+      if (response.user) {
+        setUserProfile(response.user.email, response.user.name?.split(' ')[0] || null, response.user.name?.split(' ').slice(1).join(' ') || null);
       }
       setSuccess(true);
       setIsEditing(false);
@@ -82,7 +82,6 @@ function SettingsProfilePage() {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Avatar
-                src={user?.avatarUrl}
                 sx={{
                   width: 80,
                   height: 80,
@@ -90,7 +89,7 @@ function SettingsProfilePage() {
                   bgcolor: 'primary.main',
                 }}
               >
-                {user?.name?.charAt(0)?.toUpperCase() || '?'}
+                {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
               </Avatar>
               <Box>
                 <Typography variant="h6" fontWeight={600}>
@@ -138,7 +137,7 @@ function SettingsProfilePage() {
                   <Button
                     variant="outlined"
                     onClick={() => {
-                      setName(user?.name || '');
+                      setName(firstName && lastName ? `${firstName} ${lastName}` : '');
                       setIsEditing(false);
                     }}
                   >

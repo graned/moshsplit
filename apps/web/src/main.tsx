@@ -9,6 +9,9 @@ import App from './App';
 import { theme } from './theme';
 import { i18n } from './i18n';
 
+// Import Sentinel auth styles
+import '@moshsplit/auth-react/dist/style.css';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

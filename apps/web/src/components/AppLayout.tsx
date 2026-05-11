@@ -31,8 +31,7 @@ import {
   Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../stores/authStore';
-import { authApi } from '../api/auth.api';
+import { useAuthStore, useAuth } from '@moshsplit/auth-react';
 
 const DRAWER_WIDTH = 280;
 
@@ -55,8 +54,8 @@ function AppLayout() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
+  const { firstName, lastName, userEmail } = useAuthStore();
+  const { logout } = useAuth();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -82,12 +81,7 @@ function AppLayout() {
 
   const handleLogout = async () => {
     handleMenuClose();
-    try {
-      await authApi.logout();
-    } catch {
-      // Ignore logout errors
-    }
-    logout();
+    await logout();
     navigate('/login');
   };
 
@@ -246,7 +240,6 @@ function AppLayout() {
 
             <IconButton onClick={handleMenuOpen} size="small">
               <Avatar
-                src={user?.avatarUrl}
                 sx={{
                   width: 36,
                   height: 36,
@@ -254,7 +247,7 @@ function AppLayout() {
                   fontSize: '0.875rem',
                 }}
               >
-                {user?.name?.charAt(0)?.toUpperCase() || '?'}
+                {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
               </Avatar>
             </IconButton>
           </Toolbar>
@@ -283,10 +276,10 @@ function AppLayout() {
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle2" fontWeight={600}>
-            {user?.name}
+            {firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User'}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {user?.email}
+            {userEmail}
           </Typography>
         </Box>
         <Divider sx={{ my: 1 }} />

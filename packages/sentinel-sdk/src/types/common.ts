@@ -29,7 +29,10 @@ export type SentinelErrorCode =
   | 'MFA_INVALID_CODE'
   | 'MFA_ATTEMPT_LIMIT'
   | 'RATE_LIMIT_EXCEEDED'
-  | 'VALIDATION_ERROR';
+  | 'VALIDATION_ERROR'
+  | 'MUST_CHANGE_PASSWORD'
+  | 'MFA_REQUIRED'
+  | 'FORBIDDEN';
 
 /**
  * Sentinel error class with parsed error information
@@ -38,6 +41,7 @@ export class SentinelError extends Error {
   public readonly code: SentinelErrorCode;
   public readonly requestId?: string;
   public readonly status: number;
+  public readonly statusCode: number;
 
   constructor(
     message: string,
@@ -49,6 +53,7 @@ export class SentinelError extends Error {
     this.name = 'SentinelError';
     this.code = code;
     this.status = status;
+    this.statusCode = status;
     this.requestId = requestId;
   }
 
@@ -74,6 +79,7 @@ export class SentinelError extends Error {
       EXPIRED_TOKEN: 401,
       MISSING_TOKEN: 401,
       EMAIL_NOT_VERIFIED: 403,
+      MUST_CHANGE_PASSWORD: 403,
       MFA_INVALID_CODE: 401,
       MFA_ATTEMPT_LIMIT: 429,
       RATE_LIMIT_EXCEEDED: 429,
@@ -93,4 +99,34 @@ export interface SentinelClientOptions {
   refreshBufferMs?: number;
   /** Custom fetch implementation */
   fetch?: typeof fetch;
+}
+
+/**
+ * Forbidden error - user lacks permission
+ */
+export class ForbiddenError extends SentinelError {
+  constructor(message: string = 'Access denied', requestId?: string) {
+    super(message, 'AUTH_ERROR' as SentinelErrorCode, 403, requestId);
+    this.name = 'ForbiddenError';
+  }
+}
+
+/**
+ * Email not verified error
+ */
+export class EmailNotVerifiedError extends SentinelError {
+  constructor(message: string = 'Email not verified', requestId?: string) {
+    super(message, 'EMAIL_NOT_VERIFIED', 403, requestId);
+    this.name = 'EmailNotVerifiedError';
+  }
+}
+
+/**
+ * Unauthorized error - not authenticated
+ */
+export class UnauthorizedError extends SentinelError {
+  constructor(message: string = 'Unauthorized', requestId?: string) {
+    super(message, 'MISSING_TOKEN' as SentinelErrorCode, 401, requestId);
+    this.name = 'UnauthorizedError';
+  }
 }

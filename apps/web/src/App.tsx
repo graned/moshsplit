@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
-
-import { useAuthStore } from './stores/authStore';
+import { AuthClient } from '@moshsplit/sentinel-sdk';
+import { SentinelAuthProvider } from '@moshsplit/auth-react';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
@@ -17,17 +16,13 @@ import SettlementsPage from './pages/app/SettlementsPage';
 import SettingsProfilePage from './pages/app/settings/SettingsProfilePage';
 import SettingsSecurityPage from './pages/app/settings/SettingsSecurityPage';
 
-function App() {
-  const initialize = useAuthStore((state) => state.initialize);
-  const isLoading = useAuthStore((state) => state.isLoading);
+// Create the Sentinel auth client with the base URL from env
+const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:3000';
+const authClient = new AuthClient(sentinelUrl);
 
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  if (isLoading) {
-    return null;
-  }
+function AppContent() {
+  // The store auto-initializes from localStorage via persist middleware
+  // No explicit loading state needed - the store handles session restoration
 
   return (
     <Routes>
@@ -52,6 +47,14 @@ function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+  );
+}
+
+function App() {
+  return (
+    <SentinelAuthProvider client={authClient}>
+      <AppContent />
+    </SentinelAuthProvider>
   );
 }
 

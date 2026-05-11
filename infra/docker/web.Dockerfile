@@ -23,12 +23,17 @@ COPY packages/sentinel-sdk/package.json /app/packages/sentinel-sdk/
 COPY packages/sentinel-sdk/src /app/packages/sentinel-sdk/src/
 COPY packages/sentinel-sdk/tsconfig.json /app/packages/sentinel-sdk/
 COPY packages/sentinel-sdk/tsconfig.cjs.json /app/packages/sentinel-sdk/
+COPY packages/sentinel-auth-react/package.json /app/packages/sentinel-auth-react/
+COPY packages/sentinel-auth-react/src /app/packages/sentinel-auth-react/src/
+COPY packages/sentinel-auth-react/tsconfig.json /app/packages/sentinel-auth-react/
+COPY packages/sentinel-auth-react/vite.config.ts /app/packages/sentinel-auth-react/
 
 # Install dependencies (workspace-aware).
 RUN pnpm install --frozen-lockfile
 
-# Build sentinel-sdk (TypeScript -> JS)
+# Build packages (TypeScript -> JS)
 RUN pnpm --filter @moshsplit/sentinel-sdk build
+RUN pnpm --filter @moshsplit/auth-react build
 
 # Copy the rest of the web app source.  In dev the entire apps/web/
 # directory is typically mounted as a volume for live HMR.

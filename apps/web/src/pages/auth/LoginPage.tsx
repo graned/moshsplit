@@ -20,37 +20,57 @@ import {
   Celebration as CelebrationIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
-import { authApi } from '../../api/auth.api';
+import { useAuth } from '@moshsplit/auth-react';
 
 function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const login = useAuthStore((state) => state.login);
+  const { login, isLoading, error: authError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
 
-    try {
-      const response = await authApi.login({ email, password });
-      login(response.token, response.user);
+    const result = await login({ email, password });
 
-      const redirect = searchParams.get('redirect');
-      navigate(redirect || '/app/home');
-    } catch (err) {
-      setError((err as Error).message || t('common.error'));
-    } finally {
-      setLoading(false);
+    if (!result.success) {
+      setError(authError || t('common.error'));
+      return;
     }
+
+    // Handle MFA flow - show MFA input or redirect
+    if (result.mfa) {
+      // MFA challenge required - for now, show an error
+      // In a full implementation, you'd show an MFA input field
+      setError('MFA is required but not yet implemented in the UI');
+      return;
+    }
+
+    // Check for other conditions
+    if (result.mustChangePassword) {
+      navigate('/change-password');
+      return;
+    }
+
+    if (result.mfaSetupRequired) {
+      navigate('/setup-mfa');
+      return;
+    }
+
+    if (result.emailUnverified) {
+      navigate('/verify-email');
+      return;
+    }
+
+    // Success - redirect to app
+    const redirect = searchParams.get('redirect');
+    navigate(redirect || '/app/home');
   };
 
   return (
@@ -163,10 +183,10 @@ function LoginPage() {
               type="submit"
               variant="contained"
               size="large"
-              disabled={loading}
+              disabled={isLoading}
               sx={{ mt: 1 }}
             >
-              {loading ? t('common.loading') : t('auth.loginButton')}
+              {isLoading ? t('common.loading') : t('auth.loginButton')}
             </Button>
           </Box>
 

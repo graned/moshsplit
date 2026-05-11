@@ -147,8 +147,9 @@ services:
     volumes:
       # Mount the full web app directory for Vite HMR.
       - ../../apps/web:/app/apps/web
-      # Mount sentinel-sdk for HMR
+      # Mount packages for HMR
       - ../../packages/sentinel-sdk:/app/packages/sentinel-sdk
+      - ../../packages/sentinel-auth-react:/app/packages/sentinel-auth-react
     environment:
       # Use localhost for browser access - Vite proxies /api to pitboss-api
       VITE_API_BASE_URL: http://localhost:8080

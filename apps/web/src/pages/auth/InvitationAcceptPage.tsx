@@ -20,7 +20,7 @@ import {
   Celebration as CelebrationIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore } from '@moshsplit/auth-react';
 import { authApi } from '../../api/auth.api';
 
 function InvitationAcceptPage() {
@@ -28,7 +28,7 @@ function InvitationAcceptPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const login = useAuthStore((state) => state.login);
+  const setSession = useAuthStore((state) => state.setSession);
 
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -75,7 +75,14 @@ function InvitationAcceptPage() {
         name: name.trim(),
         password,
       });
-      login(response.token, response.user);
+      // Use the new store's setSession - adapt the response format
+      // Note: The actual implementation would need the SDK to return proper token format
+      setSession(
+        response.user.id,
+        response.token,
+        response.token, // Using same token as refresh for now
+        true // email verified since they accepted invitation
+      );
       navigate('/app/home');
     } catch (err) {
       setError((err as Error).message || t('invitation.errorMessage'));
