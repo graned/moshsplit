@@ -34,12 +34,12 @@ services:
       target: dev
     container_name: pitboss-api-migrations
     volumes:
-      - ../../apps/pitboss-api/src:/app/src
-      - ../../apps/pitboss-api/migrations:/app/migrations
+      - ../../apps/pitboss-api:/app/apps/pitboss-api
+      - ../../packages:/app/packages
     environment:
       DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
       RUST_LOG: info
-    command: ["cargo", "run", "--", "--migrate"]
+    command: ["cargo", "run", "--manifest-path", "/app/apps/pitboss-api/Cargo.toml", "--", "--migrate"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,42 +56,88 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ../../apps/pitboss-api/src:/app/src
-      - ../../apps/pitboss-api/migrations:/app/migrations
+      - ../../apps/pitboss-api:/app/apps/pitboss-api
+      - ../../packages:/app/packages
     environment:
       DATABASE_URL: postgres://pitboss:password@postgres:5432/moshsplit
+      PGOPTIONS: "-c search_path=app"
       RUST_LOG: debug
+      SENTINEL_URL: http://sentinel:8000
+    command: ["cargo", "run", "--manifest-path", "/app/apps/pitboss-api/Cargo.toml"]
     depends_on:
       pitboss-api-migrations:
         condition: service_completed_successfully
+      sentinel:
+        condition: service_started
+    networks:
+      - app-net
+
+  # ── Sentinel migrations (runs before Sentinel, creates tables in 'auth' schema) ─
+  sentinel-migrations:
+    build:
+      context: ../../
+      dockerfile: infra/docker/sentinel-migrate.Dockerfile
+    container_name: sentinel-migrations
+    environment:
+      # Use the shared 'moshsplit' database - Sentinel will use the 'auth' schema via diesel.toml
+      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
+      PGOPTIONS: "-c search_path=public"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - app-net
 
   # ── Sentinel (auth service) ─────────────────────────────────────────────────
-  # Sentinel is an external vendored auth service.
-  # Uncomment the block below once the vendored code is present at vendor/sentinel/.
-  #
-  # sentinel:
-  #   build:
-  #     context: ../../vendor/sentinel
-  #     dockerfile: apps/sentinel-core/Dockerfile
-  #   ports:
-  #     - "9000:8000"
-  #   environment:
-  #     HEX_KEY: ${HEX_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
-  #     CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
-  #     RUST_LOG: info
-  #     CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
-  #     DATABASE_URL: postgres://sentinel:${POSTGRES_PASSWORD:-sentinel_dev}@postgres:5432/synra
-  #     PGOPTIONS: "-c search_path=auth"
-  #     FRONTEND_URL: http://localhost:5173
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - app-net
+  sentinel:
+    image: ghcr.io/graned/sentinel-core:v1.1.0
+    container_name: moshsplit-sentinel
+    ports:
+      - "9000:8000"
+    environment:
+      # Use the shared 'moshsplit' database - Sentinel uses 'auth' schema via search_path
+      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
+      PGOPTIONS: "-c search_path=auth"
+      HEX_KEY: 32a8c0fc962ce0299e8f5dedb1ff75b7e8789416db8f6836fb91c6e7bd2e58fe
+      CONFIG_ENCRYPTION_KEY: 02b96ece27c893f176d52139c17ef97db53283a3b0a75e185c2a9da7c1855db5
+      RUST_LOG: debug
+      OIDC_ISSUER_URL: http://localhost:9000
+      FRONTEND_URL: http://localhost:5173
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8000"
+    depends_on:
+      sentinel-migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/v1/api/system/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # ── Web (React PWA) ────────────────────────────────────────────────────────
+  # ── Sentinel UI (management dashboard) ──────────────────────────────────────
+  # Note: VITE_API_URL is baked into the JS bundle at build time.
+  # The pre-built image expects sentinel-core at http://localhost:9000.
+  # For custom URLs, build your own image with --build-arg VITE_API_URL=<your-url>
+  sentinel-ui:
+    image: ghcr.io/graned/sentinel-ui:v1.1.0
+    container_name: moshsplit-sentinel-ui
+    ports:
+      - "3000:80"
+    volumes:
+      - ../../infra/docker/sentinel-ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      sentinel:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  # ── Web (React PWA) ─────────────────────────────────────────────────────────
   # web:
   #  build:
   #    context: ../../

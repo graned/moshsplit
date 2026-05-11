@@ -5,6 +5,7 @@ pub mod app;
 pub mod server;
 
 use crate::infrastructure::clients::DbClient;
+use sentinel_client::SentinelClient;
 
 /// Shared application state injected via `Extension<AppState>` into all
 /// handler functions.
@@ -20,4 +21,5 @@ use crate::infrastructure::clients::DbClient;
 #[derive(Clone)]
 pub struct AppState {
     pub db_client: DbClient,
+    pub sentinel_client: SentinelClient,
 }

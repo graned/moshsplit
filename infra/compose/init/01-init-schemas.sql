@@ -57,6 +57,7 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel_user;
 -- === app schema → pitboss ===
 -- The app schema is managed by pitboss-api (Diesel migrations).
 GRANT USAGE ON SCHEMA app TO pitboss;
+GRANT CREATE ON SCHEMA app TO pitboss;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA app
     GRANT ALL PRIVILEGES ON TABLES    TO pitboss;

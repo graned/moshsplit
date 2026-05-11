@@ -185,6 +185,16 @@ impl ApiError {
             status,
         }
     }
+
+    /// Create an unauthorized (401) error.
+    pub fn unauthorized(message: impl Into<String>) -> Self {
+        Self {
+            code: "UNAUTHORIZED".into(),
+            message: message.into(),
+            details: None,
+            status: StatusCode::UNAUTHORIZED,
+        }
+    }
 }
 
 impl From<ServiceError> for ApiError {

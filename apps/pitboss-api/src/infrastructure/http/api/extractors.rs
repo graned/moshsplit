@@ -2,20 +2,16 @@
 
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
+use sentinel_client::AuthenticatedUser;
 use uuid::Uuid;
 
 use crate::errors::ApiError;
 
-/// Extractor that reads the current user ID from the `X-User-Id` header.
+/// Extractor that reads the authenticated user from request extensions.
 ///
-/// If the header is absent or invalid, a well-known test UUID is used as
-/// fallback (so handlers don't break during development before auth is
-/// wired in).
-///
-/// # Future
-///
-/// When auth middleware is added, this extractor will be changed to read
-/// the authenticated user from request extensions instead.
+/// This extractor expects the `AuthenticatedUser` to be set by the Sentinel
+/// auth middleware. If not present (which should only happen for public
+/// routes), returns an unauthorized error.
 #[derive(Debug, Clone, Copy)]
 pub struct CurrentUser(pub Uuid);
 
@@ -23,18 +19,36 @@ impl<S: Send + Sync> FromRequestParts<S> for CurrentUser {
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let user_id = parts
-            .headers
-            .get("x-user-id")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|s| Uuid::parse_str(s).ok())
-            .unwrap_or_else(test_user_id);
+        let authenticated = parts
+            .extensions
+            .get::<AuthenticatedUser>()
+            .ok_or_else(|| {
+                ApiError::unauthorized("Authentication required. No authenticated user found.")
+            })?;
+
+        // Parse the user_id string into a Uuid
+        let user_id = Uuid::parse_str(&authenticated.user_id).map_err(|_| {
+            ApiError::unauthorized("Invalid user ID format in authentication token.")
+        })?;
 
         Ok(CurrentUser(user_id))
     }
 }
 
-/// Well-known test / development user UUID.
-fn test_user_id() -> Uuid {
-    Uuid::from_u128(1)
+/// Optional extractor for routes that may or may not have authentication.
+/// Returns None if no authenticated user is present (public access).
+#[derive(Debug, Clone, Copy)]
+pub struct OptionalCurrentUser(pub Option<Uuid>);
+
+impl<S: Send + Sync> FromRequestParts<S> for OptionalCurrentUser {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let user_id = parts
+            .extensions
+            .get::<AuthenticatedUser>()
+            .and_then(|u| Uuid::parse_str(&u.user_id).ok());
+
+        Ok(OptionalCurrentUser(user_id))
+    }
 }

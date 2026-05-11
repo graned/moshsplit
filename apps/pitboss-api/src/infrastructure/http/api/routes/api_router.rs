@@ -2,19 +2,21 @@
 //!
 //! Middleware order (outer → inner):
 //!   1. CorsLayer
-//!   2. RequestId middleware
-//!   3. Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
-//!   4. CatchPanicLayer
-//!   5. TraceLayer
-//!   6. Extension<AppState>
-//!   7. ResponseWrapper middleware
-//!   8. Route matching
+//!   2. Sentinel AuthMiddleware (protects all /v1/ routes)
+//!   3. RequestId middleware
+//!   4. Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+//!   5. CatchPanicLayer
+//!   6. TraceLayer
+//!   7. Extension<AppState>
+//!   8. ResponseWrapper middleware
+//!   9. Route matching
 
 use std::sync::Arc;
 
 use axum::middleware;
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
+use sentinel_client::AuthMiddleware;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -34,19 +36,23 @@ use crate::infrastructure::http::AppState;
 ///
 /// Middleware execution order (outermost → innermost):
 ///   1. CorsLayer
-///   2. RequestId middleware (injects `X-Request-Id` into request extensions)
-///   3. CatchPanicLayer (catches panics and returns 500)
-///   4. TraceLayer (request/response logging)
-///   5. ResponseWrapper middleware (wraps all responses in `ApiResponse` envelope)
-///   6. Route matching
+///   2. Sentinel AuthMiddleware (protects all /v1/ routes)
+///   3. RequestId middleware (injects `X-Request-Id` into request extensions)
+///   4. CatchPanicLayer (catches panics and returns 500)
+///   5. TraceLayer (request/response logging)
+///   6. ResponseWrapper middleware (wraps all responses in `ApiResponse` envelope)
+///   7. Route matching
 ///
 /// Axum/Tower layer semantics:
 ///   Layers added FIRST are closest to the handler (innermost).
 ///   Layers added LAST wrap everything (outermost).
 pub fn build_router(state: Arc<AppState>) -> Router {
+    // ── Public routes (no auth required) ───────────────────────────────
     let public_routes = Router::new()
         .route("/health", get(system_handlers::health_check))
         .route("/livez", get(system_handlers::livez));
+
+    // ── Protected API routes (require Sentinel auth) ──────────────────
 
     // ── Events ─────────────────────────────────────────────────────────
     let event_routes = Router::new()
@@ -124,14 +130,29 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(balance_handlers::explain_balance),
         );
 
-    let api_routes = Router::new()
-        .merge(public_routes)
-        .merge(event_routes)
+    // Merge all protected routes
+    let protected_api = event_routes
         .merge(member_routes)
         .merge(expense_routes)
         .merge(payment_routes)
         .merge(settlement_routes)
-        .merge(balance_routes)
+        .merge(balance_routes);
+
+    // Create Sentinel auth middleware using the client from app state
+    let sentinel_client = state.sentinel_client.clone();
+    let auth_middleware = Arc::new(AuthMiddleware::new(sentinel_client));
+
+    // Apply auth middleware to all protected routes
+    // Clone the Arc inside the async block to satisfy the lifetime
+    let protected_routes = protected_api.layer(middleware::from_fn(move |req, next| {
+        let auth = auth_middleware.clone();
+        async move { auth.authenticate(req, next).await }
+    }));
+
+    // Build the complete router with all layers
+    let api_routes = Router::new()
+        .merge(public_routes) // Public - no auth
+        .merge(protected_routes) // Protected - requires Sentinel auth
         // ── Innermost (closest to handler) ──────────────────────
         .layer(middleware::from_fn(
             response_wrapper::response_wrapper_middleware,

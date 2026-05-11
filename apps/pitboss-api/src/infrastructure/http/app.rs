@@ -6,6 +6,7 @@
 use std::sync::Arc;
 
 use axum::Router;
+use sentinel_client::{SentinelClient, SentinelConfig};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -26,6 +27,15 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
         .run_migrations()
         .map_err(|e| anyhow::anyhow!("Migration failed: {}", e))?;
 
+    // ── Sentinel Client ──────────────────────────────────────────────
+    let sentinel_url = std::env::var("SENTINEL_URL")
+        .unwrap_or_else(|_| "http://localhost:9000".to_string());
+    let sentinel_config = SentinelConfig::new(&sentinel_url);
+    let sentinel_client = SentinelClient::new(sentinel_config)
+        .map_err(|e| anyhow::anyhow!("Failed to create Sentinel client: {}", e))?;
+
+    tracing::info!("Sentinel client configured with URL: {}", sentinel_url);
+
     // ── Domain applications (wired with repos, services) ─────────────
     // For now the applications module is a placeholder. As features are
     // added, each Application struct wraps one or more services and is
@@ -39,6 +49,7 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     // ── Shared state ─────────────────────────────────────────────────
     let state = Arc::new(AppState {
         db_client,
+        sentinel_client,
         // event_app,
         // expense_app,
         // payment_app,

@@ -41,12 +41,22 @@ docker compose -f infra/compose/dev.yml up
 ```
 
 This starts:
-- **PostgreSQL 16** on `:5432` (with `auth` and `moshsplit` schemas)
+- **PostgreSQL 16** on `:5432` (with `auth` and `app` schemas)
 - **Pitboss API** (Rust/Axum) on `:8080` (hot-reload via cargo-watch)
-- **Web frontend** (React PWA) on `:5173` (Vite HMR)
-- **Sentinel auth** placeholder (vendored, uncomment in `dev.yml` to enable)
+- **Sentinel** (auth service) on `:9000` (PASETO tokens, RBAC, MFA)
+- **Sentinel UI** (admin dashboard) on `:3000`
+- **Web frontend** (React PWA) on `:5173` (Vite HMR) — commented out by default
 
-For production: `docker compose -f infra/compose/prod.yml up` (healthchecks, restart policies, env var substitution).
+### Service URLs
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Pitboss API | http://localhost:8080 | Main REST API |
+| Sentinel | http://localhost:9000 | Auth service (v1 API) |
+| Sentinel UI | http://localhost:3000 | Admin dashboard (login: admin/admin) |
+| PostgreSQL | localhost:5432 | Database (user: postgres, password: password, db: moshsplit) |
+
+For production: `docker compose -f infra/compose/prod.yml up` (requires `.env` file, see below).
 
 ---
 
@@ -154,7 +164,7 @@ moshsplit/
 | PWA | vite-plugin-pwa, Service Worker, IndexedDB (Dexie) |
 | Backend | Rust (edition 2021), Axum 0.8, Diesel 2.x, tokio, serde, thiserror, tower-http |
 | Database | PostgreSQL 16 (two schemas: `auth` + `moshsplit`) |
-| Auth | Sentinel (vendored — PASETO tokens, RBAC, MFA, OIDC) |
+| Auth | Sentinel (Docker container — PASETO tokens, RBAC, MFA, OIDC) |
 | Container | Docker, Docker Compose (multi-stage Dockerfiles) |
 | Infrastructure (prod) | Pulumi (AWS — target) |
 | Package management | pnpm 9+ (workspaces), Cargo |
@@ -176,19 +186,19 @@ moshsplit/
 │   React PWA  │────▶│  Pitboss API │────▶│   PostgreSQL 16      │
 │  (apps/web/) │     │ (Rust/Axum)  │     │  ┌────────┐          │
 └──────────────┘     └──────────────┘     │  │ auth   │ Sentinel │
-        │                    │            │  │ schema │──────────│
-        │                    │            │  ├────────┤          │
-        ▼                    ▼            │  │moshsplit│pitboss   │
+        │                    │            │  │ schema │ (Docker) │
+        │                    │            │  ├────────┤──────────┤
+        ▼                    ▼            │  │  app   │ pitboss  │
 ┌──────────────┐     ┌──────────────┐     │  │ schema │  API     │
 │  Service     │     │   Sentinel   │     └──┴────────┴──────────┘
 │  Worker      │     │   (Auth)     │
-│  (offline)   │     │  (vendored)  │
+│  (offline)   │     │  (container)│
 └──────────────┘     └──────────────┘
 ```
 
 - **Frontend:** React SPA with PWA offline support. Zustand for client state, TanStack Query for server state caching and offline mutation queue.
 - **Backend:** Axum REST API with Clean Architecture (services -> repositories -> infrastructure). Diesel for type-safe SQL. All 27 endpoints implemented with OpenAPI/Swagger docs.
-- **Auth:** Sentinel — vendored auth service in a separate Docker container. PASETO tokens, RBAC, MFA, OIDC. Zero custom auth code.
+- **Auth:** Sentinel — auth service running as a Docker container. PASETO tokens, RBAC, MFA, OIDC. Zero custom auth code.
 - **Infra:** Fully Dockerized (dev: hot-reload bind mounts, prod: healthchecks, restart policies). Pulumi target for AWS production.
 - **Structured monolith:** Domain boundaries in code, not networks. No premature microservices.
 
@@ -209,13 +219,28 @@ See [Architecture Overview](docs/architecture/overview.md) for full details.
 ### Run with Docker (recommended)
 
 ```bash
-# Full stack
+# Full stack (includes Sentinel auth)
 docker compose -f infra/compose/dev.yml up
 
 # Rebuild after Cargo.toml changes
 docker compose -f infra/compose/dev.yml build pitboss-api
 docker compose -f infra/compose/dev.yml up
+
+# View logs for a specific service
+docker compose -f infra/compose/dev.yml logs -f sentinel
+docker compose -f infra/compose/dev.yml logs -f pitboss-api
 ```
+
+### First-time Sentinel Setup
+
+The Sentinel auth service runs on port 9000. On first start:
+
+1. Open http://localhost:3000 (Sentinel UI)
+2. Login with default credentials: `admin` / `admin`
+3. Create an API key for the pitboss-api service
+4. Update the pitboss-api configuration with the Sentinel public key
+
+For development, a pre-configured HEX_KEY is provided in `dev.yml`.
 
 ### Run locally (without Docker)
 
@@ -261,14 +286,56 @@ cargo test --test events_api
 
 ### Environment Variables
 
-See `apps/pitboss-api/.env.example` for the backend. Key variables:
+#### pitboss-api (Backend)
+
+See `apps/pitboss-api/.env.example` for the full list. Key variables:
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | PostgreSQL connection string (e.g., `postgres://pitboss:password@postgres:5432/moshsplit`) |
 | `HOST` | Server bind address (default: `0.0.0.0`) |
 | `PORT` | Server port (default: `8080`) |
 | `RUST_LOG` | Logging verbosity (default: `info`) |
+| `SENTINEL_URL` | Sentinel auth service URL (default: `http://sentinel:8000`) |
+| `SENTINEL_PUBLIC_KEY` | Sentinel public key for token validation (production) |
+| `CORS_ALLOWED_ORIGINS` | Allowed CORS origins (comma-separated) |
+
+#### Sentinel (Auth Service)
+
+For production, set these environment variables (e.g., in `.env`):
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (shared with pitboss-api) |
+| `HEX_KEY` | 64-character hex key for token signing (generate with `openssl rand -hex 32`) |
+| `CONFIG_ENCRYPTION_KEY` | 64-character hex key for config encryption |
+| `OIDC_ISSUER_URL` | OIDC issuer URL (e.g., `https://auth.yourdomain.com`) |
+| `FRONTEND_URL` | Frontend URL for CORS and redirects |
+| `CORS_ALLOWED_ORIGINS` | Allowed CORS origins |
+| `SENTINEL_PORT` | Sentinel API port (default: `9000`) |
+| `SENTINEL_UI_PORT` | Sentinel UI port (default: `3000`) |
+
+Example `.env` file for production:
+
+```bash
+# Database
+DATABASE_URL=postgres://pitboss:${PITBOSS_PASSWORD}@postgres:5432/moshsplit
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_USER=postgres
+
+# Sentinel
+HEX_KEY=$(openssl rand -hex 32)
+CONFIG_ENCRYPTION_KEY=$(openssl rand -hex 32)
+OIDC_ISSUER_URL=https://auth.yourdomain.com
+FRONTEND_URL=https://yourdomain.com
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+
+# Application
+RUST_LOG=info
+PITBOSS_API_PORT=8080
+SENTINEL_PORT=9000
+SENTINEL_UI_PORT=3000
+```
 
 ### Commit Conventions
 

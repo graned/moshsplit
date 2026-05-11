@@ -17,6 +17,9 @@ RUN cargo install cargo-watch
 # Copy manifest files first so Docker can cache dependency layers.
 COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
 
+# Copy packages first so path dependencies resolve during initial build.
+COPY packages/ /app/packages/
+
 # Create a dummy main.rs so `cargo build` can resolve and cache dependencies.
 # This layer is reused unless Cargo.toml / Cargo.lock changes.
 RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
@@ -43,6 +46,7 @@ WORKDIR /app
 
 # Same dependency-caching pattern as the dev stage.
 COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
+COPY packages/ /app/packages/
 RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
 RUN cargo build --release 2>/dev/null || true
 
