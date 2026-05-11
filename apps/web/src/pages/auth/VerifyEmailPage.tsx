@@ -15,6 +15,7 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../../api/auth.api';
+import { useAuthStore } from '@moshsplit/auth-react';
 
 type VerifyMode = 'verifying' | 'success' | 'error' | 'needsPasswordReset';
 
@@ -23,6 +24,7 @@ function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
+  const { userId, accessToken, refreshToken, mustChangePassword, setSession } = useAuthStore();
 
   const [mode, setMode] = useState<VerifyMode>('verifying');
   const [error, setError] = useState<string | null>(null);
@@ -37,13 +39,18 @@ function VerifyEmailPage() {
     const verifyEmail = async () => {
       try {
         await authApi.verifyEmail(token);
-        
-        // Email verified successfully
+
+        // Email verified successfully - update the Sentinel auth store
+        // This updates the emailVerified flag so the user doesn't need to re-login
+        if (userId && accessToken && refreshToken) {
+          setSession(userId, accessToken, refreshToken, true, mustChangePassword);
+        }
+
         // Check if password reset is needed by examining the response
         // The token might indicate if password reset is required
         // For now, we check if the token looks like it needs password reset
         // In a real implementation, the API would return this information
-        
+
         // For now, we'll assume successful verification leads to success
         // The backend should indicate if password change is required
         setMode('success');
@@ -64,7 +71,7 @@ function VerifyEmailPage() {
     };
 
     verifyEmail();
-  }, [token, t]);
+  }, [token, t, userId, accessToken, refreshToken, mustChangePassword, setSession]);
 
   const handleRedirectToResetPassword = () => {
     if (token) {
