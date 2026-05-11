@@ -20,11 +20,18 @@ export function UserSelect({
   disabled = false,
   limit,
 }: UserSelectProps) {
+  console.log('[UserSelect] Rendering component, disabled:', disabled);
+  
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['users', 'list'],
-    queryFn: usersApi.list,
+    queryFn: async () => {
+      console.log('[UserSelect] queryFn called');
+      return usersApi.list();
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes - cache user list
   });
+
+  console.log('[UserSelect] Query result - users:', users?.length, 'error:', error, 'loading:', isLoading);
 
   const selectedUsers = useMemo(() => {
     return users.filter((u) => value.includes(u.id));
