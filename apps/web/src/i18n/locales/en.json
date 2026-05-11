@@ -47,7 +47,8 @@
     "successMessage": "Password has been reset successfully.",
     "errorMessage": "Failed to reset password. The link may have expired.",
     "passwordMismatch": "Passwords do not match",
-    "passwordRequirements": "At least 8 characters",
+    "passwordRequirements": "Password requirements",
+    "requirementsNotMet": "Password does not meet all requirements",
     "invalidToken": "Invalid or expired reset link"
   },
   "changePassword": {
