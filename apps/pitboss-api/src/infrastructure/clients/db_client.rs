@@ -59,3 +59,29 @@ impl DbClient {
         Ok(conn)
     }
 }
+
+/// A read-only client for the Sentinel auth database.
+/// Used to fetch user list for member selection in events/expenses.
+#[derive(Clone, Debug)]
+pub struct SentinelAuthClient {
+    pool: DbPool,
+}
+
+impl SentinelAuthClient {
+    /// Create a new connection pool for sentinel_auth database.
+    pub fn new(database_url: &str) -> Result<Self, r2d2::PoolError> {
+        let client = DbClient::new(database_url)?;
+        Ok(Self { pool: client.pool })
+    }
+
+    /// Get a connection with search_path set to auth schema.
+    pub fn get_conn(
+        &self,
+    ) -> Result<r2d2::PooledConnection<ConnectionManager<PgConnection>>, r2d2::PoolError> {
+        let mut conn = self.pool.get()?;
+        sql_query("SET search_path TO auth, public")
+            .execute(&mut conn)
+            .ok();
+        Ok(conn)
+    }
+}

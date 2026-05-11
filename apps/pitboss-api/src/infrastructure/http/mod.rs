@@ -4,7 +4,7 @@ pub mod api;
 pub mod app;
 pub mod server;
 
-use crate::infrastructure::clients::DbClient;
+use crate::infrastructure::clients::{DbClient, SentinelAuthClient};
 use sentinel_client::SentinelClient;
 
 /// Shared application state injected via `Extension<AppState>` into all
@@ -22,4 +22,6 @@ use sentinel_client::SentinelClient;
 pub struct AppState {
     pub db_client: DbClient,
     pub sentinel_client: SentinelClient,
+    /// Read-only client for sentinel_auth database (for user list)
+    pub sentinel_auth_client: SentinelAuthClient,
 }

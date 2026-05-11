@@ -10,7 +10,7 @@ use sentinel_client::{SentinelClient, SentinelConfig};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::infrastructure::clients::DbClient;
+use crate::infrastructure::clients::{DbClient, SentinelAuthClient};
 use crate::infrastructure::http::api::openapi::ApiDoc;
 use crate::infrastructure::http::api::routes::api_router;
 use crate::infrastructure::http::AppState;
@@ -36,6 +36,26 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
 
     tracing::info!("Sentinel client configured with URL: {}", sentinel_url);
 
+    // ── Sentinel Auth Client (for reading users from sentinel_auth DB) ─
+    // Extract base URL from database_url and replace db name with sentinel_auth
+    let sentinel_auth_url = format!(
+        "postgres://{}@postgres:5432/sentinel_auth",
+        database_url.split('@').last().unwrap_or("").split('/').next().unwrap_or("postgres:password")
+    );
+    // Use simpler approach - parse the original URL
+    let auth_db_url = if database_url.contains("@") {
+        let parts: Vec<&str> = database_url.split('@').collect();
+        let creds = parts.get(0).unwrap_or(&"postgres:password");
+        format!("{}@postgres:5432/sentinel_auth", creds)
+    } else {
+        "postgres://postgres:password@postgres:5432/sentinel_auth".to_string()
+    };
+    
+    let sentinel_auth_client = SentinelAuthClient::new(&auth_db_url)
+        .map_err(|e| anyhow::anyhow!("Failed to connect to sentinel_auth: {}", e))?;
+
+    tracing::info!("Sentinel auth client configured");
+
     // ── Domain applications (wired with repos, services) ─────────────
     // For now the applications module is a placeholder. As features are
     // added, each Application struct wraps one or more services and is
@@ -50,6 +70,7 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     let state = Arc::new(AppState {
         db_client,
         sentinel_client,
+        sentinel_auth_client,
         // event_app,
         // expense_app,
         // payment_app,

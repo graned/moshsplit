@@ -141,7 +141,8 @@
     "events": "Events",
     "expenses": "Expenses",
     "balances": "Balances",
-    "settlements": "Settlements"
+    "settlements": "Settlements",
+    "users": "Users"
   },
   "placeholder": {
     "events": "No events yet",

@@ -21,6 +21,7 @@ import BalancesPage from './pages/app/BalancesPage';
 import SettlementsPage from './pages/app/SettlementsPage';
 import SettingsProfilePage from './pages/app/settings/SettingsProfilePage';
 import SettingsSecurityPage from './pages/app/settings/SettingsSecurityPage';
+import UsersPage from './pages/admin/UsersPage';
 import { apiClient } from './api/client';
 
 // Create the Sentinel auth client with the base URL from env
@@ -61,6 +62,7 @@ function AppContent() {
           <Route path="settlements" element={<SettlementsPage />} />
           <Route path="settings/profile" element={<SettingsProfilePage />} />
           <Route path="settings/security" element={<SettingsSecurityPage />} />
+          <Route path="admin/users" element={<UsersPage />} />
         </Route>
       </Route>
 

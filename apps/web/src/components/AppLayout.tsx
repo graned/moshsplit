@@ -30,6 +30,7 @@ import {
   Person as PersonIcon,
   Security as SecurityIcon,
   Logout as LogoutIcon,
+  Group as UsersIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, useAuth } from '@moshsplit/auth-react';
@@ -56,8 +57,13 @@ function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { firstName, lastName, userEmail } = useAuthStore();
+  const { firstName, lastName, userEmail, isAdmin } = useAuthStore();
   const { logout } = useAuth();
+
+  // Admin navigation items (only shown for admins)
+  const adminItems = isAdmin
+    ? [{ path: '/app/admin/users', label: 'nav.users', icon: <UsersIcon /> }]
+    : [];
 
   // Mobile: drawer is temporary (overlay)
   // Desktop: drawer is persistent (can be toggled)
@@ -164,6 +170,38 @@ function AppLayout() {
           </ListItem>
         ))}
       </List>
+
+      {/* Admin section - only shown for admins */}
+      {adminItems.length > 0 && (
+        <>
+          <Divider sx={{ opacity: 0.1 }} />
+          <List sx={{ py: 1 }}>
+            {adminItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  sx={{
+                    mx: 1,
+                    borderRadius: 2,
+                    '&.Mui-selected': {
+                      backgroundColor: 'primary.main',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      },
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={t(item.label)} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </>
+      )}
 
       <Divider sx={{ opacity: 0.1 }} />
 

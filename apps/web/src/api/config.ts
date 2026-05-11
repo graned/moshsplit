@@ -12,6 +12,12 @@ export const API_ENDPOINTS = {
     profile: '/api/v1/users/profile',
     updateProfile: '/api/v1/users/profile',
   },
+  admin: {
+    users: '/api/v1/admin/users',
+    usersDetail: (userId: string) => `/api/v1/admin/users/${userId}`,
+    usersStatus: (userId: string) => `/api/v1/admin/users/${userId}/status`,
+    usersRole: (userId: string) => `/api/v1/admin/users/${userId}/role`,
+  },
   settings: {
     security: '/api/v1/settings/security',
     mfa: '/api/v1/settings/mfa',
