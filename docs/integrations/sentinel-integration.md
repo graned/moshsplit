@@ -17,7 +17,15 @@ This document provides comprehensive documentation for integrating Sentinel auth
    - [Database Initialization Scripts](#database-initialization-scripts)
 7. [Environment Variables](#environment-variables)
 8. [Database Schema Design](#database-schema-design)
-9. [Troubleshooting](#troubleshooting)
+9. [Frontend Integration (sentinel-auth-react)](#frontend-integration-sentinel-auth-react)
+   - [Package Overview](#package-overview)
+   - [Provider Setup](#provider-setup)
+   - [Theme Customization](#theme-customization)
+   - [Auth Flow Details](#auth-flow-details)
+   - [API Endpoints Reference](#api-endpoints-reference)
+   - [Database Schema](#database-schema)
+   - [Known Issues](#known-issues)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -849,6 +857,291 @@ docker compose up -d sentinel  # restart sentinel after migrations
 | pitboss-api | `GET /health` |
 | pitboss-api (live) | `GET /livez` |
 | Sentinel | `GET /v1/api/system/health` |
+
+---
+
+## Frontend Integration (sentinel-auth-react)
+
+### Package Overview
+
+MoshSplit uses `@moshsplit/sentinel-auth-react` — a React component library providing pre-built authentication pages with MoshSplit branding theming.
+
+### Installation
+
+```bash
+cd apps/web
+npm install @moshsplit/sentinel-auth-react @moshsplit/sentinel-sdk
+```
+
+### Provider Setup
+
+Wrap your application with `SentinelAuthProvider` in your router configuration:
+
+```tsx
+// apps/web/src/App.tsx
+import { SentinelAuthProvider, SentinelAuthRoutes } from '@moshsplit/sentinel-auth-react';
+import { AuthClient } from '@moshsplit/sentinel-sdk';
+import '@moshsplit/sentinel-auth-react/dist/style.css';
+
+const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+const sentinelClient = new AuthClient(sentinelUrl);
+
+function App() {
+  return (
+    <SentinelAuthProvider
+      client={sentinelClient}
+      redirects={{
+        afterLogin: '/events',
+        afterLogout: '/login',
+        afterRegister: '/verify-email',
+      }}
+      theme={{
+        appName: 'MoshSplit',
+        tagline: 'Split expenses with friends',
+        primaryColor: '#06b6d4', // cyan-500
+        secondaryColor: '#3b82f6', // blue-500
+        logo: '/logo.svg',
+        copyright: '© 2026 MoshSplit. All rights reserved.',
+      }}
+    >
+      <Routes>
+        {/* Your app routes */}
+        <Route path="/events" element={<EventsPage />} />
+
+        {/* Sentinel auth routes - catch all auth paths */}
+        <Route path="/*" element={<SentinelAuthRoutes />} />
+      </Routes>
+    </SentinelAuthProvider>
+  );
+}
+```
+
+### Theme Customization
+
+The `SentinelTheme` interface supports the following customizations:
+
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| `primaryColor` | `string` | Primary accent color (CSS var: `--accent-primary`) | Sentinel cyan |
+| `secondaryColor` | `string` | Secondary accent color (CSS var: `--accent-blue`) | Sentinel blue |
+| `appName` | `string` | App name displayed in branding panel | "Sentinel" |
+| `tagline` | `string` | Auth page tagline (Login/Register only) | — |
+| `logo` | `string \| ReactNode` | Custom logo (img URL or JSX) | Sentinel shield |
+| `copyright` | `string` | Footer copyright text | "© 2026 Sentinel Auth" |
+
+### Auth Flow Details
+
+The authentication flow requires careful handling of the `email_verified` status:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        AUTH FLOW                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   1. User submits credentials                                        │
+│          │                                                           │
+│          ▼                                                           │
+│   2. POST /v1/api/auth/login                                        │
+│          │                                                           │
+│          ▼                                                           │
+│   3. Login response received                                         │
+│      ⚠️ IMPORTANT: Login response does NOT include email_verified! │
+│          │                                                           │
+│          ▼                                                           │
+│   4. MUST call GET /v1/api/user/me with access token                 │
+│          │                                                           │
+│          ▼                                                           │
+│   5. Extract email_verified from profile response                    │
+│          │                                                           │
+│          ▼                                                           │
+│   6. Store email_verified in auth state                              │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Why this matters**: The login endpoint returns session tokens but does not include the `email_verified` boolean. You must fetch the user profile to determine verification status.
+
+**Implementation pattern**:
+
+```typescript
+// In your auth store or provider
+const handleLogin = async (email: string, password: string) => {
+  // Step 1: Login
+  const loginResult = await sentinelClient.login({ email, password });
+
+  if (loginResult.type === 'mfa') {
+    // Handle MFA flow separately
+    return { mfaRequired: true, sessionToken: loginResult.mfaSessionToken };
+  }
+
+  const { accessToken } = loginResult.session;
+
+  // Step 2: Fetch profile to get email_verified
+  const profile = await sentinelClient.user.getMe(accessToken);
+
+  // Step 3: Store session with email_verified status
+  setSession(
+    loginResult.session.userId,
+    accessToken,
+    loginResult.session.refreshToken,
+    profile.email_verified  // ← This is the critical field!
+  );
+};
+```
+
+### API Endpoints Reference
+
+All Sentinel API endpoints use the `/v1/api/` prefix and return responses wrapped in an envelope:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "timestamp": "2026-05-11T10:00:00.000Z",
+  "request_id": "uuid"
+}
+```
+
+#### Authentication Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/v1/api/auth/login` | No | Login with email/password. Returns session tokens or MFA challenge |
+| POST | `/v1/api/auth/register` | No | Register new user |
+| POST | `/v1/api/auth/verify-email` | No | **POST with JSON body** — Verify email from link token |
+| POST | `/v1/api/auth/resend-verification` | No | Resend verification email (NOT `/verify-email/resend`) |
+| POST | `/v1/api/auth/password/forgot` | No | Request password reset email |
+| POST | `/v1/api/auth/password/reset` | No | Reset password with reset token |
+| POST | `/v1/api/auth/token/refresh` | No | Refresh access token |
+| POST | `/v1/api/auth/logout` | Bearer | Logout current session |
+| POST | `/v1/api/auth/mfa/verify` | No | Verify MFA code |
+| POST | `/v1/api/auth/mfa/totp/start` | Bearer | Start MFA enrollment |
+| POST | `/v1/api/auth/mfa/totp/confirm` | Bearer | Confirm MFA enrollment |
+
+#### User Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/v1/api/user/me` | Bearer | **Returns email_verified** — Get current user profile |
+| PATCH | `/v1/api/user/me` | Bearer | Update profile (first_name, last_name, avatar_url) |
+| POST | `/v1/api/user/password/change` | Bearer | Change password |
+| GET | `/v1/api/user/sessions` | Bearer | List all sessions |
+| GET | `/v1/api/user/permissions` | Bearer | Get user roles and permissions |
+
+#### Request/Response Examples
+
+**Login Request**:
+```bash
+curl -X POST http://localhost:9000/v1/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "SecurePass123!"}'
+```
+
+**Login Response (success)**:
+```json
+{
+  "success": true,
+  "data": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "access_token": "v2.local.xxx",
+    "refresh_token": "v2.local.yyy",
+    "expires_at": "2026-05-11T11:00:00.000Z",
+    "mfa_required": false,
+    "email_verified": true
+  }
+}
+```
+
+**Login Response (MFA required)**:
+```json
+{
+  "success": true,
+  "data": {
+    "mfa_required": true,
+    "mfa_session_token": "mfa_session_xxx"
+  }
+}
+```
+
+**Verify Email** (POST with JSON body):
+```bash
+curl -X POST http://localhost:9000/v1/api/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{"token": "ver_xxx"}'
+```
+
+**Resend Verification**:
+```bash
+curl -X POST http://localhost:9000/v1/api/auth/resend-verification \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+```
+
+**Get Profile (includes email_verified)**:
+```bash
+curl -X GET http://localhost:9000/v1/api/user/me \
+  -H "Authorization: Bearer v2.local.xxx"
+```
+
+**Profile Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "avatar_url": null,
+    "email_verified": true,
+    "status": "Active",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Database Schema
+
+The `sentinel_auth` database uses the `auth` schema for Sentinel tables:
+
+| Table | Description |
+|-------|-------------|
+| `auth.users` | User accounts (first_name, last_name, avatar_url, status) |
+| `auth.user_identities` | Email/identity records with email_verified flag |
+| `auth.sessions` | Active sessions with PASETO tokens |
+| `auth.user_mfa_totp` | MFA TOTP secrets |
+| `auth.user_recovery_codes` | MFA recovery codes |
+
+**Important**: MoshSplit uses a separate database (`sentinel_auth`) rather than sharing the `moshsplit` database. The `sentinel-migrations` service runs Diesel migrations against the `auth` schema before Sentinel starts.
+
+### Known Issues
+
+#### 1. Login Response Does Not Include email_verified
+
+**Problem**: The login endpoint (`POST /v1/api/auth/login`) returns session tokens but does not include the `email_verified` boolean in the response body.
+
+**Impact**: If you rely on the login response alone, you won't know if the user's email is verified.
+
+**Solution**: Always fetch the user profile after login to get the `email_verified` status:
+
+```typescript
+const loginResult = await sentinelClient.login(credentials);
+if (loginResult.type === 'session') {
+  const profile = await sentinelClient.user.getMe(loginResult.session.accessToken);
+  // Use profile.email_verified for verification checks
+}
+```
+
+#### 2. Email Verification State Not Updated After Verification
+
+**Problem**: The `email_verified` flag is "baked into" the session at login time. If a user verifies their email, the existing session still shows `email_verified: false` until they log out and log back in.
+
+**Solution**: After successful email verification, prompt the user to log out and log back in, or implement a session refresh mechanism.
+
+#### 3. Pre-built Sentinel Image Doesn't Run Migrations
+
+This is documented in the Troubleshooting section — the `sentinel-migrations` service must run before Sentinel starts.
 
 ---
 
