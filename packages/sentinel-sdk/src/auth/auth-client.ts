@@ -438,10 +438,10 @@ export class AuthClient {
 
   /**
    * Resend email verification
-   * POST /v1/api/auth/verify-email/resend
+   * POST /v1/api/auth/resend-verification
    */
   async resendVerification(request: ResendVerificationRequest): Promise<void> {
-    const response = await this.api.post('v1/api/auth/verify-email/resend', {
+    const response = await this.api.post('v1/api/auth/resend-verification', {
       json: request,
     });
 
