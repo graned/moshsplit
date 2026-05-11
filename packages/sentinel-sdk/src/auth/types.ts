@@ -50,6 +50,7 @@ export interface LoginSuccessResponse {
   // Optional additional fields
   must_change_password?: boolean;
   mfa_setup_required?: boolean;
+  email_verified?: boolean;
   // CamelCase (sentinel-auth-react format) - always provided by SDK methods
   userId: string;
   accessToken: string;
@@ -57,6 +58,7 @@ export interface LoginSuccessResponse {
   expiresAt: string;
   mustChangePassword: boolean;
   mfaSetupRequired: boolean;
+  emailVerified?: boolean;
   // Session object (sentinel-auth-react preferred format)
   session?: SessionData;
 }
@@ -74,7 +76,7 @@ export interface MfaRequiredResponse {
  * Login result type for sentinel-auth-react (tagged union)
  */
 export type LoginResult =
-  | { type: 'session'; session: SessionData; mustChangePassword: boolean; mfaSetupRequired: boolean }
+  | { type: 'session'; session: SessionData; mustChangePassword: boolean; mfaSetupRequired: boolean; emailVerified?: boolean }
   | { type: 'mfa'; mfaSessionToken: string };
 
 /**

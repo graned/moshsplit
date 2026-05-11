@@ -273,6 +273,7 @@ export class AuthClient {
       },
       mustChangePassword: data.mustChangePassword ?? data.must_change_password ?? false,
       mfaSetupRequired: data.mfaSetupRequired ?? data.mfa_setup_required ?? false,
+      emailVerified: data.emailVerified ?? data.email_verified ?? true,
     };
   }
 
