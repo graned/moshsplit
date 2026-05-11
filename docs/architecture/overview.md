@@ -311,4 +311,10 @@ moshsplit/
 
 ---
 
+## 9. Related Documentation
+
+- [Branding & Theme](../branding.md) — Logo configuration, color palette, metal/rock theme design
+
+---
+
 *Next: [Data Model](./data-model.md) · [API Design](./api-design.md) · [Security Architecture](./security.md)*

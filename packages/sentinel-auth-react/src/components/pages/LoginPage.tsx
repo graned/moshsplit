@@ -62,7 +62,7 @@ export function LoginPage() {
 
   return (
     <div className={styles.page}>
-      <BrandPanel tagline="Secure. Fast. Reliable." />
+      <BrandPanel tagline="Secure. Fast. Reliable." showOrbits={false} />
 
       {/* ── Right form panel ── */}
       <div className={styles.formPanel}>

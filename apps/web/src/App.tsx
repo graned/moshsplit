@@ -1,14 +1,14 @@
 import { Routes, Route, Navigate } from 'react-router';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
-import { 
+import {
   SentinelAuthProvider,
-  LoginPage,
   VerifyEmailPage,
   ForgotPasswordPage,
   ResetPasswordPage,
   ChangePasswordForcedPage,
 } from '@moshsplit/auth-react';
 
+import LoginPage from './features/auth/pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppLayout from './components/AppLayout';
@@ -59,19 +59,21 @@ function AppContent() {
 // MoshSplit branding - metal/rock themed auth pages
 const moshSplitTheme = {
   appName: 'MoshSplit',
-  tagline: 'Split expenses. Not ribs.',
   copyright: '© 2026 MoshSplit. All rights reserved.',
-  primaryColor: '#DC2626',   // Blood red - aggressive, metal aesthetic
+  primaryColor: '#F59E0B',   // Beer-gold - Vira Latas Metaleiros aesthetic
   secondaryColor: '#1F2937', // Dark charcoal grey
   logo: (
-    <svg width="100" height="40" viewBox="0 0 100 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text x="50" y="28" textAnchor="middle" fontFamily="Impact, Arial Black, sans-serif" fontSize="24" fontWeight="bold" fill="#DC2626">
-        MOSH
-      </text>
-      <text x="50" y="38" textAnchor="middle" fontFamily="Impact, Arial Black, sans-serif" fontSize="24" fontWeight="bold" fill="#1F2937">
-        SPLIT
-      </text>
-    </svg>
+    <img
+      src="/viralatas-moshsplit.png"
+      alt="MoshSplit Logo"
+      style={{
+        height: '120px',
+        width: 'auto',
+        display: 'block',
+        margin: '0 auto',
+        filter: 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.5))',
+      }}
+    />
   ),
 };
 

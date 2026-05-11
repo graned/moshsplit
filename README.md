@@ -380,6 +380,12 @@ chore:    maintenance tasks
 | [Rust-PG Mapping](docs/architecture/rust-db-mapping.md) | Rust type mapping, SQLx query patterns, error handling, testing strategy |
 | [pitboss-api Scaffold](docs/architecture/pitboss-api-scaffold.md) | Project structure design following Sentinel's Clean Architecture |
 
+### Branding & Theme
+
+| Document | Description |
+|---|---|
+| [Branding](docs/branding.md) | Logo, color palette, theme configuration, design principles |
+
 ### Decisions
 
 - [ADR Index](docs/decisions/README.md) — ADR catalog with template and pending decisions

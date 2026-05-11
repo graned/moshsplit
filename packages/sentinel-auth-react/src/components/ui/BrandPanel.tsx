@@ -85,6 +85,9 @@ export function BrandPanel({
   // theme.tagline overrides the per-page tagline
   const resolvedTagline = theme.tagline ?? tagline;
 
+  // Check if theme provides a custom logo (ReactNode or string URL)
+  const hasCustomLogo = theme.logo != null;
+
   let logoNode: ReactNode;
   if (theme.logo == null) {
     logoNode = defaultIcon ?? <DefaultShieldIcon />;
@@ -123,10 +126,13 @@ export function BrandPanel({
         </div>
       </div>
 
-      <div className={styles.wordmark}>
-        <span className={styles.wordmarkName}>{appName}</span>
-        <span className={styles.wordmarkAuth}>&nbsp;Auth</span>
-      </div>
+      {/* Only show wordmark when there's no custom logo - the logo already contains branding */}
+      {!hasCustomLogo && (
+        <div className={styles.wordmark}>
+          <span className={styles.wordmarkName}>{appName}</span>
+          <span className={styles.wordmarkAuth}>&nbsp;Auth</span>
+        </div>
+      )}
       <p className={styles.tagline}>{resolvedTagline}</p>
       {taglineSubtext && <p className={styles.taglineSubtext}>{taglineSubtext}</p>}
     </div>

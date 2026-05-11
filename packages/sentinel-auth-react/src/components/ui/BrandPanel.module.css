@@ -5,28 +5,44 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #0a1628 0%, #070d1a 55%, #050b15 100%);
+  /* Dark metallic floor theme - industrial stage aesthetic */
+  background:
+    /* Subtle metallic sheen overlay */
+    linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(0,0,0,0.2) 100%),
+    /* Horizontal brushed metal effect */
+    linear-gradient(180deg, #2D3748 0%, #1F2937 20%, #111827 60%, #0D0D0D 100%);
   overflow: hidden;
   padding: 3rem 2rem;
   gap: 1rem;
 }
 
-/* Subtle dot-grid background */
+/* Subtle grid pattern - like industrial floor tiles */
 .gridDots {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(6, 182, 212, 0.18) 1px, transparent 1px);
-  background-size: 28px 28px;
-  opacity: 0.45;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.5;
   pointer-events: none;
 }
 
-/* Large radial glow */
+/* Subtle top-left light source for metallic effect */
 .brandPanel::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 55% at 50% 46%, rgba(6, 182, 212, 0.07) 0%, transparent 70%);
+  background: radial-gradient(ellipse 80% 60% at 30% 20%, rgba(255,255,255,0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Subtle bottom glow - like stage lighting */
+.brandPanel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 100%, rgba(220, 38, 38, 0.08) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -40,52 +56,16 @@
   justify-content: center;
 }
 
-/* Concentric rings */
+/* Static subtle rings - no animation, just subtle decoration */
 .ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(6, 182, 212, 0.22);
-  animation: ringPulse 3s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.ring1 { width: 180px; height: 180px; animation-delay: 0s; }
-.ring2 { width: 220px; height: 220px; border-color: rgba(6, 182, 212, 0.13); animation-delay: 0.9s; }
-.ring3 { width: 260px; height: 260px; border-color: rgba(59, 130, 246, 0.1); animation-delay: 1.8s; }
-
-/* Orbiting dot tracks */
-.orbitTrack {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.orbitDot {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
-}
-
-.orbitOuter  { animation: orbitSlow 10s linear infinite; }
-.orbitPhase  { animation-delay: -5s; }
-.orbitMid    { animation: orbitFast 7s linear infinite; }
-.orbitPhase2 { animation-delay: -3.5s; }
-
-.orbitOuter .orbitDot { transform: translateX(90px); width: 6px; height: 6px; }
-.orbitMid .orbitDot   {
-  transform: translateX(65px);
-  width: 5px;
-  height: 5px;
-  background: var(--accent-blue);
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
-}
+.ring1 { width: 180px; height: 180px; }
+.ring2 { width: 220px; height: 220px; border-color: rgba(255, 255, 255, 0.04); }
+.ring3 { width: 260px; height: 260px; border-color: rgba(255, 255, 255, 0.025); }
 
 /* ─── Icon wrapper (shield / custom logo) ─────────────────────── */
 .iconWrap {
@@ -94,8 +74,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: breathe 4s ease-in-out infinite;
-  filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.35));
+  /* Subtle drop shadow for depth */
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
 /* Default shield SVG */
@@ -107,8 +87,8 @@
 
 /* Custom logo passed as a URL string */
 .logoImg {
-  max-width: 108px;
-  max-height: 108px;
+  max-width: 260px;
+  max-height: 80px;
   width: auto;
   height: auto;
   display: block;
@@ -129,13 +109,15 @@
 .wordmarkAuth { color: var(--accent-primary); }
 
 .tagline {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  letter-spacing: 0.12em;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   margin: 0;
   position: relative;
   z-index: 1;
+  text-align: center;
+  max-width: 280px;
 }
 
 .taglineSubtext {
@@ -147,25 +129,4 @@
   line-height: 1.5;
   position: relative;
   z-index: 1;
-}
-
-/* ─── Keyframe animations ─────────────────────────────────────── */
-@keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.045); }
-}
-
-@keyframes ringPulse {
-  0%, 100% { transform: scale(0.96); opacity: 0.8; }
-  50%       { transform: scale(1.04); opacity: 0.3; }
-}
-
-@keyframes orbitSlow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@keyframes orbitFast {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(-360deg); }
 }
