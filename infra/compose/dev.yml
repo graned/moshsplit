@@ -72,15 +72,14 @@ services:
     networks:
       - app-net
 
-  # ── Sentinel migrations (runs before Sentinel, creates tables in 'auth' schema) ─
+  # ── Sentinel migrations ─────────────────────────────────────────────────────
   sentinel-migrations:
     build:
       context: ../../
       dockerfile: infra/docker/sentinel-migrate.Dockerfile
     container_name: sentinel-migrations
     environment:
-      # Use the shared 'moshsplit' database - Sentinel will use the 'auth' schema via diesel.toml
-      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
+      DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
       PGOPTIONS: "-c search_path=public"
     depends_on:
       postgres:
@@ -95,9 +94,7 @@ services:
     ports:
       - "9000:8000"
     environment:
-      # Use the shared 'moshsplit' database - Sentinel uses 'auth' schema via search_path
-      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
-      PGOPTIONS: "-c search_path=auth"
+      DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
       HEX_KEY: 32a8c0fc962ce0299e8f5dedb1ff75b7e8789416db8f6836fb91c6e7bd2e58fe
       CONFIG_ENCRYPTION_KEY: 02b96ece27c893f176d52139c17ef97db53283a3b0a75e185c2a9da7c1855db5
       RUST_LOG: debug
@@ -137,24 +134,28 @@ services:
     networks:
       - app-net
 
-  # ── Web (React PWA) ─────────────────────────────────────────────────────────
-  # web:
-  #  build:
-  #    context: ../../
-  #    dockerfile: infra/docker/web.Dockerfile
-  #    target: dev
-  #  container_name: moshsplit-web
-  #  ports:
-  #    - "5173:5173"
-  #  volumes:
-  #    # Mount the full web app directory for Vite HMR.
-  #    - ../../apps/web:/app/apps/web
-  #  environment:
-  #    VITE_SENTINEL_URL: http://localhost:9000
-  #  depends_on:
-  #    - pitboss-api
-  #  networks:
-  #    - app-net
+  # ── Web (React PWA / Vite) ─────────────────────────────────────────────────
+  web:
+    build:
+      context: ../../
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
+    container_name: moshsplit-web
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the full web app directory for Vite HMR.
+      - ../../apps/web:/app/apps/web
+    environment:
+      # API base URL for pitboss-api - Vite will proxy /api/* requests to it
+      VITE_API_BASE_URL: http://pitboss-api:8080
+      # Also keep SENTINEL_URL for auth service compatibility
+      VITE_SENTINEL_URL: http://sentinel:8000
+    depends_on:
+      pitboss-api:
+        condition: service_started
+    networks:
+      - app-net
 
 volumes:
   pgdata:

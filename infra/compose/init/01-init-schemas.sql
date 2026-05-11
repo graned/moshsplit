@@ -21,16 +21,18 @@ BEGIN
 END
 $$;
 
--- sentinel_user: used by the Sentinel auth service (Rust / Axum)
--- Password: override via environment variable SENTINEL_PASSWORD at deployment.
---           Dev default: sentinel_dev
+-- sentinel: used by the Sentinel auth service
+-- Password: sentinel_dev (matches dev.yml DATABASE_URL)
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'sentinel_user') THEN
-        CREATE ROLE sentinel_user LOGIN PASSWORD 'sentinel_dev';
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'sentinel') THEN
+        CREATE ROLE sentinel LOGIN PASSWORD 'sentinel_dev';
     END IF;
 END
 $$;
+
+-- Create sentinel_auth database if not exists
+SELECT 'CREATE DATABASE sentinel_auth' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'sentinel_auth')\gexec
 
 -- ── Schemas (idempotent) ─────────────────────────────────────────────────────
 
@@ -39,20 +41,24 @@ CREATE SCHEMA IF NOT EXISTS app  AUTHORIZATION postgres;
 
 -- ── Schema permissions ───────────────────────────────────────────────────────
 
--- === auth schema → sentinel_user ===
--- The auth schema is managed by Sentinel (Diesel migrations).
-GRANT USAGE ON SCHEMA auth TO sentinel_user;
+-- === auth schema → sentinel ===
+-- The auth schema is for Sentinel tables
+GRANT USAGE ON SCHEMA auth TO sentinel;
+GRANT CREATE ON SCHEMA auth TO sentinel;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
-    GRANT ALL PRIVILEGES ON TABLES    TO sentinel_user;
+    GRANT ALL PRIVILEGES ON TABLES    TO sentinel;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
-    GRANT ALL PRIVILEGES ON SEQUENCES TO sentinel_user;
+    GRANT ALL PRIVILEGES ON SEQUENCES TO sentinel;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
-    GRANT ALL PRIVILEGES ON FUNCTIONS TO sentinel_user;
+    GRANT ALL PRIVILEGES ON FUNCTIONS TO sentinel;
 
-GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel_user;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel_user;
+GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel;
+
+-- Set default search_path for sentinel user to auth schema
+ALTER ROLE sentinel SET search_path TO auth;
 
 -- === app schema → pitboss ===
 -- The app schema is managed by pitboss-api (Diesel migrations).

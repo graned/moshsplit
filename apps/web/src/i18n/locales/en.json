@@ -1,0 +1,121 @@
+{
+  "common": {
+    "appName": "MoshSplit",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "noResults": "No results found",
+    "required": "Required"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to manage your shared expenses",
+    "email": "Email address",
+    "password": "Password",
+    "loginButton": "Sign in",
+    "forgotPassword": "Forgot password?",
+    "invitationOnly": "This app is invitation-only",
+    "invitationMessage": "Please contact a group admin to get an invitation.",
+    "noAccount": "Don't have an account?",
+    "logout": "Sign out",
+    "logoutConfirm": "Are you sure you want to sign out?"
+  },
+  "forgotPassword": {
+    "title": "Reset password",
+    "subtitle": "Enter your email and we'll send you a reset link",
+    "emailLabel": "Email address",
+    "submitButton": "Send reset link",
+    "backToLogin": "Back to sign in",
+    "successMessage": "If an account exists, we've sent a password reset email.",
+    "errorMessage": "Failed to send reset email. Please try again."
+  },
+  "resetPassword": {
+    "title": "Set new password",
+    "subtitle": "Enter your new password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "submitButton": "Reset password",
+    "successMessage": "Password has been reset successfully.",
+    "errorMessage": "Failed to reset password. The link may have expired.",
+    "passwordMismatch": "Passwords do not match",
+    "passwordRequirements": "At least 8 characters"
+  },
+  "invitation": {
+    "title": "Accept invitation",
+    "subtitle": "Create your account to join the group",
+    "nameLabel": "Your name",
+    "passwordLabel": "Create a password",
+    "confirmPasswordLabel": "Confirm password",
+    "submitButton": "Accept invitation & sign in",
+    "successMessage": "Welcome to the group!",
+    "errorMessage": "Failed to accept invitation. The link may be invalid or expired.",
+    "invalidToken": "Invalid or expired invitation"
+  },
+  "app": {
+    "home": "Home",
+    "events": "Events",
+    "expenses": "Expenses",
+    "balances": "Balances",
+    "settlements": "Settlements",
+    "settings": "Settings",
+    "profile": "Profile",
+    "security": "Security",
+    "notifications": "Notifications",
+    "logout": "Sign out"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Manage your personal information",
+      "name": "Display name",
+      "email": "Email address",
+      "emailReadOnly": "Email cannot be changed",
+      "avatar": "Avatar",
+      "updateSuccess": "Profile updated successfully",
+      "updateError": "Failed to update profile"
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "Manage your security settings",
+      "mfa": "Two-factor authentication",
+      "mfaEnabled": "Enabled",
+      "mfaDisabled": "Disabled",
+      "enableMfa": "Enable 2FA",
+      "disableMfa": "Disable 2FA",
+      "mfaDescription": "Add an extra layer of security to your account",
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "passwordSuccess": "Password changed successfully",
+      "passwordError": "Failed to change password"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "events": "Events",
+    "expenses": "Expenses",
+    "balances": "Balances",
+    "settlements": "Settlements"
+  },
+  "placeholder": {
+    "events": "No events yet",
+    "eventsDesc": "Create an event to start tracking shared expenses",
+    "expenses": "No expenses yet",
+    "expensesDesc": "Add an expense to start tracking",
+    "balances": "All settled up!",
+    "balancesDesc": "No outstanding balances",
+    "settlements": "No settlements needed",
+    "settlementsDesc": "Everyone is even"
+  }
+}

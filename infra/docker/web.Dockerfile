@@ -2,8 +2,8 @@
 #
 # MoshSplit — web (React PWA) Dockerfile
 # ========================================
-# Scaffold only — the web app is not fully implemented yet.
 # Multi-stage: `dev` (Vite HMR via pnpm) and `prod` (static build served by nginx).
+# Environment variables VITE_* are baked into the JS bundle at build time.
 
 
 # ── Dev stage ────────────────────────────────────────────────────────────────
@@ -27,9 +27,16 @@ RUN pnpm install --frozen-lockfile
 # directory is typically mounted as a volume for live HMR.
 COPY apps/web/ /app/apps/web/
 
+# Set environment variables for Vite (can be overridden at runtime via -e flag)
+# VITE_API_BASE_URL: URL for pitboss-api (used for API calls / direct URL in prod)
+# VITE_SENTINEL_URL: URL for Sentinel auth service
+ENV VITE_API_BASE_URL=http://pitboss-api:8080
+ENV VITE_SENTINEL_URL=http://sentinel:8000
+
 EXPOSE 5173
 
 # Vite dev server with host set to 0.0.0.0 so the container is reachable.
+# Note: In dev mode, configure Vite proxy in vite.config.ts to forward /api/* to pitboss-api
 CMD ["pnpm", "--filter", "web", "dev", "--host", "0.0.0.0"]
 
 
@@ -45,6 +52,13 @@ COPY apps/web/package.json /app/apps/web/
 RUN pnpm install --frozen-lockfile
 
 COPY apps/web/ /app/apps/web/
+
+# Environment variables for production build - these will be baked into the bundle
+ARG VITE_API_BASE_URL=http://pitboss-api:8080
+ARG VITE_SENTINEL_URL=http://sentinel:8000
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_SENTINEL_URL=${VITE_SENTINEL_URL}
+
 RUN pnpm --filter web build
 
 

@@ -132,7 +132,10 @@ services:
     ports:
       - "${WEB_PORT:-80}:80"
     environment:
-      VITE_SENTINEL_URL: ${VITE_SENTINEL_URL:-http://localhost:9000}
+      # API base URL for pitboss-api
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://pitboss-api:8080}
+      # Keep SENTINEL_URL for auth service compatibility
+      VITE_SENTINEL_URL: ${VITE_SENTINEL_URL:-http://sentinel:8000}
     depends_on:
       - pitboss-api
     networks:
