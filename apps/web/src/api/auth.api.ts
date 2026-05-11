@@ -1,5 +1,7 @@
-import { apiClient } from './client';
-import { API_ENDPOINTS } from './config';
+import { AuthClient } from '@moshsplit/sentinel-sdk';
+
+const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+const authClient = new AuthClient(sentinelUrl);
 
 export interface LoginRequest {
   email: string;
@@ -50,26 +52,45 @@ export interface InvitationAcceptResponse {
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    return apiClient.post<LoginResponse>(API_ENDPOINTS.auth.login, data);
+    const response = await authClient.login(data);
+    if ('mfa_required' in response && response.mfa_required) {
+      throw new Error('MFA required');
+    }
+    return {
+      token: response.access_token,
+      user: {
+        id: response.user_id,
+        email: data.email,
+        name: '',
+        mfaEnabled: false,
+        createdAt: new Date().toISOString(),
+      },
+    };
   },
 
   logout: async (): Promise<void> => {
-    return apiClient.post<void>(API_ENDPOINTS.auth.logout);
+    // Logout handled by storing token in authStore
   },
 
   getCurrentUser: async (): Promise<User> => {
-    return apiClient.get<User>(API_ENDPOINTS.auth.currentUser);
+    // This would need to call pitboss-api with token
+    throw new Error('Not implemented');
   },
 
   forgotPassword: async (data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> => {
-    return apiClient.post<ForgotPasswordResponse>(API_ENDPOINTS.auth.forgotPassword, data);
+    await authClient.passwordForgot({ email: data.email });
+    return { message: 'Password reset email sent' };
   },
 
   resetPassword: async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
-    return apiClient.post<ResetPasswordResponse>(API_ENDPOINTS.auth.resetPassword, data);
+    await authClient.passwordReset({
+      token: data.token,
+      new_password: data.newPassword,
+    });
+    return { message: 'Password reset successful' };
   },
 
   acceptInvitation: async (data: InvitationAcceptRequest): Promise<InvitationAcceptResponse> => {
-    return apiClient.post<InvitationAcceptResponse>('/api/v1/invitations/accept', data);
+    throw new Error('Not implemented');
   },
 };

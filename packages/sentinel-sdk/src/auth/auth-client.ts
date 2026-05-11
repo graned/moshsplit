@@ -11,7 +11,6 @@ import type {
   RefreshTokenResponse,
   PasswordForgotRequest,
   PasswordResetRequest,
-  VerifyEmailRequest,
 } from './types';
 
 /**

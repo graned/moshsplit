@@ -147,11 +147,13 @@ services:
     volumes:
       # Mount the full web app directory for Vite HMR.
       - ../../apps/web:/app/apps/web
+      # Mount sentinel-sdk for HMR
+      - ../../packages/sentinel-sdk:/app/packages/sentinel-sdk
     environment:
-      # API base URL for pitboss-api - Vite will proxy /api/* requests to it
-      VITE_API_BASE_URL: http://pitboss-api:8080
-      # Also keep SENTINEL_URL for auth service compatibility
-      VITE_SENTINEL_URL: http://sentinel:8000
+      # Use localhost for browser access - Vite proxies /api to pitboss-api
+      VITE_API_BASE_URL: http://localhost:8080
+      # Also use localhost for Sentinel (port 9000 exposed)
+      VITE_SENTINEL_URL: http://localhost:9000
     depends_on:
       pitboss-api:
         condition: service_started

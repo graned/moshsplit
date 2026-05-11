@@ -4,7 +4,7 @@ use reqwest::Client;
 use std::sync::Arc;
 
 pub use crate::errors::{SentinelError, SentinelErrorCode, Result};
-pub use crate::types::{AuthenticatedUser, SentinelConfig};
+pub use crate::types::{AuthenticatedUser, LoginRequest, LoginResponse, SentinelConfig};
 
 /// Sentinel client for communicating with Sentinel Auth service.
 pub struct SentinelClient {
@@ -80,6 +80,42 @@ impl SentinelClient {
     /// Get the base URL.
     pub fn base_url(&self) -> &str {
         &self.inner.base_url
+    }
+
+    /// Login with email and password.
+    ///
+    /// Returns either a session (on success) or MFA challenge.
+    pub async fn login(&self, email: &str, password: &str) -> Result<LoginResponse> {
+        let url = format!("{}/v1/api/auth/login", self.inner.base_url);
+
+        let request = LoginRequest {
+            email: email.to_string(),
+            password: password.to_string(),
+        };
+
+        let response = self
+            .inner
+            .http_client
+            .post(&url)
+            .json(&request)
+            .send()
+            .await
+            .map_err(SentinelError::Network)?;
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+
+        if status.is_success() {
+            let login_response: LoginResponse =
+                serde_json::from_str(&body).map_err(SentinelError::Parse)?;
+            Ok(login_response)
+        } else {
+            Err(SentinelError::from_response(
+                status.as_u16(),
+                &body,
+                None,
+            ))
+        }
     }
 }
 

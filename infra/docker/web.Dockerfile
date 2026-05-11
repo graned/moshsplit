@@ -17,11 +17,18 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy root workspace files so pnpm can resolve the monorepo layout.
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc /app/
 
-# Copy the web app manifest.
+# Copy package sources
 COPY apps/web/package.json /app/apps/web/
+COPY packages/sentinel-sdk/package.json /app/packages/sentinel-sdk/
+COPY packages/sentinel-sdk/src /app/packages/sentinel-sdk/src/
+COPY packages/sentinel-sdk/tsconfig.json /app/packages/sentinel-sdk/
+COPY packages/sentinel-sdk/tsconfig.cjs.json /app/packages/sentinel-sdk/
 
 # Install dependencies (workspace-aware).
 RUN pnpm install --frozen-lockfile
+
+# Build sentinel-sdk (TypeScript -> JS)
+RUN pnpm --filter @moshsplit/sentinel-sdk build
 
 # Copy the rest of the web app source.  In dev the entire apps/web/
 # directory is typically mounted as a volume for live HMR.
