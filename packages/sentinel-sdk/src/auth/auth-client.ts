@@ -356,21 +356,21 @@ export class AuthClient {
   }
 
 /**
-   * Verify email from email link
-   * POST /v1/api/auth/verify-email
-   *
-   * The token is passed in the request body as JSON.
-   */
-  async verifyEmail(token: string): Promise<void> {
-    const response = await this.api.post('v1/api/auth/verify-email', {
-      json: { token },
-    });
+    * Verify email from email link
+    * GET /v1/api/auth/verify-email?token=<token>
+    *
+    * The token is passed as a query parameter.
+    */
+   async verifyEmail(token: string): Promise<void> {
+     const response = await this.api.get('v1/api/auth/verify-email', {
+       searchParams: { token },
+     });
 
-    if (!response.ok) {
-      const envelope = await response.json() as ApiEnvelope<unknown>;
-      throw new Error(envelope.error?.message ?? 'Email verification failed');
-    }
-  }
+     if (!response.ok) {
+       const envelope = await response.json() as ApiEnvelope<unknown>;
+       throw new Error(envelope.error?.message ?? 'Email verification failed');
+     }
+   }
 
   /**
    * Request password reset email

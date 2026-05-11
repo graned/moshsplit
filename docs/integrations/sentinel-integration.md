@@ -1009,7 +1009,7 @@ All Sentinel API endpoints use the `/v1/api/` prefix and return responses wrappe
 |--------|----------|------|-------------|
 | POST | `/v1/api/auth/login` | No | Login with email/password. Returns session tokens or MFA challenge |
 | POST | `/v1/api/auth/register` | No | Register new user |
-| POST | `/v1/api/auth/verify-email` | No | **POST with JSON body** — Verify email from link token |
+| GET | `/v1/api/auth/verify-email?token=<token>` | No | **GET with query param** — Verify email from link token |
 | POST | `/v1/api/auth/resend-verification` | No | Resend verification email (NOT `/verify-email/resend`) |
 | POST | `/v1/api/auth/password/forgot` | No | Request password reset email |
 | POST | `/v1/api/auth/password/reset` | No | Reset password with reset token |

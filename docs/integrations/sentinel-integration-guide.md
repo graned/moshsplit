@@ -323,7 +323,7 @@ await sentinelClient.user.changePassword(accessToken, {
 | POST | `/v1/api/auth/mfa/verify` | None | Verify MFA code |
 | POST | `/v1/api/auth/logout` | Bearer | Logout current session |
 | POST | `/v1/api/auth/token/refresh` | None | Refresh access token |
-| POST | `/v1/api/auth/verify-email` | None | Verify email (from email link) |
+| GET | `/v1/api/auth/verify-email?token=<token>` | None | Verify email (from email link) |
 | POST | `/v1/api/auth/password/forgot` | None | Request password reset |
 | POST | `/v1/api/auth/password/reset` | None | Reset password with token |
 
