@@ -1,13 +1,15 @@
 import { Routes, Route, Navigate } from 'react-router';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
-import { SentinelAuthProvider } from '@moshsplit/auth-react';
+import { 
+  SentinelAuthProvider,
+  LoginPage,
+  VerifyEmailPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  ChangePasswordForcedPage,
+} from '@moshsplit/auth-react';
 
 import ProtectedRoute from './components/ProtectedRoute';
-import LoginPage from './pages/auth/LoginPage';
-import ChangePasswordPage from './pages/auth/ChangePasswordPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppLayout from './components/AppLayout';
 import HomePage from './pages/app/HomePage';
@@ -29,7 +31,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/change-password" element={<ChangePasswordPage />} />
+      <Route path="/change-password" element={<ChangePasswordForcedPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -56,7 +58,16 @@ function AppContent() {
 
 function App() {
   return (
-    <SentinelAuthProvider client={authClient}>
+    <SentinelAuthProvider 
+      client={authClient}
+      redirects={{
+        afterLogin: '/app/home',
+        afterLogout: '/login',
+        verifyEmail: '/verify-email',
+        changePassword: '/change-password',
+        setupMfa: '/setup-mfa',
+      }}
+    >
       <AppContent />
     </SentinelAuthProvider>
   );
