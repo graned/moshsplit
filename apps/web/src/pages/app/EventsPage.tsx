@@ -18,6 +18,7 @@ import {
   GroupAdd as JoinIcon,
   Group as GroupsIcon,
   MoreVert as MoreIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -42,14 +43,6 @@ function GroupCard({ group, onClick, onDelete, onEdit }: {
 
   const isArchived = group.status === 'archived' || group.status === 'deleted';
 
-  const handleClick = () => {
-    if (isArchived && onEdit) {
-      onEdit();
-    } else {
-      onClick();
-    }
-  };
-
   return (
     <Card
       sx={{
@@ -63,7 +56,7 @@ function GroupCard({ group, onClick, onDelete, onEdit }: {
           boxShadow: 4,
         },
       }}
-      onClick={handleClick}
+      onClick={onClick}
     >
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -80,7 +73,7 @@ function GroupCard({ group, onClick, onDelete, onEdit }: {
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Typography
               variant="caption"
               sx={{
@@ -92,6 +85,18 @@ function GroupCard({ group, onClick, onDelete, onEdit }: {
               {group.status}
               {isArchived && ' - Click to restore'}
             </Typography>
+            {onEdit && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                title="Edit event"
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
             {onDelete && (
               <IconButton
                 size="small"
