@@ -19,7 +19,12 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       sx={{
         width: '100%',
         maxWidth: 420,
-        backgroundColor: 'rgba(26, 26, 26, 0.95)',
+        background: `
+          linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
+          url('/assets/bg-texture-1.svg')
+        `,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         border: '1px solid rgba(245, 158, 11, 0.2)',
         borderRadius: '4px',
         boxShadow: '0 24px 80px rgba(0, 0, 0, 0.55)',
