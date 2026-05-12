@@ -74,7 +74,11 @@ export const groupsApi = {
 
   // Get a single group
   get: async (groupId: string): Promise<Group> => {
-    return apiClient.get<Group>(`/v1/events/${groupId}`);
+    const response = await apiClient.get<{ success: boolean; data: Group; error: unknown }>(`/v1/events/${groupId}`);
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to get group');
+    }
+    return response.data;
   },
 
   // Create a new group
