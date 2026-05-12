@@ -42,6 +42,9 @@ export function AddExpenseDialog({
   currentUserId,
   groupCurrency = 'USD',
 }: AddExpenseDialogProps) {
+  // Ensure members is always an array
+  const memberList = Array.isArray(members) ? members : [];
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -53,7 +56,7 @@ export function AddExpenseDialog({
 
   // For "equal" split - include all members by default
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(
-    new Set(members.map((m) => m.user_id))
+    new Set(memberList.map((m) => m.user_id))
   );
 
   // For custom/percentage/shares splits
@@ -165,7 +168,7 @@ export function AddExpenseDialog({
     setPaidBy(currentUserId);
     setSplitType('equal');
     setNotes('');
-    setSelectedMembers(new Set(members.map((m) => m.user_id)));
+    setSelectedMembers(new Set(memberList.map((m) => m.user_id)));
     setSplitValues({});
     setError('');
   };
@@ -232,7 +235,7 @@ export function AddExpenseDialog({
                 label="Paid by"
                 onChange={(e) => setPaidBy(e.target.value)}
               >
-                {members.map((member) => (
+                {memberList.map((member) => (
                   <MenuItem key={member.user_id} value={member.user_id}>
                     {member.user_name || member.user_email || member.user_id}
                   </MenuItem>
@@ -261,7 +264,7 @@ export function AddExpenseDialog({
                 Split with
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {members.map((member) => (
+                {memberList.map((member) => (
                   <FormControlLabel
                     key={member.user_id}
                     control={

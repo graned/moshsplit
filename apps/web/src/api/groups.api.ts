@@ -100,7 +100,15 @@ export const groupsApi = {
 
   // List members of a group
   listMembers: async (groupId: string): Promise<GroupMember[]> => {
-    return apiClient.get<GroupMember[]>(`/v1/events/${groupId}/members`);
+    const response = await apiClient.get<{ data: GroupMember[] } | GroupMember[]>(`/v1/events/${groupId}/members`);
+    // Handle both wrapped and unwrapped responses
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response && 'data' in response && Array.isArray(response.data)) {
+      return response.data;
+    }
+    return [];
   },
 
   // Add a member to a group
