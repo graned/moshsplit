@@ -1,4 +1,4 @@
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '@moshsplit/auth-react';
 
 export interface Profile {
   id: string;
@@ -30,7 +30,7 @@ const SENTINEL_URL = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000
 
 // Helper to make requests to Sentinel with the current token
 async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<Response> {
-  const token = useAuthStore.getState().token;
+  const token = useAuthStore.getState().accessToken;
 
   if (!token) {
     throw new Error('Not authenticated');

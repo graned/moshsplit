@@ -103,18 +103,26 @@ export default function EventsPage() {
   // Fetch groups
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['groups', userId],
-    queryFn: () => {
+    queryFn: async () => {
       if (!userId) throw new Error('User not authenticated');
-      return groupsApi.list(userId);
+      console.log('[EventsPage] Fetching groups for userId:', userId);
+      const result = await groupsApi.list(userId);
+      console.log('[EventsPage] Groups fetch result:', JSON.stringify(result));
+      return result;
     },
     enabled: !!userId,
+    staleTime: 0, // Ensure fresh data
   });
 
   // Create group mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateGroupRequest) => groupsApi.create(data),
     onSuccess: () => {
+      console.log('[EventsPage] createMutation onSuccess - invalidating groups query');
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+    onError: (error) => {
+      console.error('[EventsPage] createMutation onError:', error);
     },
   });
 
@@ -126,11 +134,15 @@ export default function EventsPage() {
     },
   });
 
-  const handleCreateGroup = async (data: { name: string; description?: string; currency: string }) => {
+  const handleCreateGroup = async (data: { name: string; description?: string; currency: string; memberIds?: string[] }) => {
+    console.log('[EventsPage] handleCreateGroup called with:', JSON.stringify(data));
     if (!userId) {
       throw new Error('User not authenticated');
     }
-    await createMutation.mutateAsync({ ...data, user_id: userId });
+    const mutationData = { ...data, user_id: userId };
+    console.log('[EventsPage] Sending to API:', JSON.stringify(mutationData));
+    await createMutation.mutateAsync(mutationData);
+    console.log('[EventsPage] createMutation completed successfully');
   };
 
   const handleJoinGroup = async (_inviteCode: string) => {

@@ -60,13 +60,14 @@ export const groupsApi = {
   list: async (userId: string, cursor?: string, limit = 20): Promise<{ data: GroupListItem[]; hasMore: boolean; nextCursor?: string }> => {
     const params = new URLSearchParams({ limit: String(limit), user_id: userId });
     if (cursor) params.set('cursor', cursor);
-    const response = await apiClient.get<{ data: GroupListItem[]; has_more: boolean; next_cursor?: string }>(
+    const response = await apiClient.get<{ data: { items: GroupListItem[]; pagination: { has_more: boolean; next_cursor?: string } } }>(
       `/v1/events?${params.toString()}`
     );
+    console.log('[groupsApi] list response:', JSON.stringify(response));
     return {
-      data: response.data,
-      hasMore: response.has_more,
-      nextCursor: response.next_cursor,
+      data: response.data.items,
+      hasMore: response.data.pagination.has_more,
+      nextCursor: response.data.pagination.next_cursor,
     };
   },
 
@@ -77,7 +78,14 @@ export const groupsApi = {
 
   // Create a new group
   create: async (data: CreateGroupRequest): Promise<Group> => {
-    return apiClient.post<Group>('/v1/events', data);
+    console.log('[groupsApi] Creating group with data:', JSON.stringify(data));
+    const result = await apiClient.post<{ success: boolean; data: Group; error: unknown }>('/v1/events', data);
+    console.log('[groupsApi] Create group raw result:', JSON.stringify(result));
+    if (!result.success) {
+      throw new Error(result.error as string || 'Failed to create group');
+    }
+    console.log('[groupsApi] Create group returning:', result.data);
+    return result.data;
   },
 
   // Update a group
