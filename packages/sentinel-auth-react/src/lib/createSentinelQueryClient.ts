@@ -29,12 +29,26 @@ function is401Error(error: unknown): boolean {
     console.log('[createSentinelQueryClient] SentinelError, statusCode:', error.statusCode);
     return error.statusCode === 401;
   }
-  // Handle plain API errors like { message: string; status?: number }
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status;
-    console.log('[createSentinelQueryClient] Plain error, status:', status);
-    return status === 401;
+
+  // Handle wrapped pitboss-api response: { success: false, error: { message: 'HTTP 401' } }
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>;
+    // Check for wrapped error format
+    if (err.error && typeof err.error === 'object') {
+      const innerError = err.error as Record<string, unknown>;
+      if (innerError.message === 'HTTP 401' || String(innerError.message).includes('401')) {
+        console.log('[createSentinelQueryClient] Wrapped error detected, is 401');
+        return true;
+      }
+    }
+    // Check for plain API errors like { message: string; status?: number }
+    if ('status' in err) {
+      const status = err.status;
+      console.log('[createSentinelQueryClient] Plain error, status:', status);
+      return status === 401;
+    }
   }
+
   console.log('[createSentinelQueryClient] Not a 401 error');
   return false;
 }
