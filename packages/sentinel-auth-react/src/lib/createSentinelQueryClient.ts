@@ -79,12 +79,14 @@ export function createSentinelQueryClient(redirects?: SentinelAuthRedirects): Qu
         if (is401Error(err)) {
           console.log('[QueryCache onError] Detected 401, attempting token refresh...');
           void (async () => {
+            console.log('[QueryCache onError] Before refreshTokens call');
             const refreshed = await refreshTokens();
-            console.log('[QueryCache onError] Token refresh result:', refreshed);
+            console.log('[QueryCache onError] After refreshTokens call, result:', refreshed);
             if (refreshed) {
+              console.log('[QueryCache onError] Refresh succeeded, invalidating queries...');
               void client.invalidateQueries();
             } else {
-              console.log('[QueryCache onError] Token refresh failed, clearing tokens');
+              console.log('[QueryCache onError] Refresh failed, clearing tokens and redirecting...');
               useAuthStore.getState().clearTokens();
               window.location.href = loginPath;
             }
