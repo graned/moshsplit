@@ -24,13 +24,18 @@ import type { SentinelAuthRedirects } from "../types";
 
 // Helper to check if error is a 401 (handles both SentinelError and plain API errors)
 function is401Error(error: unknown): boolean {
+  console.log('[createSentinelQueryClient] Checking error:', error);
   if (error instanceof SentinelError) {
+    console.log('[createSentinelQueryClient] SentinelError, statusCode:', error.statusCode);
     return error.statusCode === 401;
   }
   // Handle plain API errors like { message: string; status?: number }
   if (error && typeof error === 'object' && 'status' in error) {
-    return (error as { status: unknown }).status === 401;
+    const status = (error as { status: unknown }).status;
+    console.log('[createSentinelQueryClient] Plain error, status:', status);
+    return status === 401;
   }
+  console.log('[createSentinelQueryClient] Not a 401 error');
   return false;
 }
 
@@ -55,13 +60,17 @@ export function createSentinelQueryClient(redirects?: SentinelAuthRedirects): Qu
     },
     queryCache: new QueryCache({
       onError: (err) => {
+        console.log('[QueryCache onError] Error received:', err);
         // Handle 401 for both SentinelError AND plain API errors
         if (is401Error(err)) {
+          console.log('[QueryCache onError] Detected 401, attempting token refresh...');
           void (async () => {
             const refreshed = await refreshTokens();
+            console.log('[QueryCache onError] Token refresh result:', refreshed);
             if (refreshed) {
               void client.invalidateQueries();
             } else {
+              console.log('[QueryCache onError] Token refresh failed, clearing tokens');
               useAuthStore.getState().clearTokens();
               window.location.href = loginPath;
             }
