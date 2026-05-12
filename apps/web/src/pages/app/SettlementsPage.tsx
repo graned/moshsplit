@@ -25,13 +25,12 @@ import Grid from '@mui/material/Grid2';
 import {
   SwapHoriz as SettlementIcon,
   CheckCircle as ConfirmIcon,
-  Cancel as RejectIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
-import { settlementsApi, SettlementListItem, CreateSettlementRequest } from '../../api/settlements.api';
+import { settlementsApi, CreateSettlementRequest } from '../../api/settlements.api';
 
 function getMemberName(members: GroupMember[], userId: string): string {
   const member = members.find((m) => m.user_id === userId);

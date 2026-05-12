@@ -1,222 +1,108 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router';
-import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  InputAdornment,
-  IconButton,
-  Link,
-} from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Email as EmailIcon,
-  Lock as LockIcon,
-  Celebration as CelebrationIcon,
-} from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '@moshsplit/auth-react';
+import { useState, useCallback } from 'react';
+import { Box, Typography, Container } from '@mui/material';
+import { LoginCard } from '../../components/LoginCard';
+import { useLogin } from './hooks';
+import type { LoginCredentials } from './types';
 
 function LoginPage() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { login, isLoading, error: authError } = useAuth();
+	const { login, isLoading } = useLogin();
+	const [localError, setLocalError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+	const handleSubmit = useCallback(
+		async (credentials: LoginCredentials) => {
+			setLocalError(null);
+			const result = await login(credentials);
+			if (!result.success && result.error) {
+				setLocalError(result.error);
+			}
+		},
+		[login]
+	);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+	return (
+		<Box
+			sx={{
+				minHeight: '100vh',
+				display: 'flex',
+				flexDirection: 'column',
+				alignItems: 'center',
+				justifyContent: 'center',
+				p: 2,
+				background: `
+          linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
+          url('/assets/background.svg')
+        `,
+				backgroundSize: 'cover',
+				backgroundPosition: 'center',
+				backgroundRepeat: 'no-repeat',
+				position: 'relative',
+				overflow: 'hidden',
+				'&::before': {
+					content: '""',
+					position: 'absolute',
+					top: 0,
+					left: 0,
+					right: 0,
+					bottom: 0,
+					background: `
+            radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+            radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.3) 0%, transparent 70%)
+          `,
+					pointerEvents: 'none',
+				},
+			}}
+		>
+			<Container
+				maxWidth="sm"
+				sx={{
+					display: 'flex',
+					flexDirection: 'column',
+					alignItems: 'center',
+					position: 'relative',
+					zIndex: 1,
+				}}
+			>
+				<LoginCard
+					onSubmit={handleSubmit}
+					isLoading={isLoading}
+					error={localError}
+				/>
 
-    const result = await login({ email, password });
-
-    if (!result.success) {
-      setError(authError || t('common.error'));
-      return;
-    }
-
-    // Handle MFA flow - show MFA input or redirect
-    if (result.mfa) {
-      // MFA challenge required - for now, show an error
-      // In a full implementation, you'd show an MFA input field
-      setError('MFA is required but not yet implemented in the UI');
-      return;
-    }
-
-    // Check for other conditions
-    if (result.mustChangePassword) {
-      navigate('/change-password');
-      return;
-    }
-
-    if (result.mfaSetupRequired) {
-      navigate('/setup-mfa');
-      return;
-    }
-
-    if (result.emailUnverified) {
-      navigate('/verify-email');
-      return;
-    }
-
-    // Success - redirect to app
-    const redirect = searchParams.get('redirect');
-    navigate(redirect || '/app/home');
-  };
-
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-      }}
-    >
-      <Card
-        sx={{
-          width: '100%',
-          maxWidth: 420,
-          backgroundColor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 3,
-                background: 'linear-gradient(135deg, #6366f1 0%, #f472b6 100%)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mb: 2,
-              }}
-            >
-              <CelebrationIcon sx={{ fontSize: 32, color: '#fff' }} />
-            </Box>
-            <Typography variant="h4" component="h1" fontWeight={700}>
-              {t('auth.loginTitle')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {t('auth.loginSubtitle')}
-            </Typography>
-          </Box>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
-          >
-            <TextField
-              label={t('auth.email')}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              fullWidth
-              autoComplete="email"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <TextField
-              label={t('auth.password')}
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              fullWidth
-              autoComplete="current-password"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockIcon color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      size="small"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <Box sx={{ textAlign: 'right' }}>
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
-                {t('auth.forgotPassword')}
-              </Link>
-            </Box>
-
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={isLoading}
-              sx={{ mt: 1 }}
-            >
-              {isLoading ? t('common.loading') : t('auth.loginButton')}
-            </Button>
-          </Box>
-
-          <Box
-            sx={{
-              mt: 4,
-              p: 2,
-              borderRadius: 2,
-              backgroundColor: 'rgba(99, 102, 241, 0.1)',
-              border: '1px solid',
-              borderColor: 'primary.main',
-            }}
-          >
-            <Typography variant="body2" color="primary" fontWeight={500} textAlign="center">
-              {t('auth.invitationOnly')}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              textAlign="center"
-              display="block"
-              sx={{ mt: 0.5 }}
-            >
-              {t('auth.invitationMessage')}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  );
+				{/* Footer */}
+				<Box
+					sx={{
+						mt: 4,
+						textAlign: 'center',
+					}}
+				>
+					<Typography
+						variant="body2"
+						sx={{
+							color: 'text.secondary',
+							fontSize: '0.8125rem',
+							letterSpacing: '0.05em',
+						}}
+					>
+						{'No signup. No chaos.'}
+					</Typography>
+					<Typography
+						variant="body2"
+						sx={{
+							color: 'primary.main',
+							fontSize: '0.8125rem',
+							fontWeight: 500,
+							letterSpacing: '0.08em',
+							textTransform: 'uppercase',
+							mt: 0.5,
+						}}
+					>
+						{'Only invited metalheads.'}
+					</Typography>
+				</Box>
+			</Container>
+		</Box>
+	);
 }
 
 export default LoginPage;

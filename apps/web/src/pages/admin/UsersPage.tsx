@@ -41,10 +41,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminUsersApi, AdminUser, UserStatus, UserRole } from '../../api/admin/users.api';
 
 // Status badge colors
-const statusColors: Record<UserStatus, 'success' | 'default' | 'error'> = {
+const statusColors: Record<UserStatus, 'success' | 'default' | 'error' | 'warning'> = {
   active: 'success',
   inactive: 'default',
   suspended: 'error',
+  pending_verification: 'warning',
 };
 
 // Role badge colors

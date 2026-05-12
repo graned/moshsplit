@@ -45,7 +45,7 @@ export function EditEventDialog({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [currency, setCurrency] = useState('EUR');
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [_selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [newMembers, setNewMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

@@ -59,7 +59,7 @@ export const usersApi = {
     throw new Error('Not implemented');
   },
 
-  updateProfile: async (data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
+  updateProfile: async (_data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
     // TODO: Implement profile update via Sentinel
     throw new Error('Not implemented');
   },

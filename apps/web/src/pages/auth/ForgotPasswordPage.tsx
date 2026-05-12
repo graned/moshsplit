@@ -94,7 +94,7 @@ function ForgotPasswordPage() {
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Typography variant="h4" component="h1" fontWeight={700}>
-                {t('forgotPassword.title')}
+                TEST - {t('forgotPassword.title')}
               </Typography>
             </Box>
 

@@ -72,27 +72,6 @@ services:
     networks:
       - app-net
 
-  # ── Sentinel migrations ─────────────────────────────────────────────────────
-  # Runs Sentinel migrations in auth schema - idempotent and handles schema transformation
-  sentinel-migrations:
-    build:
-      context: ../../
-      dockerfile: infra/docker/sentinel-migrate.Dockerfile
-    container_name: sentinel-migrations
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: sentinel_auth
-      SENTINEL_VERSION: v1.1.0
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - app-net
-    restart: "no"
-
   # ── Sentinel (auth service) ─────────────────────────────────────────────────
   sentinel:
     image: ghcr.io/graned/sentinel-core:v1.1.0
@@ -111,8 +90,6 @@ services:
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
     depends_on:
-      sentinel-migrations:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     networks:

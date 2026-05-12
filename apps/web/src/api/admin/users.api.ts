@@ -152,7 +152,7 @@ export const adminUsersApi = {
   },
 
   // Update user role
-  updateRole: async (userId: string, data: UpdateUserRoleRequest): Promise<AdminUser> => {
+  updateRole: async (userId: string, _data: UpdateUserRoleRequest): Promise<AdminUser> => {
     return adminUsersApi.get(userId); // Role updates return user object
   },
 };
