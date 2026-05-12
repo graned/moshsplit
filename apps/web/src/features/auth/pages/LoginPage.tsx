@@ -29,7 +29,7 @@ function LoginPage() {
         justifyContent: 'center',
         p: 2,
         background: `
-          linear-gradient(180deg, rgba(18, 18, 18, 0.95) 0%, rgba(26, 26, 26, 0.95) 50%, rgba(18, 18, 18, 0.95) 100%),
+          linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
           url('/assets/background.svg')
         `,
         backgroundSize: 'cover',
@@ -47,7 +47,7 @@ function LoginPage() {
           background: `
             radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
             radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.5) 0%, transparent 70%)
+            radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.3) 0%, transparent 70%)
           `,
           pointerEvents: 'none',
         },
