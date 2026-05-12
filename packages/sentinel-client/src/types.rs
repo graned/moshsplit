@@ -103,6 +103,18 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+// Token exchange types (POST /v1/api/auth/token/exchange)
+#[derive(Debug, Clone, Serialize)]
+pub struct TokenExchangeRequest {
+    pub email: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TokenExchangeResponse {
+    #[serde(rename = "session")]
+    pub session: Session,
+}
+
 /// Login response - either a session or MFA challenge
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]

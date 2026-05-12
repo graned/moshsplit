@@ -1,5 +1,6 @@
 //! HTTP request handlers (thin — delegate to services).
 
+pub mod auth_handlers;
 pub mod balance_handlers;
 pub mod event_handlers;
 pub mod expense_handlers;

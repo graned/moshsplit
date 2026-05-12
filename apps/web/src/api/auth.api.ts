@@ -1,4 +1,6 @@
 import { AuthClient } from '@moshsplit/sentinel-sdk';
+import { apiClient } from './client';
+import { API_ENDPOINTS } from './config';
 
 const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
 const authClient = new AuthClient(sentinelUrl);
@@ -50,6 +52,19 @@ export interface InvitationAcceptResponse {
   user: User;
 }
 
+export interface ExternalLoginRequest {
+  apiToken: string;
+  email: string;
+}
+
+export interface ExternalLoginResponse {
+  userId: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+  emailVerified: boolean;
+}
+
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     const result = await authClient.login(data);
@@ -98,5 +113,19 @@ export const authApi = {
 
   verifyEmail: async (token: string): Promise<void> => {
     await authClient.verifyEmail(token);
+  },
+
+  externalLogin: async (data: ExternalLoginRequest): Promise<ExternalLoginResponse> => {
+    const response = await apiClient.post<{
+      success: boolean;
+      data: ExternalLoginResponse | null;
+      error: { code: string; message: string } | null;
+    }>(API_ENDPOINTS.auth.externalLogin, data);
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || 'External login failed');
+    }
+
+    return response.data;
   },
 };

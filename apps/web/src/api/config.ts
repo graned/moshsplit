@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
     currentUser: '/api/v1/auth/me',
     forgotPassword: '/api/v1/auth/forgot-password',
     resetPassword: '/api/v1/auth/reset-password',
+    externalLogin: '/v1/auth/external-login',
   },
   users: {
     profile: '/api/v1/users/profile',

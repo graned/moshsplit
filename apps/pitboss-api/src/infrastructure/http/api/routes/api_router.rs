@@ -21,6 +21,7 @@ use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
+use crate::infrastructure::http::api::handlers::auth_handlers;
 use crate::infrastructure::http::api::handlers::balance_handlers;
 use crate::infrastructure::http::api::handlers::event_handlers;
 use crate::infrastructure::http::api::handlers::expense_handlers;
@@ -50,7 +51,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     // ── Public routes (no auth required) ───────────────────────────────
     let public_routes = Router::new()
         .route("/health", get(system_handlers::health_check))
-        .route("/livez", get(system_handlers::livez));
+        .route("/livez", get(system_handlers::livez))
+        .route("/v1/auth/external-login", post(auth_handlers::external_login));
 
     // ── Protected API routes (require Sentinel auth) ──────────────────
 
