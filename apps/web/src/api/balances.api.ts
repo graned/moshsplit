@@ -65,24 +65,48 @@ export const balancesApi = {
   // Get all user balances for an event
   getAllBalances: async (eventId: string, userId: string): Promise<BalancesResponse> => {
     const params = new URLSearchParams({ user_id: userId });
-    return apiClient.get<BalancesResponse>(`/v1/events/${eventId}/balances?${params.toString()}`);
+    const response = await apiClient.get<{ success: boolean; data: BalancesResponse; error: unknown }>(
+      `/v1/events/${eventId}/balances?${params.toString()}`
+    );
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to get balances');
+    }
+    return response.data;
   },
 
   // Get simplified debts (minimal transfers to settle)
   getSimplifiedDebts: async (eventId: string, userId: string): Promise<SimplifiedDebtsResponse> => {
     const params = new URLSearchParams({ user_id: userId });
-    return apiClient.get<SimplifiedDebtsResponse>(`/v1/events/${eventId}/balances/simplified?${params.toString()}`);
+    const response = await apiClient.get<{ success: boolean; data: SimplifiedDebtsResponse; error: unknown }>(
+      `/v1/events/${eventId}/balances/simplified?${params.toString()}`
+    );
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to get simplified debts');
+    }
+    return response.data;
   },
 
   // Get balance for a single user
   getUserBalance: async (eventId: string, userId: string): Promise<UserBalanceResponse> => {
     const params = new URLSearchParams({ user_id: userId });
-    return apiClient.get<UserBalanceResponse>(`/v1/events/${eventId}/balances/${userId}?${params.toString()}`);
+    const response = await apiClient.get<{ success: boolean; data: UserBalanceResponse; error: unknown }>(
+      `/v1/events/${eventId}/balances/${userId}?${params.toString()}`
+    );
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to get user balance');
+    }
+    return response.data;
   },
 
   // Get detailed breakdown of a user's balance
   explainUserBalance: async (eventId: string, userId: string): Promise<ExplainBalanceResponse> => {
     const params = new URLSearchParams({ user_id: userId });
-    return apiClient.get<ExplainBalanceResponse>(`/v1/events/${eventId}/balances/${userId}/explain?${params.toString()}`);
+    const response = await apiClient.get<{ success: boolean; data: ExplainBalanceResponse; error: unknown }>(
+      `/v1/events/${eventId}/balances/${userId}/explain?${params.toString()}`
+    );
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to explain balance');
+    }
+    return response.data;
   },
 };
