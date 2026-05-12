@@ -21,13 +21,23 @@ let refreshPromise: Promise<boolean> | null = null;
  * Returns true if the refresh succeeded, false otherwise.
  */
 export async function refreshTokens(): Promise<boolean> {
-  if (!_client) return false;
-  if (refreshPromise) return refreshPromise;
+  console.log('[tokenRefresh] refreshTokens called');
+  if (!_client) {
+    console.log('[tokenRefresh] No client registered, returning false');
+    return false;
+  }
+  if (refreshPromise) {
+    console.log('[tokenRefresh] Already refreshing, returning existing promise');
+    return refreshPromise;
+  }
 
   const p = (async () => {
     try {
       const { refreshToken, emailVerified, mustChangePassword } = useAuthStore.getState();
+      console.log('[tokenRefresh] Got state, refreshToken exists:', !!refreshToken);
+      console.log('[tokenRefresh] Calling _client.refreshSession...');
       const session = await _client!.refreshSession(refreshToken!);
+      console.log('[tokenRefresh] refreshSession succeeded, session:', session);
       useAuthStore.getState().setSession(
         session.userId,
         session.accessToken,
@@ -35,8 +45,10 @@ export async function refreshTokens(): Promise<boolean> {
         emailVerified,
         mustChangePassword,
       );
+      console.log('[tokenRefresh] Session updated successfully');
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[tokenRefresh] refreshSession failed:', err);
       return false;
     }
   })();
