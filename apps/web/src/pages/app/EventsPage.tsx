@@ -179,6 +179,7 @@ export default function EventsPage() {
     mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
       groupsApi.addMember(groupId, { user_id: userId }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
       if (selectedEvent) {
         groupsApi.listMembers(selectedEvent.id).then(setSelectedEventMembers).catch(console.error);
       }
@@ -190,6 +191,7 @@ export default function EventsPage() {
     mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
       groupsApi.removeMember(groupId, userId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
       if (selectedEvent) {
         groupsApi.listMembers(selectedEvent.id).then(setSelectedEventMembers).catch(console.error);
       }
