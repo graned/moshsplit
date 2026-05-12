@@ -57,9 +57,10 @@ export interface AddMemberRequest {
 // API calls
 export const groupsApi = {
   // List all groups (events)
-  list: async (userId: string, cursor?: string, limit = 20): Promise<{ data: GroupListItem[]; hasMore: boolean; nextCursor?: string }> => {
+  list: async (userId: string, cursor?: string, limit = 20, status?: string): Promise<{ data: GroupListItem[]; hasMore: boolean; nextCursor?: string }> => {
     const params = new URLSearchParams({ limit: String(limit), user_id: userId });
     if (cursor) params.set('cursor', cursor);
+    if (status) params.set('status', status);
     const response = await apiClient.get<{ data: { items: GroupListItem[]; pagination: { has_more: boolean; next_cursor?: string } } }>(
       `/v1/events?${params.toString()}`
     );
@@ -88,9 +89,13 @@ export const groupsApi = {
     return result.data;
   },
 
-  // Update a group
+  // Update a group (can be used to restore archived events by setting status to 'active')
   update: async (groupId: string, data: UpdateGroupRequest): Promise<Group> => {
-    return apiClient.patch<Group>(`/v1/events/${groupId}`, data);
+    const response = await apiClient.patch<{ success: boolean; data: Group; error: unknown }>(`/v1/events/${groupId}`, data);
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to update group');
+    }
+    return response.data;
   },
 
   // Delete (archive) a group

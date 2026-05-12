@@ -21,14 +21,16 @@ import {
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
-import { groupsApi, GroupListItem, CreateGroupRequest } from '../../api/groups.api';
+import { groupsApi, GroupListItem, CreateGroupRequest, UpdateGroupRequest, Group, GroupMember } from '../../api/groups.api';
 import { CreateGroupDialog } from '../../features/groups/components/CreateGroupDialog';
 import { JoinGroupDialog } from '../../features/groups/components/JoinGroupDialog';
+import { EditEventDialog } from '../../features/groups/components/EditEventDialog';
 
-function GroupCard({ group, onClick, onDelete }: { 
-  group: GroupListItem; 
+function GroupCard({ group, onClick, onDelete, onEdit }: {
+  group: GroupListItem;
   onClick: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -38,17 +40,30 @@ function GroupCard({ group, onClick, onDelete }: {
     });
   };
 
+  const isArchived = group.status === 'archived' || group.status === 'deleted';
+
+  const handleClick = () => {
+    if (isArchived && onEdit) {
+      onEdit();
+    } else {
+      onClick();
+    }
+  };
+
   return (
     <Card
       sx={{
         cursor: 'pointer',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        border: isArchived ? '1px solid' : undefined,
+        borderColor: isArchived ? 'warning.main' : 'transparent',
+        opacity: isArchived ? 0.8 : 1,
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: 4,
         },
       }}
-      onClick={onClick}
+      onClick={handleClick}
     >
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -66,8 +81,16 @@ function GroupCard({ group, onClick, onDelete }: {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                textTransform: 'capitalize',
+                color: isArchived ? 'warning.main' : 'text.secondary',
+                fontWeight: isArchived ? 600 : undefined,
+              }}
+            >
               {group.status}
+              {isArchived && ' - Click to restore'}
             </Typography>
             {onDelete && (
               <IconButton
@@ -99,6 +122,9 @@ export default function EventsPage() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Group | null>(null);
+  const [selectedEventMembers, setSelectedEventMembers] = useState<GroupMember[]>([]);
 
   // Fetch groups
   const { data, isLoading, error, refetch } = useQuery({
@@ -131,6 +157,37 @@ export default function EventsPage() {
     mutationFn: (groupId: string) => groupsApi.delete(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+
+  // Update group mutation (for restoring archived events)
+  const updateMutation = useMutation({
+    mutationFn: ({ groupId, data }: { groupId: string; data: UpdateGroupRequest }) =>
+      groupsApi.update(groupId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+
+  // Add member mutation
+  const addMemberMutation = useMutation({
+    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
+      groupsApi.addMember(groupId, { user_id: userId }),
+    onSuccess: () => {
+      if (selectedEvent) {
+        groupsApi.listMembers(selectedEvent.id).then(setSelectedEventMembers).catch(console.error);
+      }
+    },
+  });
+
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
+      groupsApi.removeMember(groupId, userId),
+    onSuccess: () => {
+      if (selectedEvent) {
+        groupsApi.listMembers(selectedEvent.id).then(setSelectedEventMembers).catch(console.error);
+      }
     },
   });
 
@@ -167,6 +224,15 @@ export default function EventsPage() {
 
   const handleJoinGroup = async (_inviteCode: string) => {
     throw new Error('Invite functionality not yet implemented');
+  };
+
+  const handleEditGroup = async (group: GroupListItem) => {
+    // Fetch full event details and members
+    const eventDetails = await groupsApi.get(group.id);
+    const members = await groupsApi.listMembers(group.id);
+    setSelectedEvent(eventDetails);
+    setSelectedEventMembers(members);
+    setEditDialogOpen(true);
   };
 
   const handleGroupClick = (group: GroupListItem) => {
@@ -284,6 +350,7 @@ export default function EventsPage() {
                 group={group}
                 onClick={() => handleGroupClick(group)}
                 onDelete={() => handleDeleteGroup(group.id)}
+                onEdit={() => handleEditGroup(group)}
               />
             </Grid>
           ))}
@@ -301,6 +368,32 @@ export default function EventsPage() {
         open={joinDialogOpen}
         onClose={() => setJoinDialogOpen(false)}
         onSubmit={handleJoinGroup}
+      />
+
+      <EditEventDialog
+        open={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedEvent(null);
+          setSelectedEventMembers([]);
+        }}
+        event={selectedEvent}
+        members={selectedEventMembers}
+        currentUserId={userId || ''}
+        onUpdate={async (eventId, data) => {
+          // If status is being set to active, it's a restore
+          if (data.status === 'active') {
+            await updateMutation.mutateAsync({ groupId: eventId, data });
+          } else {
+            await updateMutation.mutateAsync({ groupId: eventId, data });
+          }
+        }}
+        onAddMember={async (eventId, userId) => {
+          await addMemberMutation.mutateAsync({ groupId: eventId, userId });
+        }}
+        onRemoveMember={async (eventId, userId) => {
+          await removeMemberMutation.mutateAsync({ groupId: eventId, userId });
+        }}
       />
     </Box>
   );
