@@ -5,18 +5,17 @@ interface AuthHeroLogoProps {
   subtitle: string;
 }
 
-export function AuthHeroLogo({ title, subtitle }: AuthHeroLogoProps) {
+export function AuthHeroLogo({ title: _title, subtitle }: AuthHeroLogoProps) {
   return (
-    <Box sx={{ textAlign: 'center', mb: 3 }}>
-      {/* Logo - extending outside the card */}
+    <Box sx={{ textAlign: 'center', mb: 2 }}>
+      {/* Big Logo - no overflow */}
       <Box
         sx={{
-          width: 180,
-          height: 180,
-          margin: '0 auto -40px',
+          width: 220,
+          height: 220,
+          margin: '0 auto 16px',
           position: 'relative',
-          zIndex: 2,
-          filter: 'drop-shadow(0 8px 24px rgba(245, 158, 11, 0.5))',
+          filter: 'drop-shadow(0 8px 32px rgba(245, 158, 11, 0.6))',
         }}
       >
         <img
@@ -29,24 +28,6 @@ export function AuthHeroLogo({ title, subtitle }: AuthHeroLogoProps) {
           }}
         />
       </Box>
-
-      {/* Title */}
-      <Typography
-        variant="h3"
-        component="h1"
-        sx={{
-          fontFamily: '"Oswald", "Bebas Neue", sans-serif',
-          fontWeight: 700,
-          fontSize: { xs: '2rem', sm: '2.5rem' },
-          letterSpacing: '0.12em',
-          color: 'text.primary',
-          textTransform: 'uppercase',
-          mb: 1,
-          textShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
-        }}
-      >
-        {title}
-      </Typography>
 
       {/* Subtitle */}
       <Typography
