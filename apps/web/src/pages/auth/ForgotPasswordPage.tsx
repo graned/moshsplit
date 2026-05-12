@@ -51,16 +51,44 @@ function ForgotPasswordPage() {
           alignItems: 'center',
           justifyContent: 'center',
           p: 2,
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+          background: `
+            linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
+            url('/assets/background.svg')
+          `,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `
+              radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+              radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 40%)
+            `,
+            pointerEvents: 'none',
+          },
         }}
       >
         <Card
           sx={{
             width: '100%',
             maxWidth: 420,
-            backgroundColor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
+            background: `
+              linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
+              url('/assets/bg-texture-1.svg')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: '4px',
+            boxShadow: '0 24px 80px rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(10px)',
           }}
         >
           <CardContent sx={{ p: 4 }}>
@@ -98,16 +126,44 @@ function ForgotPasswordPage() {
         alignItems: 'center',
         justifyContent: 'center',
         p: 2,
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+        background: `
+          linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
+          url('/assets/background.svg')
+        `,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
+            radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+            radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 40%)
+          `,
+          pointerEvents: 'none',
+        },
       }}
     >
       <Card
         sx={{
           width: '100%',
           maxWidth: 420,
-          backgroundColor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
+          background: `
+            linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
+            url('/assets/bg-texture-1.svg')
+          `,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          borderRadius: '4px',
+          boxShadow: '0 24px 80px rgba(0, 0, 0, 0.55)',
+          backdropFilter: 'blur(10px)',
         }}
       >
         <CardContent sx={{ p: 4 }}>
