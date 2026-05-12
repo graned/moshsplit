@@ -7,3 +7,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// SVG module declarations for ?react imports
+declare module '*.svg?react' {
+  import { ComponentType, SVGProps } from 'react';
+  const content: ComponentType<SVGProps<SVGSVGElement>>;
+  export default content;
+}

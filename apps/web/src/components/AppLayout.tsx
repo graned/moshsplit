@@ -22,32 +22,25 @@ import {
 import {
   Menu as MenuIcon,
   MenuOpen as MenuOpenIcon,
-  Home as HomeIcon,
-  Event as EventIcon,
-  Receipt as ReceiptIcon,
-  AccountBalance as BalanceIcon,
-  SwapHoriz as SettlementIcon,
-  Person as PersonIcon,
-  Security as SecurityIcon,
   Logout as LogoutIcon,
   Group as UsersIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, useAuth } from '@moshsplit/auth-react';
+import LogoSvgUrl from '../../assets/logo.svg';
+import EventsIconSvgUrl from '../../assets/events-icon.svg';
+import ExpensesIconSvgUrl from '../../assets/expenses-icon.svg';
+import BalanceIconSvgUrl from '../../assets/balance-icon.svg';
+import BgTextureUrl from '../../assets/bg-texture-1.svg';
 
 const DRAWER_WIDTH = 280;
 
 const navItems = [
-  { path: '/app/home', label: 'nav.home', icon: <HomeIcon /> },
-  { path: '/app/events', label: 'nav.groups', icon: <EventIcon /> },
-  { path: '/app/expenses', label: 'nav.expenses', icon: <ReceiptIcon /> },
-  { path: '/app/balances', label: 'nav.balances', icon: <BalanceIcon /> },
-  { path: '/app/settlements', label: 'nav.settlements', icon: <SettlementIcon /> },
-];
-
-const settingsItems = [
-  { path: '/app/settings/profile', label: 'app.profile', icon: <PersonIcon /> },
-  { path: '/app/settings/security', label: 'app.security', icon: <SecurityIcon /> },
+  { path: '/app/events', label: 'nav.groups', icon: EventsIconSvgUrl },
+  { path: '/app/expenses', label: 'nav.expenses', icon: ExpensesIconSvgUrl },
+  { path: '/app/balances', label: 'nav.balances', icon: BalanceIconSvgUrl },
+  { path: '/app/settlements', label: 'nav.settlements', icon: SettingsIcon },
 ];
 
 function AppLayout() {
@@ -115,118 +108,197 @@ function AppLayout() {
     navigate('/login');
   };
 
-  const handleSettings = (path: string) => {
-    handleMenuClose();
-    handleNavigation(path);
+  // Custom icon component wrapper for SVG icons
+  const IconWrapper = ({ icon, ...props }: { icon: string | React.ComponentType<any>; sx?: object }) => {
+    // Handle string URLs (SVG files)
+    if (typeof icon === 'string') {
+      return (
+        <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', ...props.sx }}>
+          <img src={icon} alt="" style={{ width: '100%', height: '100%' }} />
+        </Box>
+      );
+    }
+    // Handle React components (MUI icons)
+    const IconComponent = icon;
+    return (
+      <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', ...props.sx }}>
+        <IconComponent style={{ width: '100%', height: '100%' }} />
+      </Box>
+    );
   };
 
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            background: 'linear-gradient(135deg, #6366f1 0%, #f472b6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>
-            M
-          </Typography>
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Background image */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          backgroundImage: `url(${BgTextureUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+
+      {/* Content overlay */}
+      <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Logo header */}
+        <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={LogoSvgUrl} alt="logo" style={{ width: 140, height: 140 }} />
         </Box>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {t('common.appName')}
-        </Typography>
-      </Box>
 
-      <Divider sx={{ opacity: 0.1 }} />
+        <Divider sx={{ opacity: 0.1, mx: 2 }} />
 
-      <List sx={{ flex: 1, py: 1 }}>
-        {navItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
-              sx={{
-                mx: 1,
-                borderRadius: 2,
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={t(item.label)} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-
-      {/* Admin section - only shown for admins */}
-      {adminItems.length > 0 && (
-        <>
-          <Divider sx={{ opacity: 0.1 }} />
-          <List sx={{ py: 1 }}>
-            {adminItems.map((item) => (
-              <ListItem key={item.path} disablePadding>
+        {/* Main menu items */}
+        <List sx={{ flex: 0, py: 2, px: 1 }}>
+          {navItems.map((item) => {
+            const isSelected = location.pathname === item.path;
+            return (
+              <ListItem key={item.path} disablePadding sx={{ mb: 1 }}>
                 <ListItemButton
-                  selected={location.pathname === item.path}
+                  selected={isSelected}
                   onClick={() => handleNavigation(item.path)}
                   sx={{
                     mx: 1,
                     borderRadius: 2,
-                    '&.Mui-selected': {
-                      backgroundColor: 'primary.main',
-                      '&:hover': {
-                        backgroundColor: 'primary.dark',
-                      },
+                    py: 2,
+                    transition: 'all 0.2s ease',
+                    backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                    borderLeft: isSelected ? '3px solid' : '3px solid transparent',
+                    borderColor: isSelected ? 'primary.main' : 'transparent',
+                    '&:hover': {
+                      backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.05)',
                     },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
-                    {item.icon}
+                  <ListItemIcon sx={{ minWidth: 52, color: isSelected ? 'primary.main' : 'text.secondary' }}>
+                    <IconWrapper icon={item.icon} sx={{ width: 32, height: 32, color: isSelected ? 'primary.main' : 'text.secondary' }} />
                   </ListItemIcon>
-                  <ListItemText primary={t(item.label)} />
+                  <ListItemText
+                    primary={t(item.label)}
+                    primaryTypographyProps={{
+                      fontSize: '1.1rem',
+                      fontWeight: isSelected ? 600 : 400,
+                      color: isSelected ? 'text.primary' : 'text.secondary',
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
-            ))}
-          </List>
-        </>
-      )}
+            );
+          })}
+        </List>
 
-      <Divider sx={{ opacity: 0.1 }} />
+        {/* Admin section - only shown for admins */}
+        {adminItems.length > 0 && (
+          <>
+            <Divider sx={{ opacity: 0.1, mx: 2 }} />
+            <List sx={{ py: 1, px: 1 }}>
+              {adminItems.map((item) => {
+                const isSelected = location.pathname === item.path;
+                return (
+                  <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+                    <ListItemButton
+                      selected={isSelected}
+                      onClick={() => handleNavigation(item.path)}
+                      sx={{
+                        mx: 1,
+                        borderRadius: 2,
+                        py: 1,
+                        backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        },
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 44, color: isSelected ? 'primary.main' : 'text.secondary' }}>
+                        <UsersIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={t(item.label)}
+                        primaryTypographyProps={{
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
+            </List>
+          </>
+        )}
 
-      <List sx={{ py: 1 }}>
-        {settingsItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
+        {/* Spacer to push user to bottom */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* User section */}
+        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0, 0, 0, 0.2)' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              cursor: 'pointer',
+              p: 1,
+              borderRadius: 2,
+              transition: 'background-color 0.2s',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+              },
+            }}
+            onClick={handleMenuOpen}
+          >
+            <Avatar
               sx={{
-                mx: 1,
-                borderRadius: 2,
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                },
+                width: 40,
+                height: 40,
+                bgcolor: 'primary.main',
+                fontSize: '1rem',
+                fontWeight: 600,
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={t(item.label)} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+              {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User'}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'block',
+                }}
+              >
+                {userEmail}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 
@@ -246,7 +318,8 @@ function AppLayout() {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
-              backgroundColor: 'background.paper',
+              backgroundColor: 'transparent',
+              borderRight: 'none',
             },
           }}
         >
@@ -267,9 +340,8 @@ function AppLayout() {
               width: desktopOpen ? DRAWER_WIDTH : 0,
               boxSizing: 'border-box',
               overflowX: 'hidden',
-              backgroundColor: 'background.paper',
-              borderRight: desktopOpen ? '1px solid' : 'none',
-              borderColor: 'divider',
+              backgroundColor: 'transparent',
+              borderRight: desktopOpen ? 'none' : 'none',
               transition: theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
@@ -397,19 +469,6 @@ function AppLayout() {
             {userEmail}
           </Typography>
         </Box>
-        <Divider sx={{ my: 1 }} />
-        <MenuItem onClick={() => handleSettings('/app/settings/profile')}>
-          <ListItemIcon>
-            <PersonIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>{t('app.profile')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleSettings('/app/settings/security')}>
-          <ListItemIcon>
-            <SecurityIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>{t('app.security')}</ListItemText>
-        </MenuItem>
         <Divider sx={{ my: 1 }} />
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>

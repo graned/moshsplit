@@ -1,19 +1,12 @@
 import { useState } from 'react';
-import { Link as RouterLink } from 'react-router';
 import {
         Box,
         TextField,
-        Button,
         Typography,
         InputAdornment,
-        IconButton,
-        Link,
 } from '@mui/material';
 import {
-        Visibility,
-        VisibilityOff,
         Email as EmailIcon,
-        Lock as LockIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import type { LoginCredentials } from '../pages/auth/types';
@@ -24,11 +17,10 @@ interface LoginFormProps {
         error: string | null;
 }
 
-export function LoginForm({ onSubmit, isLoading, error }: LoginFormProps) {
+export function LoginForm({ onSubmit, error }: LoginFormProps) {
         const { t } = useTranslation();
         const [email, setEmail] = useState('');
-        const [password, setPassword] = useState('');
-        const [showPassword, setShowPassword] = useState(false);
+        const [password] = useState('');
 
         const handleSubmit = async (e: React.FormEvent) => {
                 e.preventDefault();
