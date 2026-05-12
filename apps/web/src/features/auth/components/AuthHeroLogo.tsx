@@ -7,61 +7,27 @@ interface AuthHeroLogoProps {
 
 export function AuthHeroLogo({ title, subtitle }: AuthHeroLogoProps) {
   return (
-    <Box sx={{ textAlign: 'center', mb: 4 }}>
-      {/* Logo Icon - Metal horn hand gesture stylized */}
+    <Box sx={{ textAlign: 'center', mb: 3 }}>
+      {/* Logo - extending outside the card */}
       <Box
         sx={{
-          width: 80,
-          height: 80,
-          margin: '0 auto 20px',
+          width: 180,
+          height: 180,
+          margin: '0 auto -40px',
           position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          zIndex: 2,
+          filter: 'drop-shadow(0 8px 24px rgba(245, 158, 11, 0.5))',
         }}
       >
-        <Box
-          sx={{
+        <img
+          src="/assets/logo.svg"
+          alt="MoshSplit Logo"
+          style={{
             width: '100%',
             height: '100%',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #F59E0B 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 32px rgba(245, 158, 11, 0.4)',
-            position: 'relative',
-            overflow: 'hidden',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%)',
-              backgroundSize: '200% 200%',
-              animation: 'shimmer 3s infinite',
-            },
-            '@keyframes shimmer': {
-              '0%': { backgroundPosition: '200% 0' },
-              '100%': { backgroundPosition: '-200% 0' },
-            },
+            objectFit: 'contain',
           }}
-        >
-          <Typography
-            sx={{
-              fontSize: '2.5rem',
-              fontWeight: 900,
-              color: '#121212',
-              fontFamily: '"Oswald", "Bebas Neue", sans-serif',
-              letterSpacing: '0.05em',
-              lineHeight: 1,
-            }}
-          >
-            M
-          </Typography>
-        </Box>
+        />
       </Box>
 
       {/* Title */}

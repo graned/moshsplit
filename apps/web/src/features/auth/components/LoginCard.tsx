@@ -42,6 +42,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       <CardContent
         sx={{
           p: { xs: 3, sm: 4 },
+          pt: { xs: 10, sm: 12 },
         }}
       >
         <AuthHeroLogo
