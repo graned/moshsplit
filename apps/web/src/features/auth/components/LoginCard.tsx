@@ -19,10 +19,11 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       sx={{
         width: '100%',
         maxWidth: 420,
-        backgroundColor: 'background.paper',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
+        backgroundColor: 'rgba(26, 26, 26, 0.95)',
+        border: '1px solid rgba(245, 158, 11, 0.2)',
         borderRadius: '4px',
         boxShadow: '0 24px 80px rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'blur(10px)',
         position: 'relative',
         overflow: 'visible',
         '&::before': {
