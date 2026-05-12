@@ -25,6 +25,7 @@ import { groupsApi, GroupMember } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem, CreateExpenseRequest } from '../../api/expenses.api';
 import { ExpenseCard } from '../../features/expenses/components/ExpenseCard';
 import { AddExpenseDialog } from '../../features/expenses/components/AddExpenseDialog';
+import { ExpenseDetailDialog } from '../../features/expenses/components/ExpenseDetailDialog';
 
 // Helper to get member name
 function getMemberName(members: GroupMember[], userId: string): string {
@@ -41,6 +42,8 @@ export default function ExpensesPage() {
   const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<ExpenseListItem | null>(null);
 
   // Get current user ID from auth
   const userId = useAuthStore((state) => state.userId);
@@ -100,8 +103,8 @@ export default function ExpensesPage() {
   };
 
   const handleExpenseClick = (expense: ExpenseListItem) => {
-    // TODO: Navigate to expense detail
-    console.log('View expense:', expense.id);
+    setSelectedExpense(expense);
+    setDetailDialogOpen(true);
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
@@ -254,6 +257,18 @@ export default function ExpensesPage() {
           currentUserId={currentUserId}
         />
       )}
+
+      {/* Expense Detail Dialog */}
+      <ExpenseDetailDialog
+        open={detailDialogOpen}
+        onClose={() => {
+          setDetailDialogOpen(false);
+          setSelectedExpense(null);
+        }}
+        expense={selectedExpense}
+        eventId={selectedGroupId}
+        members={members}
+      />
     </Box>
   );
 }
