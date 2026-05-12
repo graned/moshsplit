@@ -53,9 +53,9 @@ export function EditEventDialog({
   // Reset form when event changes
   useEffect(() => {
     if (event) {
-      setName(event.name);
+      setName(event.name || '');
       setDescription(event.description || '');
-      setCurrency(event.currency);
+      setCurrency(event.currency || 'EUR');
       setSelectedMembers(members.map((m) => m.user_id));
     }
   }, [event, members]);
@@ -151,7 +151,7 @@ export function EditEventDialog({
             <FormControl fullWidth disabled={isArchived}>
               <InputLabel>Currency</InputLabel>
               <Select
-                value={currency}
+                value={currency || 'EUR'}
                 label="Currency"
                 onChange={(e) => setCurrency(e.target.value)}
               >
