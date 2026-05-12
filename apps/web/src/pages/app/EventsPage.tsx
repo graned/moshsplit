@@ -139,9 +139,29 @@ export default function EventsPage() {
     if (!userId) {
       throw new Error('User not authenticated');
     }
+
+    // Create the group first
     const mutationData = { ...data, user_id: userId };
-    console.log('[EventsPage] Sending to API:', JSON.stringify(mutationData));
-    await createMutation.mutateAsync(mutationData);
+    console.log('[EventsPage] Creating group with:', JSON.stringify(mutationData));
+    const group = await createMutation.mutateAsync(mutationData);
+    console.log('[EventsPage] Group created:', group);
+
+    // Add selected members (if any) - but always ensure creator is a member
+    const memberIds = new Set(data.memberIds || []);
+    memberIds.add(userId); // Add creator as member
+
+    console.log('[EventsPage] Adding members:', Array.from(memberIds));
+    for (const memberId of memberIds) {
+      if (memberId !== userId) {
+        // Skip adding yourself - you're already added as creator
+        try {
+          await groupsApi.addMember(group.id, { user_id: memberId });
+          console.log('[EventsPage] Added member:', memberId);
+        } catch (err) {
+          console.error('[EventsPage] Failed to add member:', memberId, err);
+        }
+      }
+    }
     console.log('[EventsPage] createMutation completed successfully');
   };
 
