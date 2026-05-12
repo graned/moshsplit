@@ -1,0 +1,16 @@
+{
+  "plugins": [
+    "typescript",
+    "react",
+    "jsx-a11y"
+  ],
+  "rules": {
+    "typescript/noUnusedVars": "warn",
+    "react/noUnusedVars": "warn"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}
