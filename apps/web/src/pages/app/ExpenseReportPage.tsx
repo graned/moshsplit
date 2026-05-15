@@ -12,7 +12,8 @@ import {
   Alert,
   Card,
   CardContent,
-  Chip,
+  Avatar,
+  Tooltip,
   alpha,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
@@ -24,16 +25,11 @@ import {
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
-import { groupsApi, GroupMember } from '../../api/groups.api';
+import { groupsApi } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem, CreateExpenseRequest } from '../../api/expenses.api';
 import { balancesApi } from '../../api/balances.api';
 import { ExpenseCard } from '../../components/expenses/ExpenseCard';
 import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
-
-function getMemberName(members: GroupMember[], userId: string): string {
-  const member = members.find((m) => m.user_id === userId);
-  return member?.user_name || member?.user_email || userId.slice(0, 8);
-}
 
 const formatAmount = (cents: number, currency = 'EUR') => {
   return new Intl.NumberFormat('en-US', {
@@ -322,34 +318,58 @@ export default function ExpenseReportPage() {
             <Box>
               {explainData.expenses.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {explainData.expenses.map((item, i) => (
-                    <Card key={i} variant="outlined">
-                      <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Box sx={{ minWidth: 0, flex: 1 }}>
-                            <Typography variant="body1" fontWeight={600} noWrap>
-                              {item.title}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
-                              <Typography variant="caption" color="text.secondary">
-                                Paid by: {getMemberName(resolvedMembers, item.paid_by)}
+                  {explainData.expenses.map((item, i) => {
+                    const paidByMember = resolvedMembers.find((m) => m.user_id === item.paid_by) || null;
+                    const isCurrentUser = item.paid_by === userId;
+                    const name = paidByMember?.user_name || paidByMember?.user_email || 'Unknown';
+                    const initial = name.charAt(0).toUpperCase();
+
+                    return (
+                      <Card key={i} variant="outlined">
+                        <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography variant="body1" fontWeight={600} noWrap>
+                                {item.title}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Your share: {formatAmount(item.share_cents, currency)}
-                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <Tooltip
+                                  title={
+                                    <Box sx={{ py: 0.5 }}>
+                                      <Typography variant="body2" fontWeight={600}>{paidByMember?.user_name || ''}</Typography>
+                                      <Typography variant="caption" color="text.secondary">{paidByMember?.user_email || ''}</Typography>
+                                    </Box>
+                                  }
+                                  arrow
+                                >
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Avatar
+                                      sx={{
+                                        width: 22,
+                                        height: 22,
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        bgcolor: isCurrentUser ? 'primary.main' : 'action.disabledBackground',
+                                        cursor: 'default',
+                                      }}
+                                    >
+                                      {initial}
+                                    </Avatar>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {isCurrentUser ? 'You' : name}
+                                    </Typography>
+                                  </Box>
+                                </Tooltip>
+                                <Typography variant="caption" color="text.secondary">
+                                  Your share: {formatAmount(item.share_cents, currency)}
+                                </Typography>
+                              </Box>
                             </Box>
                           </Box>
-                          <Chip
-                            label={item.paid_by === userId ? 'You' : getMemberName(resolvedMembers, item.paid_by)}
-                            size="small"
-                            variant="outlined"
-                            color={item.paid_by === userId ? 'primary' : 'default'}
-                            sx={{ ml: 1, flexShrink: 0 }}
-                          />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </Box>
               ) : (
                 <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -370,7 +390,7 @@ export default function ExpenseReportPage() {
                     <Card key={i} variant="outlined" sx={{ mb: 1 }}>
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                         <Typography variant="body2">
-                          {getMemberName(resolvedMembers, p.from_user)} → {getMemberName(resolvedMembers, p.to_user)}:{' '}
+                          {resolvedMembers.find((m) => m.user_id === p.from_user)?.user_name || p.from_user} → {resolvedMembers.find((m) => m.user_id === p.to_user)?.user_name || p.to_user}:{' '}
                           <strong>{formatAmount(p.amount_cents, currency)}</strong>
                         </Typography>
                       </CardContent>
@@ -400,16 +420,20 @@ export default function ExpenseReportPage() {
                 </Box>
               ) : (
                 <Grid container spacing={2}>
-                  {expenses.map((expense) => (
-                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={expense.id}>
-                      <ExpenseCard
-                        expense={expense}
-                        onClick={() => {}}
-                        onDelete={() => handleDeleteExpense(expense.id)}
-                        paidByName={getMemberName(resolvedMembers, expense.paid_by)}
-                      />
-                    </Grid>
-                  ))}
+                  {expenses.map((expense) => {
+                    const paidByMember = resolvedMembers.find((m) => m.user_id === expense.paid_by);
+                    return (
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={expense.id}>
+                        <ExpenseCard
+                          expense={expense}
+                          onClick={() => {}}
+                          onDelete={() => handleDeleteExpense(expense.id)}
+                          paidBy={paidByMember}
+                          currentUserId={userId || ''}
+                        />
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               )}
             </Box>

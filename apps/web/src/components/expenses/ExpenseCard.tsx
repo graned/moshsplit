@@ -5,25 +5,59 @@ import {
   Box,
   Chip,
   IconButton,
+  Avatar,
+  Tooltip,
 } from '@mui/material';
 import {
   MoreVert as MoreIcon,
-  Person as PersonIcon,
 } from '@mui/icons-material';
 import { ExpenseListItem } from '../../api/expenses.api';
+import { GroupMember } from '../../api/groups.api';
 
 interface ExpenseCardProps {
   expense: ExpenseListItem;
   onClick: () => void;
   onDelete?: () => void;
-  paidByName?: string;
+  paidBy?: GroupMember;
+  currentUserId?: string;
 }
 
-export function ExpenseCard({ expense, onClick, onDelete, paidByName }: ExpenseCardProps) {
+function UserAvatar({ member, currentUserId }: { member?: GroupMember; currentUserId?: string }) {
+  const name = member?.user_name || member?.user_email || 'Unknown';
+  const initial = name.charAt(0).toUpperCase();
+  const isCurrentUser = member?.user_id === currentUserId;
+
+  return (
+    <Tooltip
+      title={
+        <Box sx={{ py: 0.5 }}>
+          <Typography variant="body2" fontWeight={600}>{member?.user_name || ''}</Typography>
+          <Typography variant="caption" color="text.secondary">{member?.user_email || ''}</Typography>
+        </Box>
+      }
+      arrow
+    >
+      <Avatar
+        sx={{
+          width: 24,
+          height: 24,
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          bgcolor: isCurrentUser ? 'primary.main' : 'action.disabledBackground',
+          cursor: 'default',
+        }}
+      >
+        {initial}
+      </Avatar>
+    </Tooltip>
+  );
+}
+
+export function ExpenseCard({ expense, onClick, onDelete, paidBy, currentUserId }: ExpenseCardProps) {
   const formatAmount = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD', // This should be dynamic based on group currency
+      currency: 'EUR',
     }).format(cents / 100);
   };
 
@@ -75,9 +109,9 @@ export function ExpenseCard({ expense, onClick, onDelete, paidByName }: ExpenseC
             )}
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <PersonIcon fontSize="small" color="action" />
+                <UserAvatar member={paidBy} currentUserId={currentUserId} />
                 <Typography variant="body2" color="text.secondary">
-                  {paidByName || expense.paid_by}
+                  {paidBy?.user_name || paidBy?.user_email || expense.paid_by}
                 </Typography>
               </Box>
               {expense.split_type && (
