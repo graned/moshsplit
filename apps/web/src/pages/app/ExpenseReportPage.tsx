@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,9 +19,6 @@ import Grid from '@mui/material/Grid2';
 import {
   ArrowBack as ArrowBackIcon,
   Add as AddIcon,
-  TrendingUp as PaidIcon,
-  TrendingDown as OweIcon,
-  AccountBalance as NetIcon,
   Receipt as ReceiptIcon,
   ShoppingCart as ExpenseIcon,
 } from '@mui/icons-material';
@@ -53,6 +50,8 @@ export default function ExpenseReportPage() {
 
   const [tab, setTab] = useState(0);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['event', eventId],
@@ -119,6 +118,31 @@ export default function ExpenseReportPage() {
   const expenses = expensesData?.data || [];
   const currency = event?.currency || 'EUR';
 
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    let parent: HTMLElement | null = el.parentElement;
+    while (parent) {
+      const style = window.getComputedStyle(parent);
+      if (
+        style.overflowY === 'auto' || style.overflowY === 'scroll' ||
+        style.overflow === 'auto' || style.overflow === 'scroll'
+      ) break;
+      parent = parent.parentElement;
+    }
+    const container = parent || document.documentElement;
+    const onScroll = () => setScrollY(container.scrollTop);
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const heroMaxHeight = 280;
+  const heroMinHeight = 72;
+  const scrollRange = 200;
+  const progress = Math.min(scrollY / scrollRange, 1);
+  const heroHeight = heroMaxHeight - (heroMaxHeight - heroMinHeight) * progress;
+  const compact = progress > 0.5;
+
   const handleAddExpense = async (data: CreateExpenseRequest) => {
     if (!userId) throw new Error('User not authenticated');
     await createMutation.mutateAsync({ ...data, user_id: userId });
@@ -140,137 +164,192 @@ export default function ExpenseReportPage() {
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <IconButton onClick={() => navigate('/app/expenses')} size="small">
-          <ArrowBackIcon />
-        </IconButton>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            {event?.name || 'Expense Report'}
-          </Typography>
-          {event?.description && (
-            <Typography variant="body2" color="text.secondary">
-              {event.description}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+    <Box ref={rootRef}>
+      {/* === Sticky header === */}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 10 }}>
+        {/* Hero */}
+        <Box
+          sx={{
+            height: heroHeight,
+            position: 'relative',
+            overflow: 'hidden',
+            background: `linear-gradient(135deg, #4A2F0A 0%, #3D2208 50%, #1A1A1A 100%)`,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            px: compact ? 2 : 4,
+            pb: compact ? 1 : 3,
+          }}
+        >
+          <Box sx={{
+            position: 'absolute', inset: 0,
+            background: `linear-gradient(to bottom, transparent 40%, #121212 100%)`,
+          }} />
 
-      {isLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
-      )}
+          {/* Back button */}
+          <IconButton
+            onClick={() => navigate('/app/expenses')}
+            sx={{
+              position: 'absolute', top: 12, left: compact ? 8 : 16,
+              zIndex: 2, color: '#fff',
+              bgcolor: alpha('#000', 0.35),
+              '&:hover': { bgcolor: alpha('#000', 0.55) },
+              width: 32, height: 32,
+            }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 20 }} />
+          </IconButton>
 
-      {!isLoading && event && (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          {/* Add Expense button */}
+          {!isLoading && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
+              size="small"
               onClick={() => setAddDialogOpen(true)}
+              sx={{
+                position: 'absolute', top: 12, right: compact ? 8 : 16,
+                zIndex: 2,
+                bgcolor: alpha('#000', 0.35),
+                color: '#fff',
+                '&:hover': { bgcolor: alpha('#000', 0.55) },
+              }}
             >
               Add Expense
             </Button>
-          </Box>
-
-          {/* Summary cards */}
-          {explainData && (
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Card sx={{ bgcolor: alpha('#10b981', 0.08), border: 1, borderColor: alpha('#10b981', 0.2) }}>
-                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                    <PaidIcon sx={{ fontSize: 28, color: 'success.main', mb: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      You Paid
-                    </Typography>
-                    <Typography variant="h5" fontWeight={800} color="success.main">
-                      {formatAmount(explainData.paid_cents, currency)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Card sx={{ bgcolor: alpha('#ef4444', 0.08), border: 1, borderColor: alpha('#ef4444', 0.2) }}>
-                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                    <OweIcon sx={{ fontSize: 28, color: 'error.main', mb: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Your Share
-                    </Typography>
-                    <Typography variant="h5" fontWeight={800} color="error.main">
-                      {formatAmount(explainData.owes_cents, currency)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Card sx={{
-                  bgcolor: alpha(explainData.balance_cents >= 0 ? '#10b981' : '#ef4444', 0.08),
-                  border: 1,
-                  borderColor: alpha(explainData.balance_cents >= 0 ? '#10b981' : '#ef4444', 0.2),
-                }}>
-                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                    <NetIcon sx={{ fontSize: 28, color: explainData.balance_cents >= 0 ? 'success.main' : 'error.main', mb: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Net Balance
-                    </Typography>
-                    <Typography variant="h5" fontWeight={800} color={explainData.balance_cents >= 0 ? 'success.main' : 'error.main'}>
-                      {formatAmount(explainData.balance_cents, currency)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
           )}
 
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-          >
-            <Tab label="OVERVIEW" sx={{ fontWeight: 700, letterSpacing: '0.05em' }} />
-            <Tab label={`EXPENSES (${expenses.length})`} sx={{ fontWeight: 700, letterSpacing: '0.05em' }} />
-          </Tabs>
+          {isLoading ? (
+            <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', pb: 2 }}>
+              <CircularProgress />
+            </Box>
+          ) : event ? (
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Typography
+                noWrap={compact}
+                sx={{
+                  fontSize: compact ? '1.15rem' : '2.5rem',
+                  fontWeight: compact ? 700 : 800,
+                  lineHeight: 1.15,
+                  transition: 'font-size 0.25s, font-weight 0.25s',
+                  mb: compact ? 0 : 0.5,
+                }}
+              >
+                {event.name}
+              </Typography>
+              {event.description && (
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: compact ? '0.75rem' : '0.875rem' }}>
+                  {event.description}
+                </Typography>
+              )}
+            </Box>
+          ) : null}
+        </Box>
 
+        {/* Summary bar */}
+        {!isLoading && explainData && (
+          <Box sx={{
+            display: 'flex',
+            gap: compact ? 1 : 2,
+            px: compact ? 1.5 : 3,
+            py: compact ? 1.5 : 2.5,
+            bgcolor: 'background.default',
+            transition: 'padding 0.25s, gap 0.25s',
+          }}>
+            {[
+              { value: formatAmount(explainData.paid_cents, currency), label: 'You Paid', color: 'primary.main' },
+              { value: formatAmount(explainData.owes_cents, currency), label: 'My Share', color: 'text.primary' },
+              {
+                value: formatAmount(explainData.balance_cents, currency),
+                label: explainData.balance_cents >= 0 ? 'Getting Back' : 'You Owe',
+                color: explainData.balance_cents >= 0 ? 'success.main' : 'error.main',
+              },
+            ].map((item) => (
+              <Box
+                key={item.label}
+                sx={{
+                  flex: 1,
+                  textAlign: 'center',
+                  py: compact ? 1 : 2.5,
+                  px: compact ? 0.5 : 1,
+                  borderRadius: compact ? 2 : 3,
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  transition: 'padding 0.25s, border-radius 0.25s',
+                }}
+              >
+                <Typography
+                  fontWeight={800}
+                  color={item.color}
+                  sx={{
+                    fontSize: compact ? '0.9rem' : '1.75rem',
+                    transition: 'font-size 0.25s',
+                  }}
+                >
+                  {item.value}
+                </Typography>
+                <Typography
+                  color="text.secondary"
+                  sx={{
+                    fontSize: compact ? '0.65rem' : '0.875rem',
+                    mt: compact ? 0 : 0.5,
+                    transition: 'font-size 0.25s, margin-top 0.25s',
+                  }}
+                >
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      {/* Tabs + content */}
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="fullWidth"
+          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 64, bgcolor: 'background.default' }}
+        >
+          <Tab label="OVERVIEW" sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.95rem', py: 2.5 }} />
+          <Tab label={`EXPENSES (${expenses.length})`} sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.95rem', py: 2.5 }} />
+        </Tabs>
+
+        <Box sx={{ p: 3 }}>
           {tab === 0 && explainData && (
             <Box>
-              {/* Expense breakdown */}
               {explainData.expenses.length > 0 ? (
-                <Box>
-                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                    Expense Breakdown
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {explainData.expenses.map((item, i) => (
-                      <Card key={i} variant="outlined">
-                        <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Typography variant="body2" fontWeight={600} noWrap>
-                                {item.title}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {explainData.expenses.map((item, i) => (
+                    <Card key={i} variant="outlined">
+                      <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography variant="body1" fontWeight={600} noWrap>
+                              {item.title}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
+                              <Typography variant="caption" color="text.secondary">
+                                Paid by: {getMemberName(resolvedMembers, item.paid_by)}
                               </Typography>
-                              <Box sx={{ display: 'flex', gap: 2, mt: 0.25 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                  Paid: {formatAmount(item.paid_cents, currency)}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Your share: {formatAmount(item.share_cents, currency)}
-                                </Typography>
-                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Your share: {formatAmount(item.share_cents, currency)}
+                              </Typography>
                             </Box>
-                            <Chip
-                              label={item.paid_by === userId ? 'You paid' : getMemberName(resolvedMembers, item.paid_by)}
-                              size="small"
-                              variant="outlined"
-                              color={item.paid_by === userId ? 'primary' : 'default'}
-                              sx={{ ml: 1, flexShrink: 0 }}
-                            />
                           </Box>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </Box>
+                          <Chip
+                            label={item.paid_by === userId ? 'You' : getMemberName(resolvedMembers, item.paid_by)}
+                            size="small"
+                            variant="outlined"
+                            color={item.paid_by === userId ? 'primary' : 'default'}
+                            sx={{ ml: 1, flexShrink: 0 }}
+                          />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </Box>
               ) : (
                 <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -335,8 +414,8 @@ export default function ExpenseReportPage() {
               )}
             </Box>
           )}
-        </>
-      )}
+        </Box>
+      </Box>
 
       {eventId && (
         <AddExpenseDialog
