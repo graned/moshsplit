@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -28,6 +28,7 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem, CreateExpenseRequest } from '../../api/expenses.api';
 import { balancesApi } from '../../api/balances.api';
+import { usersApi, UserInfo } from '../../api/users.api';
 import { ExpenseCard } from '../../components/expenses/ExpenseCard';
 import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
 
@@ -58,15 +59,6 @@ export default function ExpenseReportPage() {
     enabled: !!eventId,
   });
 
-  const { data: members, isLoading: membersLoading } = useQuery({
-    queryKey: ['event-members', eventId],
-    queryFn: async () => {
-      if (!eventId) return [];
-      return groupsApi.listMembers(eventId);
-    },
-    enabled: !!eventId,
-  });
-
   const { data: expensesData, isLoading: expensesLoading } = useQuery({
     queryKey: ['expenses', eventId, userId],
     queryFn: async () => {
@@ -85,6 +77,31 @@ export default function ExpenseReportPage() {
     enabled: !!eventId && !!userId,
   });
 
+  // Collect all unique user IDs
+  const allUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (expensesData?.data) {
+      expensesData.data.forEach((e) => ids.add(e.paid_by));
+    }
+    if (explainData?.expenses) {
+      explainData.expenses.forEach((e) => ids.add(e.paid_by));
+    }
+    if (explainData?.payments) {
+      explainData.payments.forEach((p) => {
+        ids.add(p.from_user);
+        ids.add(p.to_user);
+      });
+    }
+    return Array.from(ids);
+  }, [expensesData, explainData]);
+
+  // Fetch user info from sentinel
+  const { data: userMap } = useQuery({
+    queryKey: ['expense-users', allUserIds],
+    queryFn: () => usersApi.getMany(allUserIds),
+    enabled: allUserIds.length > 0,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: CreateExpenseRequest) => {
       if (!eventId) throw new Error('No event ID');
@@ -94,6 +111,8 @@ export default function ExpenseReportPage() {
       queryClient.invalidateQueries({ queryKey: ['expenses', eventId] });
       queryClient.invalidateQueries({ queryKey: ['expense-report-explain', eventId] });
       queryClient.invalidateQueries({ queryKey: ['expenses-page-balances'] });
+      usersApi.clearCache();
+      queryClient.invalidateQueries({ queryKey: ['expense-users'] });
     },
   });
 
@@ -106,11 +125,12 @@ export default function ExpenseReportPage() {
       queryClient.invalidateQueries({ queryKey: ['expenses', eventId] });
       queryClient.invalidateQueries({ queryKey: ['expense-report-explain', eventId] });
       queryClient.invalidateQueries({ queryKey: ['expenses-page-balances'] });
+      usersApi.clearCache();
+      queryClient.invalidateQueries({ queryKey: ['expense-users'] });
     },
   });
 
-  const isLoading = eventLoading || membersLoading || expensesLoading || explainLoading;
-  const resolvedMembers = members || [];
+  const isLoading = eventLoading || expensesLoading || explainLoading;
   const expenses = expensesData?.data || [];
   const currency = event?.currency || 'EUR';
 
@@ -150,6 +170,8 @@ export default function ExpenseReportPage() {
       await deleteMutation.mutateAsync(expenseId);
     }
   };
+
+  const getUser = (id: string): UserInfo | undefined => userMap?.[id];
 
   if (eventError && !event) {
     return (
@@ -319,9 +341,9 @@ export default function ExpenseReportPage() {
               {explainData.expenses.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {explainData.expenses.map((item, i) => {
-                    const paidByMember = resolvedMembers.find((m) => m.user_id === item.paid_by) || null;
+                    const user = getUser(item.paid_by);
                     const isCurrentUser = item.paid_by === userId;
-                    const name = paidByMember?.user_name || paidByMember?.user_email || 'Unknown';
+                    const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email : item.paid_by;
                     const initial = name.charAt(0).toUpperCase();
 
                     return (
@@ -336,8 +358,10 @@ export default function ExpenseReportPage() {
                                 <Tooltip
                                   title={
                                     <Box sx={{ py: 0.5 }}>
-                                      <Typography variant="body2" fontWeight={600}>{paidByMember?.user_name || ''}</Typography>
-                                      <Typography variant="caption" color="text.secondary">{paidByMember?.user_email || ''}</Typography>
+                                      <Typography variant="body2" fontWeight={600}>{name}</Typography>
+                                      {user?.email && (
+                                        <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                                      )}
                                     </Box>
                                   }
                                   arrow
@@ -389,16 +413,23 @@ export default function ExpenseReportPage() {
                   <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
                     Payments
                   </Typography>
-                  {explainData.payments.map((p, i) => (
-                    <Card key={i} variant="outlined" sx={{ mb: 1 }}>
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Typography variant="body2">
-                          {resolvedMembers.find((m) => m.user_id === p.from_user)?.user_name || p.from_user} → {resolvedMembers.find((m) => m.user_id === p.to_user)?.user_name || p.to_user}:{' '}
-                          <strong>{formatAmount(p.amount_cents, currency)}</strong>
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {explainData.payments.map((p, i) => {
+                    const fromUser = getUser(p.from_user);
+                    const toUser = getUser(p.to_user);
+                    const fromName = fromUser ? `${fromUser.firstName} ${fromUser.lastName}`.trim() || fromUser.email : p.from_user;
+                    const toName = toUser ? `${toUser.firstName} ${toUser.lastName}`.trim() || toUser.email : p.to_user;
+
+                    return (
+                      <Card key={i} variant="outlined" sx={{ mb: 1 }}>
+                        <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                          <Typography variant="body2">
+                            {fromName} → {toName}:{' '}
+                            <strong>{formatAmount(p.amount_cents, currency)}</strong>
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </Box>
               )}
             </Box>
@@ -424,14 +455,14 @@ export default function ExpenseReportPage() {
               ) : (
                 <Grid container spacing={2}>
                   {expenses.map((expense) => {
-                    const paidByMember = resolvedMembers.find((m) => m.user_id === expense.paid_by);
+                    const paidBy = getUser(expense.paid_by);
                     return (
                       <Grid size={{ xs: 12, sm: 6, md: 4 }} key={expense.id}>
                         <ExpenseCard
                           expense={expense}
                           onClick={() => {}}
                           onDelete={() => handleDeleteExpense(expense.id)}
-                          paidBy={paidByMember}
+                          paidBy={paidBy}
                           currentUserId={userId || ''}
                         />
                       </Grid>
@@ -449,7 +480,7 @@ export default function ExpenseReportPage() {
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           onSubmit={handleAddExpense}
-          members={resolvedMembers}
+          members={[]}
           currentUserId={userId || ''}
           groupCurrency={currency}
         />

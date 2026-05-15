@@ -12,27 +12,29 @@ import {
   MoreVert as MoreIcon,
 } from '@mui/icons-material';
 import { ExpenseListItem } from '../../api/expenses.api';
-import { GroupMember } from '../../api/groups.api';
+import { UserInfo } from '../../api/users.api';
 
 interface ExpenseCardProps {
   expense: ExpenseListItem;
   onClick: () => void;
   onDelete?: () => void;
-  paidBy?: GroupMember;
+  paidBy?: UserInfo;
   currentUserId?: string;
 }
 
-function UserAvatar({ member, currentUserId }: { member?: GroupMember; currentUserId?: string }) {
-  const name = member?.user_name || member?.user_email || 'Unknown';
+function UserAvatar({ user, currentUserId }: { user?: UserInfo; currentUserId?: string }) {
+  const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email : 'Unknown';
   const initial = name.charAt(0).toUpperCase();
-  const isCurrentUser = member?.user_id === currentUserId;
+  const isCurrentUser = user?.id === currentUserId;
 
   return (
     <Tooltip
       title={
         <Box sx={{ py: 0.5 }}>
-          <Typography variant="body2" fontWeight={600}>{member?.user_name || ''}</Typography>
-          <Typography variant="caption" color="text.secondary">{member?.user_email || ''}</Typography>
+          <Typography variant="body2" fontWeight={600}>{name}</Typography>
+          {user?.email && (
+            <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+          )}
         </Box>
       }
       arrow
@@ -83,6 +85,10 @@ export function ExpenseCard({ expense, onClick, onDelete, paidBy, currentUserId 
     }
   };
 
+  const paidByName = paidBy
+    ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email
+    : expense.paid_by;
+
   return (
     <Card
       sx={{
@@ -109,9 +115,9 @@ export function ExpenseCard({ expense, onClick, onDelete, paidBy, currentUserId 
             )}
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <UserAvatar member={paidBy} currentUserId={currentUserId} />
+                <UserAvatar user={paidBy} currentUserId={currentUserId} />
                 <Typography variant="body2" color="text.secondary">
-                  {paidBy?.user_name || paidBy?.user_email || expense.paid_by}
+                  {paidByName}
                 </Typography>
               </Box>
               {expense.split_type && (
