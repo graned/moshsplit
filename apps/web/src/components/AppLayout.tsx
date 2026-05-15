@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import {
-  AppBar,
   Box,
-  Toolbar,
   Typography,
   IconButton,
   Drawer,
@@ -15,9 +13,12 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  BottomNavigation,
+  BottomNavigationAction,
   useMediaQuery,
   useTheme,
   Divider,
+  Paper,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -52,15 +53,8 @@ function AppLayout() {
   const location = useLocation();
   const { firstName, lastName, userEmail, clearTokens } = useAuthStore();
 
-  // Mobile: drawer is temporary (overlay)
-  // Desktop: drawer is persistent (can be toggled)
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const handleMobileDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
 
   const handleDesktopDrawerToggle = () => {
     setDesktopOpen(!desktopOpen);
@@ -76,25 +70,7 @@ function AppLayout() {
 
   const handleNavigation = (path: string) => {
     navigate(path);
-    // Close mobile drawer on navigation
-    setMobileOpen(false);
   };
-
-  // Close mobile drawer on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
-
-  // Keyboard accessibility: close drawer on Escape
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && mobileOpen) {
-        setMobileOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mobileOpen]);
 
   const handleGoBack = () => {
     handleMenuClose();
@@ -294,29 +270,6 @@ function AppLayout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Mobile: Temporary drawer (overlay) */}
-      {isMobile && (
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleMobileDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better mobile performance
-          }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: DRAWER_WIDTH,
-              backgroundColor: 'transparent',
-              borderRight: 'none',
-            },
-          }}
-        >
-          {drawerContent(false)}
-        </Drawer>
-      )}
-
       {/* Desktop: Permanent drawer (collapsible via width) */}
       {isDesktop && (
         <Drawer
@@ -377,33 +330,56 @@ function AppLayout() {
         </IconButton>
       )}
 
-      {/* Mobile toggle button — floating */}
+      {/* Mobile: Bottom navigation bar */}
+      {isMobile && (
+        <Paper
+          sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, display: { xs: 'block', md: 'none' } }}
+          elevation={8}
+        >
+          <BottomNavigation
+            value={location.pathname}
+            onChange={(_, path) => handleNavigation(path)}
+            showLabels
+          >
+            {navItems.map((item) => (
+              <BottomNavigationAction
+                key={item.path}
+                value={item.path}
+                label={t(item.label)}
+                icon={
+                  <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={item.icon} alt="" style={{ width: '100%', height: '100%' }} />
+                  </Box>
+                }
+              />
+            ))}
+          </BottomNavigation>
+        </Paper>
+      )}
+
+      {/* Mobile: User avatar button (top-right) */}
       {isMobile && (
         <IconButton
-          onClick={handleMobileDrawerToggle}
+          onClick={handleMenuOpen}
           size="small"
           sx={{
             position: 'fixed',
-            left: 8,
+            right: 8,
             top: 8,
-            zIndex: theme.zIndex.drawer + 1,
-            width: 36,
-            height: 36,
-            backgroundColor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: 1,
-            '&:hover': {
-              backgroundColor: 'action.hover',
-            },
+            zIndex: theme.zIndex.appBar + 1,
           }}
-          aria-label="open menu"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <rect y="3" width="20" height="2" rx="1" />
-            <rect y="9" width="20" height="2" rx="1" />
-            <rect y="15" width="20" height="2" rx="1" />
-          </svg>
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: 'primary.main',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
+            {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
+          </Avatar>
         </IconButton>
       )}
 
@@ -422,6 +398,7 @@ function AppLayout() {
           sx={{
             flex: 1,
             p: { xs: 2, sm: 3 },
+            pb: { xs: 10, sm: 3 },
             overflow: 'auto',
           }}
         >
