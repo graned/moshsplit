@@ -34,6 +34,7 @@ import SettlementsIconUrl from '../../assets/settlements-icon.png';
 import BgTextureUrl from '../../assets/bg-texture-1.svg';
 
 const DRAWER_WIDTH = 280;
+const DRAWER_COLLAPSED = 72;
 
 const navItems = [
   { path: '/app/events', label: 'nav.events', icon: EventsIconUrl },
@@ -125,7 +126,7 @@ function AppLayout() {
     );
   };
 
-  const drawerContent = (
+  const drawerContent = (collapsed: boolean) => (
     <Box
       sx={{
         height: '100%',
@@ -153,25 +154,26 @@ function AppLayout() {
       {/* Content overlay */}
       <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Logo header */}
-        <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={LogoSvgUrl} alt="logo" style={{ width: 140, height: 140 }} />
+        <Box sx={{ p: collapsed ? 1 : 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={LogoSvgUrl} alt="logo" style={{ width: collapsed ? 40 : 140, height: collapsed ? 40 : 140 }} />
         </Box>
 
-        <Divider sx={{ opacity: 0.1, mx: 2 }} />
+        <Divider sx={{ opacity: 0.1, mx: collapsed ? 1 : 2 }} />
 
         {/* Main menu items */}
-        <List sx={{ flex: 0, py: 2, px: 1 }}>
+        <List sx={{ flex: 0, py: collapsed ? 1 : 2, px: 0.5 }}>
           {navItems.map((item) => {
             const isSelected = location.pathname === item.path;
             return (
-              <ListItem key={item.path} disablePadding sx={{ mb: 1 }}>
+              <ListItem key={item.path} disablePadding sx={{ mb: collapsed ? 0.5 : 1 }}>
                 <ListItemButton
                   selected={isSelected}
                   onClick={() => handleNavigation(item.path)}
                   sx={{
                     mx: 1,
                     borderRadius: 2,
-                    py: 2,
+                    py: collapsed ? 1 : 2,
+                    justifyContent: collapsed ? 'center' : 'flex-start',
                     transition: 'all 0.2s ease',
                     backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
                     borderLeft: isSelected ? '3px solid' : '3px solid transparent',
@@ -181,17 +183,19 @@ function AppLayout() {
                     },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 68, color: isSelected ? 'primary.main' : 'text.secondary' }}>
-                    <IconWrapper icon={item.icon} sx={{ width: 48, height: 48, color: isSelected ? 'primary.main' : 'text.secondary' }} />
+                  <ListItemIcon sx={{ minWidth: collapsed ? 0 : 68, color: isSelected ? 'primary.main' : 'text.secondary' }}>
+                    <IconWrapper icon={item.icon} sx={{ width: collapsed ? 28 : 48, height: collapsed ? 28 : 48, color: isSelected ? 'primary.main' : 'text.secondary' }} />
                   </ListItemIcon>
-                  <ListItemText
-                    primary={t(item.label)}
-                    primaryTypographyProps={{
-                      fontSize: '1.1rem',
-                      fontWeight: isSelected ? 600 : 400,
-                      color: isSelected ? 'text.primary' : 'text.secondary',
-                    }}
-                  />
+                  {!collapsed && (
+                    <ListItemText
+                      primary={t(item.label)}
+                      primaryTypographyProps={{
+                        fontSize: '1.1rem',
+                        fontWeight: isSelected ? 600 : 400,
+                        color: isSelected ? 'text.primary' : 'text.secondary',
+                      }}
+                    />
+                  )}
                 </ListItemButton>
               </ListItem>
             );
@@ -202,14 +206,15 @@ function AppLayout() {
         <Box sx={{ flex: 1 }} />
 
         {/* User section */}
-        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0, 0, 0, 0.2)' }}>
+        <Box sx={{ p: collapsed ? 1 : 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0, 0, 0, 0.2)' }}>
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5,
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: collapsed ? 0 : 1.5,
               cursor: 'pointer',
-              p: 1,
+              p: collapsed ? 0.5 : 1,
               borderRadius: 2,
               transition: 'background-color 0.2s',
               '&:hover': {
@@ -220,41 +225,43 @@ function AppLayout() {
           >
             <Avatar
               sx={{
-                width: 40,
-                height: 40,
+                width: collapsed ? 32 : 40,
+                height: collapsed ? 32 : 40,
                 bgcolor: 'primary.main',
-                fontSize: '1rem',
+                fontSize: collapsed ? '0.75rem' : '1rem',
                 fontWeight: 600,
               }}
             >
               {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
             </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  color: 'text.primary',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User'}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'text.secondary',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: 'block',
-                }}
-              >
-                {userEmail}
-              </Typography>
-            </Box>
+            {!collapsed && (
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User'}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'block',
+                  }}
+                >
+                  {userEmail}
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>
@@ -282,7 +289,7 @@ function AppLayout() {
             },
           }}
         >
-          {drawerContent}
+          {drawerContent(false)}
         </Drawer>
       )}
 
@@ -293,10 +300,10 @@ function AppLayout() {
           open={desktopOpen}
           sx={{
             display: { xs: 'none', md: 'block' },
-            width: desktopOpen ? DRAWER_WIDTH : 0,
+            width: desktopOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED,
             flexShrink: 0,
             '& .MuiDrawer-paper': {
-              width: desktopOpen ? DRAWER_WIDTH : 0,
+              width: desktopOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED,
               boxSizing: 'border-box',
               overflowX: 'hidden',
               backgroundColor: 'transparent',
@@ -308,7 +315,7 @@ function AppLayout() {
             },
           }}
         >
-          {drawerContent}
+          {drawerContent(!desktopOpen)}
         </Drawer>
       )}
 
@@ -319,7 +326,7 @@ function AppLayout() {
           size="small"
           sx={{
             position: 'fixed',
-            left: desktopOpen ? DRAWER_WIDTH - 16 : 4,
+            left: desktopOpen ? DRAWER_WIDTH - 16 : DRAWER_COLLAPSED - 16,
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: theme.zIndex.drawer + 1,
@@ -382,7 +389,7 @@ function AppLayout() {
           minHeight: '100vh',
           width: {
             xs: '100%',
-            md: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
+            md: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : `calc(100% - ${DRAWER_COLLAPSED}px)`,
           },
           ml: {
             xs: 0,
