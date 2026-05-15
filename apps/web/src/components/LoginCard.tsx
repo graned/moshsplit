@@ -1,9 +1,13 @@
-import { Card, CardContent } from '@mui/material';
+import { useState } from 'react';
+import { Card, CardContent, Button, Box, CircularProgress } from '@mui/material';
 import { AuthHeroLogo } from './AuthHeroLogo';
 import { LoginForm } from './LoginForm';
 import { InvitationOnlyNotice } from './InvitationOnlyNotice';
 import { useTranslation } from 'react-i18next';
 import type { LoginCredentials } from '../pages/auth/types';
+import { authApi } from '../api/auth.api';
+import { useAuthStore } from '@moshsplit/auth-react';
+import { AuthClient } from '@moshsplit/sentinel-sdk';
 
 interface LoginCardProps {
   onSubmit: (credentials: LoginCredentials) => Promise<void>;
@@ -13,6 +17,53 @@ interface LoginCardProps {
 
 export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
   const { t } = useTranslation();
+  const [externalLoading, setExternalLoading] = useState(false);
+  const [externalError, setExternalError] = useState<string | null>(null);
+  const setSession = useAuthStore((state) => state.setSession);
+
+  const handleExternalLogin = async () => {
+    setExternalLoading(true);
+    setExternalError(null);
+
+    try {
+      const apiToken = import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
+      const testEmail = import.meta.env.VITE_TEST_USER_EMAIL || 'admin@example.com';
+
+      const exchangeResult = await authApi.externalLogin({
+        api_token: apiToken,
+        email: testEmail,
+      });
+
+      setSession(
+        exchangeResult.user_id,
+        exchangeResult.access_token,
+        exchangeResult.refresh_token,
+        exchangeResult.email_verified,
+        false
+      );
+
+      try {
+        const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+        const authClient = new AuthClient(sentinelUrl);
+        const token = exchangeResult.access_token;
+        const profile = await authClient.user.getMe(token);
+        const { setUserProfile } = useAuthStore.getState();
+        const firstName = (profile as any).first_name || (profile as any).firstName || '';
+        const lastName = (profile as any).last_name || (profile as any).lastName || '';
+        const email = (profile as any).email || '';
+        setUserProfile(email, firstName, lastName);
+      } catch (profileErr) {
+        console.error('[ExternalLogin] Failed to fetch user profile:', profileErr);
+      }
+
+      window.location.href = '/app/home';
+    } catch (err) {
+      setExternalError(err instanceof Error ? err.message : 'External login failed');
+      console.error('[ExternalLogin] Top-level error:', err);
+    } finally {
+      setExternalLoading(false);
+    }
+  };
 
   return (
     <Card
@@ -59,6 +110,30 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
           isLoading={isLoading}
           error={error}
         />
+
+        <Box sx={{ mt: 3, mb: 2 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={handleExternalLogin}
+            disabled={externalLoading}
+            sx={{
+              borderColor: 'rgba(245, 158, 11, 0.5)',
+              color: 'text.primary',
+              '&:hover': {
+                borderColor: 'primary.main',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              },
+            }}
+          >
+            {externalLoading ? <CircularProgress size={24} /> : 'Join with Pitboss'}
+          </Button>
+          {externalError && (
+            <Box sx={{ mt: 1, color: 'error.main', fontSize: '0.875rem', textAlign: 'center' }}>
+              {externalError}
+            </Box>
+          )}
+        </Box>
 
         <InvitationOnlyNotice />
       </CardContent>
