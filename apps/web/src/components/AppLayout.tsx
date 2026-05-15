@@ -22,12 +22,12 @@ import {
 import {
   Menu as MenuIcon,
   MenuOpen as MenuOpenIcon,
-  Logout as LogoutIcon,
+  ArrowBack as ArrowBackIcon,
   Group as UsersIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore, useAuth } from '@moshsplit/auth-react';
+import { useAuthStore } from '@moshsplit/auth-react';
 import LogoSvgUrl from '../../assets/logo.svg';
 import EventsIconSvgUrl from '../../assets/events-icon.svg';
 import ExpensesIconSvgUrl from '../../assets/expenses-icon.svg';
@@ -50,8 +50,7 @@ function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { firstName, lastName, userEmail, isAdmin } = useAuthStore();
-  const { logout } = useAuth();
+  const { firstName, lastName, userEmail, isAdmin, clearTokens } = useAuthStore();
 
   // Admin navigation items (only shown for admins)
   const adminItems = isAdmin
@@ -102,10 +101,15 @@ function AppLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mobileOpen]);
 
-  const handleLogout = async () => {
+  const handleGoBack = () => {
     handleMenuClose();
-    await logout();
-    navigate('/login');
+    clearTokens();
+    const externalUrl = import.meta.env.VITE_EXTERNAL_APP_URL;
+    if (externalUrl) {
+      window.location.href = externalUrl;
+    } else {
+      navigate('/login');
+    }
   };
 
   // Custom icon component wrapper for SVG icons
@@ -470,11 +474,11 @@ function AppLayout() {
           </Typography>
         </Box>
         <Divider sx={{ my: 1 }} />
-        <MenuItem onClick={handleLogout}>
+        <MenuItem onClick={handleGoBack}>
           <ListItemIcon>
-            <LogoutIcon fontSize="small" />
+            <ArrowBackIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>{t('app.logout')}</ListItemText>
+          <ListItemText>{t('app.goBack', { appName: import.meta.env.VITE_EXTERNAL_APP_NAME || 'App' })}</ListItemText>
         </MenuItem>
       </Menu>
     </Box>
