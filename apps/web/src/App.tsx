@@ -16,6 +16,7 @@ import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppLayout from './components/AppLayout';
 import HomePage from './pages/app/HomePage';
 import EventsPage from './pages/app/EventsPage';
+import EventDetailPage from './pages/app/EventDetailPage';
 import ExpensesPage from './pages/app/ExpensesPage';
 import BalancesPage from './pages/app/BalancesPage';
 import SettlementsPage from './pages/app/SettlementsPage';
@@ -56,8 +57,9 @@ function AppContent() {
 				<Route path="/app" element={<AppLayout />}>
 					<Route index element={<Navigate to="/app/home" replace />} />
 					<Route path="home" element={<HomePage />} />
-					<Route path="events" element={<EventsPage />} />
-					<Route path="expenses" element={<ExpensesPage />} />
+          <Route path="events" element={<EventsPage />} />
+          <Route path="events/:eventId" element={<EventDetailPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
 					<Route path="balances" element={<BalancesPage />} />
 					<Route path="settlements" element={<SettlementsPage />} />
 					<Route path="settings/profile" element={<SettingsProfilePage />} />

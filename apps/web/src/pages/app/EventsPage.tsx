@@ -379,7 +379,7 @@ export default function EventsPage() {
   };
 
   const handleGroupClick = (group: GroupListItem) => {
-    navigate(`/app/expenses?groupId=${group.id}`);
+    navigate(`/app/events/${group.id}`);
   };
 
   const handleDeleteGroup = async (groupId: string) => {
@@ -416,6 +416,18 @@ export default function EventsPage() {
             New Event
           </Button>
         </Box>
+      </Box>
+
+      {/* Demo event link */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => navigate('/app/events/mock-event-1')}
+          sx={{ color: 'text.disabled', fontSize: '0.75rem' }}
+        >
+          View demo event
+        </Button>
       </Box>
 
       {/* Error state */}

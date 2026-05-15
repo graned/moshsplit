@@ -445,6 +445,8 @@ function AppLayout() {
             p: { xs: 1.5, sm: 3 },
             pb: { xs: 10, sm: 3 },
             overflow: 'auto',
+            scrollbarWidth: 'none',
+            '&::-webkit-scrollbar': { display: 'none' },
           }}
         >
           <Outlet />

@@ -146,6 +146,21 @@ export const theme = createTheme({
         },
       },
     },
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': { width: 6, height: 6 },
+          '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+          '&::-webkit-scrollbar-thumb': { bgcolor: '#424242', borderRadius: 3 },
+          '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#616161' },
+          '& *::-webkit-scrollbar': { width: 6, height: 6 },
+          '& *::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+          '& *::-webkit-scrollbar-thumb': { bgcolor: '#424242', borderRadius: 3 },
+          '& *::-webkit-scrollbar-thumb:hover': { bgcolor: '#616161' },
+        },
+      },
+    },
     MuiAppBar: {
       styleOverrides: {
         root: {
