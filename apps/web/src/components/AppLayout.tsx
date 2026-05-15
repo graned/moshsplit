@@ -24,7 +24,6 @@ import {
   MenuOpen as MenuOpenIcon,
   ArrowBack as ArrowBackIcon,
   Group as UsersIcon,
-  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -32,6 +31,7 @@ import LogoSvgUrl from '../../assets/logo.svg';
 import EventsIconSvgUrl from '../../assets/events-icon.svg';
 import ExpensesIconSvgUrl from '../../assets/expenses-icon.svg';
 import BalanceIconSvgUrl from '../../assets/balance-icon.svg';
+import SettlementsIconSvgUrl from '../../assets/settlements-icon.svg';
 import BgTextureUrl from '../../assets/bg-texture-1.svg';
 
 const DRAWER_WIDTH = 280;
@@ -40,7 +40,7 @@ const navItems = [
   { path: '/app/events', label: 'nav.groups', icon: EventsIconSvgUrl },
   { path: '/app/expenses', label: 'nav.expenses', icon: ExpensesIconSvgUrl },
   { path: '/app/balances', label: 'nav.balances', icon: BalanceIconSvgUrl },
-  { path: '/app/settlements', label: 'nav.settlements', icon: SettingsIcon },
+  { path: '/app/settlements', label: 'nav.settlements', icon: SettlementsIconSvgUrl },
 ];
 
 function AppLayout() {
