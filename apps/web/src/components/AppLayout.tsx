@@ -28,19 +28,19 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@moshsplit/auth-react';
 import LogoSvgUrl from '../../assets/logo.svg';
-import EventsIconSvgUrl from '../../assets/events-icon.svg';
-import ExpensesIconSvgUrl from '../../assets/expenses-icon.svg';
-import BalanceIconSvgUrl from '../../assets/balance-icon.svg';
-import SettlementsIconSvgUrl from '../../assets/settlements-icon.svg';
+import EventsIconUrl from '../../assets/events-icon.png';
+import ExpensesIconUrl from '../../assets/expenses-icon.png';
+import BalanceIconUrl from '../../assets/balance-icon.png';
+import SettlementsIconUrl from '../../assets/settlements-icon.png';
 import BgTextureUrl from '../../assets/bg-texture-1.svg';
 
 const DRAWER_WIDTH = 280;
 
 const navItems = [
-  { path: '/app/events', label: 'nav.groups', icon: EventsIconSvgUrl },
-  { path: '/app/expenses', label: 'nav.expenses', icon: ExpensesIconSvgUrl },
-  { path: '/app/balances', label: 'nav.balances', icon: BalanceIconSvgUrl },
-  { path: '/app/settlements', label: 'nav.settlements', icon: SettlementsIconSvgUrl },
+  { path: '/app/events', label: 'nav.groups', icon: EventsIconUrl },
+  { path: '/app/expenses', label: 'nav.expenses', icon: ExpensesIconUrl },
+  { path: '/app/balances', label: 'nav.balances', icon: BalanceIconUrl },
+  { path: '/app/settlements', label: 'nav.settlements', icon: SettlementsIconUrl },
 ];
 
 function AppLayout() {
