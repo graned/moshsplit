@@ -18,6 +18,7 @@ import HomePage from './pages/app/HomePage';
 import EventsPage from './pages/app/EventsPage';
 import EventDetailPage from './pages/app/EventDetailPage';
 import ExpensesPage from './pages/app/ExpensesPage';
+import ExpenseReportPage from './pages/app/ExpenseReportPage';
 import BalancesPage from './pages/app/BalancesPage';
 import SettlementsPage from './pages/app/SettlementsPage';
 import SettingsProfilePage from './pages/app/settings/SettingsProfilePage';
@@ -60,6 +61,7 @@ function AppContent() {
           <Route path="events" element={<EventsPage />} />
           <Route path="events/:eventId" element={<EventDetailPage />} />
           <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="expenses/:eventId" element={<ExpenseReportPage />} />
 					<Route path="balances" element={<BalancesPage />} />
 					<Route path="settlements" element={<SettlementsPage />} />
 					<Route path="settings/profile" element={<SettingsProfilePage />} />

@@ -1,55 +1,33 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Typography,
-  Button,
   Card,
   CardContent,
   CircularProgress,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Chip,
+  alpha,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import {
-  Add as AddIcon,
   Receipt as ReceiptIcon,
+  TrendingUp as SpentIcon,
+  CurrencyExchange as TotalIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
-import { groupsApi, GroupMember } from '../../api/groups.api';
-import { expensesApi, ExpenseListItem, CreateExpenseRequest } from '../../api/expenses.api';
-import { ExpenseCard } from '../../components/expenses/ExpenseCard';
-import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
-import { ExpenseDetailDialog } from '../../components/expenses/ExpenseDetailDialog';
-
-// Helper to get member name
-function getMemberName(members: GroupMember[], userId: string): string {
-  const member = members.find((m) => m.user_id === userId);
-  return member?.user_name || member?.user_email || userId.slice(0, 8);
-}
+import { groupsApi } from '../../api/groups.api';
+import { balancesApi } from '../../api/balances.api';
 
 export default function ExpensesPage() {
-  const [searchParams] = useSearchParams();
-  const queryClient = useQueryClient();
-
-  const initialGroupId = searchParams.get('groupId') || '';
-
-  const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [members, setMembers] = useState<GroupMember[]>([]);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<ExpenseListItem | null>(null);
-
-  // Get current user ID from auth
+  const navigate = useNavigate();
   const userId = useAuthStore((state) => state.userId);
 
-  // Fetch groups for the selector
-  const { data: groupsData, isLoading: groupsLoading } = useQuery({
+  const { data: groupsData, isLoading: groupsLoading, error: groupsError } = useQuery({
     queryKey: ['groups', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -58,145 +36,64 @@ export default function ExpensesPage() {
     enabled: !!userId,
   });
 
-  // Fetch expenses for selected group
-  const { data: expensesData, isLoading: expensesLoading, error, refetch } = useQuery({
-    queryKey: ['expenses', selectedGroupId, userId],
-    queryFn: () => {
-      if (!userId) throw new Error('User not authenticated');
-      return expensesApi.list(selectedGroupId, userId);
-    },
-    enabled: !!selectedGroupId && !!userId,
-  });
-
-  // Fetch members when group changes
-  useEffect(() => {
-    if (selectedGroupId) {
-      groupsApi.listMembers(selectedGroupId).then(setMembers).catch(console.error);
-    } else {
-      setMembers([]);
-    }
-  }, [selectedGroupId]);
-
-  // Create expense mutation
-  const createMutation = useMutation({
-    mutationFn: (data: CreateExpenseRequest) => expensesApi.create(selectedGroupId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses', selectedGroupId] });
-      queryClient.invalidateQueries({ queryKey: ['balances', selectedGroupId] });
-    },
-  });
-
-  // Delete expense mutation
-  const deleteMutation = useMutation({
-    mutationFn: (expenseId: string) => expensesApi.delete(selectedGroupId, expenseId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses', selectedGroupId] });
-      queryClient.invalidateQueries({ queryKey: ['balances', selectedGroupId] });
-    },
-  });
-
-  const handleAddExpense = async (data: CreateExpenseRequest) => {
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    await createMutation.mutateAsync({ ...data, user_id: userId });
-  };
-
-  const handleExpenseClick = (expense: ExpenseListItem) => {
-    setSelectedExpense(expense);
-    setDetailDialogOpen(true);
-  };
-
-  const handleDeleteExpense = async (expenseId: string) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      await deleteMutation.mutateAsync(expenseId);
-    }
-  };
-
   const groups = groupsData?.data || [];
-  const expenses = expensesData?.data || [];
 
-  // Get current user ID for the paid by selector
-  const currentUserId = userId || '';
+  const { data: balancesData, isLoading: balancesLoading } = useQuery({
+    queryKey: ['expenses-page-balances', userId],
+    queryFn: async () => {
+      if (!userId) return {};
+      const results = await Promise.allSettled(
+        groups.map((g) => balancesApi.getUserBalance(g.id, userId))
+      );
+      const map: Record<string, { paid_cents: number; owes_cents: number; balance_cents: number }> = {};
+      groups.forEach((g, i) => {
+        const r = results[i];
+        if (r.status === 'fulfilled') {
+          map[g.id] = r.value;
+        }
+      });
+      return map;
+    },
+    enabled: !!userId && groups.length > 0,
+  });
+
+  const groupBalances = useMemo(() => balancesData || {}, [balancesData]);
+
+  const formatAmount = (cents: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(cents / 100);
+  };
+
+  const isLoading = groupsLoading || balancesLoading;
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" fontWeight={700}>
-            Expenses
+            My Expenses
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Track and manage group expenses
+            Track what you've spent across your events
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setAddDialogOpen(true)}
-          disabled={!selectedGroupId}
-        >
-          Add Expense
-        </Button>
       </Box>
 
-      {/* Group selector */}
-      <Box sx={{ mb: 3 }}>
-        <FormControl fullWidth sx={{ maxWidth: 400 }}>
-          <InputLabel>Select Group</InputLabel>
-          <Select
-            value={selectedGroupId}
-            label="Select Group"
-            onChange={(e) => setSelectedGroupId(e.target.value)}
-            disabled={groupsLoading}
-          >
-            <MenuItem value="">
-              <em>Select a group</em>
-            </MenuItem>
-            {groups.map((group) => (
-              <MenuItem key={group.id} value={group.id}>
-                {group.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* No group selected */}
-      {!selectedGroupId && !groupsLoading && (
-        <Card>
-          <CardContent sx={{ py: 8, textAlign: 'center' }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Select a group
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Choose a group from the dropdown above to view and add expenses.
-            </Typography>
-          </CardContent>
-        </Card>
+      {groupsError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to load events
+        </Alert>
       )}
 
-      {/* Loading state */}
-      {(groupsLoading || expensesLoading) && selectedGroupId && (
+      {isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
       )}
 
-      {/* Error state */}
-      {error && selectedGroupId && (
-        <Alert severity="error" sx={{ mb: 2 }} action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>
-            Retry
-          </Button>
-        }>
-          Failed to load expenses
-        </Alert>
-      )}
-
-      {/* Empty state - no expenses */}
-      {!expensesLoading && !error && selectedGroupId && expenses.length === 0 && (
+      {!isLoading && !groupsError && groups.length === 0 && (
         <Card>
           <CardContent sx={{ py: 8, textAlign: 'center' }}>
             <Box
@@ -204,7 +101,7 @@ export default function ExpensesPage() {
                 width: 80,
                 height: 80,
                 borderRadius: '50%',
-                backgroundColor: 'secondary.main',
+                backgroundColor: 'primary.main',
                 opacity: 0.1,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -212,63 +109,113 @@ export default function ExpensesPage() {
                 mb: 3,
               }}
             >
-              <ReceiptIcon sx={{ fontSize: 40, color: 'secondary.main' }} />
+              <ReceiptIcon sx={{ fontSize: 40, color: 'primary.main' }} />
             </Box>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               No expenses yet
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Add your first expense to start tracking shared costs.
+              Join an event to start tracking shared expenses.
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setAddDialogOpen(true)}
-            >
-              Add Expense
-            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Expenses list */}
-      {!expensesLoading && !error && selectedGroupId && expenses.length > 0 && (
+      {!isLoading && !groupsError && groups.length > 0 && (
         <Grid container spacing={2}>
-          {expenses.map((expense) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={expense.id}>
-              <ExpenseCard
-                expense={expense}
-                onClick={() => handleExpenseClick(expense)}
-                onDelete={() => handleDeleteExpense(expense.id)}
-                paidByName={getMemberName(members, expense.paid_by)}
-              />
-            </Grid>
-          ))}
+          {groups.map((group) => {
+            const bal = groupBalances[group.id];
+            const userPaid = bal?.paid_cents || 0;
+            const netBalance = bal?.balance_cents || 0;
+            const isSettled = netBalance === 0;
+
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={group.id}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      boxShadow: 4,
+                    },
+                  }}
+                  onClick={() => navigate(`/app/expenses/${group.id}`)}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.3 }}>
+                        {group.name}
+                      </Typography>
+                      <Chip
+                        label={group.status}
+                        size="small"
+                        color={group.status === 'active' ? 'success' : 'default'}
+                        variant="outlined"
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                      <GroupIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {group.member_count} {group.member_count === 1 ? 'participant' : 'participants'}
+                      </Typography>
+                    </Box>
+
+                    {bal ? (
+                      <Box
+                        sx={{
+                          mt: 2,
+                          p: 1.5,
+                          borderRadius: 2,
+                          bgcolor: alpha(netBalance > 0 ? '#10b981' : netBalance < 0 ? '#ef4444' : '#6b7280', 0.1),
+                          border: 1,
+                          borderColor: alpha(netBalance > 0 ? '#10b981' : netBalance < 0 ? '#ef4444' : '#6b7280', 0.2),
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <SpentIcon sx={{ fontSize: 14, color: netBalance > 0 ? 'success.main' : netBalance < 0 ? 'error.main' : 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            You paid
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" fontWeight={800} color={netBalance > 0 ? 'success.main' : netBalance < 0 ? 'error.main' : 'text.secondary'}>
+                          {formatAmount(userPaid)}
+                        </Typography>
+                        {!isSettled && (
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                            {netBalance > 0
+                              ? `Others owe you ${formatAmount(netBalance)}`
+                              : `You owe ${formatAmount(Math.abs(netBalance))}`}
+                          </Typography>
+                        )}
+                        {isSettled && (
+                          <Typography variant="caption" color="success.main" sx={{ mt: 0.5, display: 'block', fontWeight: 600 }}>
+                            All settled
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: alpha('#6b7280', 0.05) }}>
+                        <Typography variant="caption" color="text.secondary">
+                          No expense data yet
+                        </Typography>
+                      </Box>
+                    )}
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1.5 }}>
+                      <TotalIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {group.currency}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
         </Grid>
       )}
-
-      {/* Add Expense Dialog */}
-      {selectedGroupId && (
-        <AddExpenseDialog
-          open={addDialogOpen}
-          onClose={() => setAddDialogOpen(false)}
-          onSubmit={handleAddExpense}
-          members={members}
-          currentUserId={currentUserId}
-        />
-      )}
-
-      {/* Expense Detail Dialog */}
-      <ExpenseDetailDialog
-        open={detailDialogOpen}
-        onClose={() => {
-          setDetailDialogOpen(false);
-          setSelectedExpense(null);
-        }}
-        expense={selectedExpense}
-        eventId={selectedGroupId}
-        members={members}
-      />
     </Box>
   );
 }
