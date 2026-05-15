@@ -8,7 +8,6 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Stack,
   Tabs,
   Tab,
   alpha,
@@ -16,8 +15,6 @@ import {
 import Grid from '@mui/material/Grid2';
 import {
   Receipt as ReceiptIcon,
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
   AccountBalanceWallet as WalletIcon,
   TrendingUp as TrendingUpIcon,
   ListAlt as ListIcon,
@@ -26,15 +23,6 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupListItem } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
 
 const formatAmount = (cents: number, currency = 'EUR') => {
   return new Intl.NumberFormat('en-US', {
@@ -53,7 +41,6 @@ interface ExpenseCardData {
 
 function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => void }) {
   const { group, paidCents, balanceCents, expenseCount, currency } = data;
-  const isSettled = balanceCents === 0;
   const hasData = paidCents > 0 || expenseCount > 0;
 
   return (
@@ -93,37 +80,9 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
 
         <Box sx={{ display: 'flex', flex: 1, minWidth: 0, p: 1.5 }}>
           <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.3, mb: 0.5 }}>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.3 }}>
               {group.name}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mb: 0.5 }}>
-              <LocationIcon sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {group.description || 'No description'}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mb: 0.5 }}>
-              <CalendarIcon sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {formatDate(group.created_at)}
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 1,
-                py: 0.2,
-                borderRadius: 0.5,
-                bgcolor: isSettled ? alpha('#10b981', 0.15) : balanceCents > 0 ? alpha('#10b981', 0.15) : alpha('#ef4444', 0.15),
-                color: isSettled ? '#34d399' : balanceCents > 0 ? '#34d399' : '#f87171',
-                fontSize: '0.6rem',
-                fontWeight: 700,
-                letterSpacing: '0.05em',
-              }}
-            >
-              {isSettled ? 'SETTLED' : balanceCents > 0 ? 'THEY OWE YOU' : 'YOU OWE'}
-            </Box>
           </Box>
 
           <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
@@ -157,26 +116,9 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
         </Box>
 
         <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
-          <Typography variant="h4" fontWeight={700} sx={{ mb: 2 }}>
+          <Typography variant="h4" fontWeight={700} sx={{ mb: 3 }}>
             {group.name}
           </Typography>
-
-          <Stack spacing={1} sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <LocationIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body1" color="text.secondary">
-                {group.description || 'No description'}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <CalendarIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body1" color="text.secondary">
-                {formatDate(group.created_at)}
-              </Typography>
-            </Box>
-          </Stack>
-
-          <Box sx={{ height: 1, bgcolor: 'divider', mb: 3 }} />
 
           {/* Three stat columns */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -218,23 +160,6 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
                 Balance
               </Typography>
             </Box>
-          </Box>
-
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              px: 2.5,
-              py: 0.8,
-              borderRadius: 1,
-              bgcolor: isSettled ? alpha('#10b981', 0.15) : balanceCents > 0 ? alpha('#10b981', 0.15) : alpha('#ef4444', 0.15),
-              color: isSettled ? '#34d399' : balanceCents > 0 ? '#34d399' : '#f87171',
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-            }}
-          >
-            {isSettled ? 'SETTLED' : balanceCents > 0 ? 'THEY OWE YOU' : 'YOU OWE'}
           </Box>
         </CardContent>
       </Box>
