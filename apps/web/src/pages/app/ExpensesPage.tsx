@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -9,6 +9,8 @@ import {
   CircularProgress,
   Alert,
   Stack,
+  Tabs,
+  Tab,
   alpha,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
@@ -272,6 +274,11 @@ export default function ExpensesPage() {
 
   const groupBalances = useMemo(() => balancesData || {}, [balancesData]);
 
+  const [tab, setTab] = useState(0);
+  const current = useMemo(() => groups.filter((g) => g.status === 'active'), [groups]);
+  const past = useMemo(() => groups.filter((g) => g.status === 'archived' || g.status === 'deleted'), [groups]);
+  const visible = tab === 0 ? current : past;
+
   const isLoading = groupsLoading || balancesLoading;
 
   return (
@@ -328,17 +335,42 @@ export default function ExpensesPage() {
       )}
 
       {!isLoading && !groupsError && groups.length > 0 && (
-        <Grid container spacing={3}>
-          {groups.map((group) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={group.id}>
-              <ExpenseCard
-                group={group}
-                balance={groupBalances[group.id] || null}
-                onClick={() => navigate(`/app/expenses/${group.id}`)}
-              />
+        <>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab
+              label={`CURRENT (${current.length})`}
+              sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.85rem' }}
+            />
+            <Tab
+              label={`PAST (${past.length})`}
+              sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.85rem' }}
+            />
+          </Tabs>
+
+          {visible.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <Typography variant="body1" color="text.secondary">
+                {tab === 0 ? 'No current events' : 'No past events'}
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {visible.map((group) => (
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={group.id}>
+                  <ExpenseCard
+                    group={group}
+                    balance={groupBalances[group.id] || null}
+                    onClick={() => navigate(`/app/expenses/${group.id}`)}
+                  />
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
+          )}
+        </>
       )}
     </Box>
   );
