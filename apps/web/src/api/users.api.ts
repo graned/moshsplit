@@ -56,6 +56,44 @@ async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<R
 }
 
 const userCache = new Map<string, UserInfo>();
+let fetchPromise: Promise<void> | null = null;
+
+async function ensureAllUsersFetched(): Promise<void> {
+  if (fetchPromise) return fetchPromise;
+
+  fetchPromise = (async () => {
+    const pageSize = 100;
+    let page = 1;
+    let total = Infinity;
+
+    while ((page - 1) * pageSize < total) {
+      const response = await sentinelFetch(`/v1/api/admin/users?page=${page}&page_size=${pageSize}`);
+      const result = await response.json();
+      const items = result.data?.items || [];
+      total = result.data?.total ?? items.length;
+
+      items.forEach((user: any) => {
+        const id = user.user_id;
+        if (!userCache.has(id)) {
+          userCache.set(id, {
+            id,
+            firstName: user.first_name || '',
+            lastName: user.last_name || '',
+            email: user.email || '',
+          });
+        }
+      });
+
+      page++;
+    }
+  })();
+
+  try {
+    await fetchPromise;
+  } finally {
+    fetchPromise = null;
+  }
+}
 
 export const usersApi = {
   getProfile: async (): Promise<Profile> => {
@@ -67,45 +105,23 @@ export const usersApi = {
   },
 
   list: async (): Promise<UserListItem[]> => {
-    const response = await sentinelFetch('/v1/api/admin/users');
-    const result = await response.json();
-
-    const items = (result.data?.items || []).map((user: any) => ({
-      id: user.user_id,
-      email: user.email || '',
-      name: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Unknown',
-      avatarUrl: user.avatar_url,
+    await ensureAllUsersFetched();
+    return Array.from(userCache.values()).map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: `${u.firstName} ${u.lastName}`.trim() || u.email || 'Unknown',
     }));
-
-    return items;
   },
 
   get: async (userId: string): Promise<UserInfo> => {
-    if (userCache.has(userId)) {
-      return userCache.get(userId)!;
-    }
-
-    const response = await sentinelFetch(`/v1/api/admin/users/${userId}`);
-    const result = await response.json();
-    const user = result.data;
-
-    const info: UserInfo = {
-      id: user.user_id,
-      firstName: user.first_name || '',
-      lastName: user.last_name || '',
-      email: user.email || '',
-    };
-
-    userCache.set(userId, info);
-    return info;
+    await ensureAllUsersFetched();
+    const user = userCache.get(userId);
+    if (!user) throw new Error(`User ${userId} not found`);
+    return user;
   },
 
   getMany: async (userIds: string[]): Promise<Record<string, UserInfo>> => {
-    const uncached = userIds.filter((id) => !userCache.has(id));
-    if (uncached.length > 0) {
-      await Promise.allSettled(uncached.map((id) => usersApi.get(id)));
-    }
-
+    await ensureAllUsersFetched();
     const result: Record<string, UserInfo> = {};
     userIds.forEach((id) => {
       const cached = userCache.get(id);
@@ -116,5 +132,6 @@ export const usersApi = {
 
   clearCache: () => {
     userCache.clear();
+    fetchPromise = null;
   },
 };
