@@ -338,10 +338,20 @@ function AppLayout() {
         >
           <BottomNavigation
             value={location.pathname}
-            onChange={(_, path) => handleNavigation(path)}
+            onChange={(_, path) => {
+              if (path === 'profile') {
+                const btn = document.getElementById('mobile-profile-btn');
+                if (btn) {
+                  const rect = btn.getBoundingClientRect();
+                  setAnchorEl({ getBoundingClientRect: () => rect } as HTMLElement);
+                }
+              } else {
+                handleNavigation(path);
+              }
+            }}
             showLabels
           >
-            {navItems.map((item) => (
+            {[navItems[1], navItems[2]].map((item) => (
               <BottomNavigationAction
                 key={item.path}
                 value={item.path}
@@ -353,34 +363,69 @@ function AppLayout() {
                 }
               />
             ))}
+
+            {/* Middle: Events — icon only, bigger, elevated */}
+            <BottomNavigationAction
+              value={navItems[0].path}
+              icon={
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'primary.main',
+                    boxShadow: '0 2px 12px rgba(245, 158, 11, 0.4)',
+                    mt: -2,
+                  }}
+                >
+                  <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={navItems[0].icon} alt="" style={{ width: '100%', height: '100%', filter: 'brightness(0) invert(1)' }} />
+                  </Box>
+                </Box>
+              }
+              sx={{
+                '& .MuiBottomNavigationAction-label': { display: 'none' },
+                minWidth: 56,
+              }}
+            />
+
+            {[navItems[3]].map((item) => (
+              <BottomNavigationAction
+                key={item.path}
+                value={item.path}
+                label={t(item.label)}
+                icon={
+                  <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={item.icon} alt="" style={{ width: '100%', height: '100%' }} />
+                  </Box>
+                }
+              />
+            ))}
+
+            {/* Profile avatar */}
+            <BottomNavigationAction
+              id="mobile-profile-btn"
+              value="profile"
+              label="Profile"
+              icon={
+                <Avatar
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    bgcolor: 'primary.main',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
+                </Avatar>
+              }
+            />
           </BottomNavigation>
         </Paper>
-      )}
-
-      {/* Mobile: User avatar button (top-right) */}
-      {isMobile && (
-        <IconButton
-          onClick={handleMenuOpen}
-          size="small"
-          sx={{
-            position: 'fixed',
-            right: 8,
-            top: 8,
-            zIndex: theme.zIndex.appBar + 1,
-          }}
-        >
-          <Avatar
-            sx={{
-              width: 32,
-              height: 32,
-              bgcolor: 'primary.main',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-            }}
-          >
-            {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
-          </Avatar>
-        </IconButton>
       )}
 
       <Box
@@ -397,7 +442,7 @@ function AppLayout() {
         <Box
           sx={{
             flex: 1,
-            p: { xs: 2, sm: 3 },
+            p: { xs: 1.5, sm: 3 },
             pb: { xs: 10, sm: 3 },
             overflow: 'auto',
           }}
@@ -410,10 +455,14 @@ function AppLayout() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: 'right', vertical: isMobile ? 'bottom' : 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: isMobile ? 'top' : 'bottom' }}
         PaperProps={{
-          sx: { mt: 1, minWidth: 180 },
+          sx: {
+            mb: isMobile ? 1 : undefined,
+            mt: isMobile ? undefined : 1,
+            minWidth: 180,
+          },
         }}
       >
         <Box sx={{ px: 2, py: 1 }}>

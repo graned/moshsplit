@@ -16,6 +16,7 @@ export interface Group {
 export interface GroupListItem {
   id: string;
   name: string;
+  description?: string;
   currency: string;
   status: string;
   member_count: number;
