@@ -187,8 +187,8 @@ function AppLayout() {
                     },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 52, color: isSelected ? 'primary.main' : 'text.secondary' }}>
-                    <IconWrapper icon={item.icon} sx={{ width: 32, height: 32, color: isSelected ? 'primary.main' : 'text.secondary' }} />
+                  <ListItemIcon sx={{ minWidth: 68, color: isSelected ? 'primary.main' : 'text.secondary' }}>
+                    <IconWrapper icon={item.icon} sx={{ width: 48, height: 48, color: isSelected ? 'primary.main' : 'text.secondary' }} />
                   </ListItemIcon>
                   <ListItemText
                     primary={t(item.label)}
