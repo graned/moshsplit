@@ -361,6 +361,9 @@ export default function ExpenseReportPage() {
                                   </Box>
                                 </Tooltip>
                                 <Typography variant="caption" color="text.secondary">
+                                  Paid: {formatAmount(item.paid_cents, currency)}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
                                   Your share: {formatAmount(item.share_cents, currency)}
                                 </Typography>
                               </Box>
