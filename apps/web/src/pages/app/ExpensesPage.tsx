@@ -23,9 +23,9 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem, CreateExpenseRequest } from '../../api/expenses.api';
-import { ExpenseCard } from '../../features/expenses/components/ExpenseCard';
-import { AddExpenseDialog } from '../../features/expenses/components/AddExpenseDialog';
-import { ExpenseDetailDialog } from '../../features/expenses/components/ExpenseDetailDialog';
+import { ExpenseCard } from '../../components/expenses/ExpenseCard';
+import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
+import { ExpenseDetailDialog } from '../../components/expenses/ExpenseDetailDialog';
 
 // Helper to get member name
 function getMemberName(members: GroupMember[], userId: string): string {

@@ -31,9 +31,9 @@ import {
 
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupListItem, CreateGroupRequest, UpdateGroupRequest, Group, GroupMember } from '../../api/groups.api';
-import { CreateGroupDialog } from '../../features/groups/components/CreateGroupDialog';
-import { JoinGroupDialog } from '../../features/groups/components/JoinGroupDialog';
-import { EditEventDialog } from '../../features/groups/components/EditEventDialog';
+import { CreateGroupDialog } from '../../components/groups/CreateGroupDialog';
+import { JoinGroupDialog } from '../../components/groups/JoinGroupDialog';
+import { EditEventDialog } from '../../components/groups/EditEventDialog';
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {

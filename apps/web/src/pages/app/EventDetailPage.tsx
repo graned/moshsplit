@@ -21,7 +21,7 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem } from '../../api/expenses.api';
-import { ExpensesTable } from '../../features/groups/components/ExpensesTable';
+import { ExpensesTable } from '../../components/groups/ExpensesTable';
 import { mockEvent, mockExpenses, mockMembers, mockUserId } from '../../api/mock-data';
 
 function PageNav({ page, totalPages, setPage }: { page: number; totalPages: number; setPage: (fn: (p: number) => number) => void }) {

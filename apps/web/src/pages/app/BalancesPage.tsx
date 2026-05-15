@@ -24,7 +24,7 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi, DebtTransfer } from '../../api/balances.api';
-import { BalanceCard } from '../../features/balances/components/BalanceCard';
+import { BalanceCard } from '../../components/balances/BalanceCard';
 
 // Helper to get member name
 function getMemberName(members: GroupMember[], userId: string): string {
