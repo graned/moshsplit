@@ -20,9 +20,9 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  MenuOpen as MenuOpenIcon,
   ArrowBack as ArrowBackIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -312,6 +312,67 @@ function AppLayout() {
         </Drawer>
       )}
 
+      {/* Desktop toggle arrow — positioned on the edge of the drawer */}
+      {isDesktop && (
+        <IconButton
+          onClick={handleDesktopDrawerToggle}
+          size="small"
+          sx={{
+            position: 'fixed',
+            left: desktopOpen ? DRAWER_WIDTH - 16 : 4,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: theme.zIndex.drawer + 1,
+            width: 32,
+            height: 32,
+            backgroundColor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
+            transition: theme.transitions.create('left', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+          aria-label={desktopOpen ? 'close sidebar' : 'open sidebar'}
+        >
+          {desktopOpen ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+        </IconButton>
+      )}
+
+      {/* Mobile toggle button — floating */}
+      {isMobile && (
+        <IconButton
+          onClick={handleMobileDrawerToggle}
+          size="small"
+          sx={{
+            position: 'fixed',
+            left: 8,
+            top: 8,
+            zIndex: theme.zIndex.drawer + 1,
+            width: 36,
+            height: 36,
+            backgroundColor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+          aria-label="open menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <rect y="3" width="20" height="2" rx="1" />
+            <rect y="9" width="20" height="2" rx="1" />
+            <rect y="15" width="20" height="2" rx="1" />
+          </svg>
+        </IconButton>
+      )}
+
       <Box
         component="main"
         sx={{
@@ -323,8 +384,6 @@ function AppLayout() {
             xs: '100%',
             md: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%',
           },
-          // Keep drawer attached to left edge - no negative margin
-          // When collapsed, drawer width becomes 0 but stays in place
           ml: {
             xs: 0,
             md: 0,
@@ -335,69 +394,6 @@ function AppLayout() {
           }),
         }}
       >
-        <AppBar
-          position="sticky"
-          elevation={0}
-          sx={{
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Toolbar>
-            {/* Mobile menu button */}
-            {isMobile && (
-              <IconButton
-                color="inherit"
-                edge="start"
-                onClick={handleMobileDrawerToggle}
-                sx={{ mr: 2 }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
-
-            {/* Desktop toggle button (only show when drawer is open) */}
-            {isDesktop && desktopOpen && (
-              <IconButton
-                color="inherit"
-                edge="start"
-                onClick={handleDesktopDrawerToggle}
-                sx={{ mr: 2 }}
-                aria-label="close sidebar"
-              >
-                <MenuOpenIcon />
-              </IconButton>
-            )}
-
-            {/* Desktop: Show toggle to open sidebar when closed */}
-            {isDesktop && !desktopOpen && (
-              <IconButton
-                color="inherit"
-                edge="start"
-                onClick={handleDesktopDrawerToggle}
-                sx={{ mr: 2 }}
-                aria-label="open sidebar"
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
-
-            <Box sx={{ flexGrow: 1 }} />
-
-            <IconButton onClick={handleMenuOpen} size="small">
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: 'primary.main',
-                  fontSize: '0.875rem',
-                }}
-              >
-                {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
-              </Avatar>
-            </IconButton>
-          </Toolbar>
-        </AppBar>
 
         <Box
           sx={{
