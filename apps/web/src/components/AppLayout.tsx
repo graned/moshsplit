@@ -155,7 +155,15 @@ function AppLayout() {
       <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Logo header */}
         <Box sx={{ p: collapsed ? 1 : 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={LogoSvgUrl} alt="logo" style={{ width: collapsed ? 40 : 140, height: collapsed ? 40 : 140 }} />
+          <img
+            src={LogoSvgUrl}
+            alt="logo"
+            style={{
+              width: collapsed ? 40 : 140,
+              height: collapsed ? 40 : 140,
+              transition: 'width 0.3s ease, height 0.3s ease',
+            }}
+          />
         </Box>
 
         <Divider sx={{ opacity: 0.1, mx: collapsed ? 1 : 2 }} />
@@ -186,16 +194,22 @@ function AppLayout() {
                   <ListItemIcon sx={{ minWidth: collapsed ? 0 : 68, color: isSelected ? 'primary.main' : 'text.secondary' }}>
                     <IconWrapper icon={item.icon} sx={{ width: collapsed ? 28 : 48, height: collapsed ? 28 : 48, color: isSelected ? 'primary.main' : 'text.secondary' }} />
                   </ListItemIcon>
-                  {!collapsed && (
-                    <ListItemText
-                      primary={t(item.label)}
-                      primaryTypographyProps={{
-                        fontSize: '1.1rem',
-                        fontWeight: isSelected ? 600 : 400,
-                        color: isSelected ? 'text.primary' : 'text.secondary',
-                      }}
-                    />
-                  )}
+                  <ListItemText
+                    primary={t(item.label)}
+                    primaryTypographyProps={{
+                      fontSize: '1.1rem',
+                      fontWeight: isSelected ? 600 : 400,
+                      color: isSelected ? 'text.primary' : 'text.secondary',
+                    }}
+                    sx={{
+                      opacity: collapsed ? 0 : 1,
+                      width: collapsed ? 0 : 'auto',
+                      margin: collapsed ? 0 : undefined,
+                      transition: 'opacity 0.25s ease, width 0.25s ease, margin 0.25s ease',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
             );
@@ -211,12 +225,12 @@ function AppLayout() {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              gap: collapsed ? 0 : 1.5,
-              cursor: 'pointer',
-              p: collapsed ? 0.5 : 1,
-              borderRadius: 2,
-              transition: 'background-color 0.2s',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            gap: collapsed ? 0 : 1.5,
+            cursor: 'pointer',
+            p: collapsed ? 0.5 : 1,
+            borderRadius: 2,
+            transition: 'background-color 0.2s, gap 0.3s ease, padding 0.3s ease',
               '&:hover': {
                 bgcolor: 'rgba(255, 255, 255, 0.05)',
               },
@@ -230,38 +244,48 @@ function AppLayout() {
                 bgcolor: 'primary.main',
                 fontSize: collapsed ? '0.75rem' : '1rem',
                 fontWeight: 600,
+                transition: 'width 0.3s ease, height 0.3s ease, font-size 0.3s ease',
               }}
             >
               {firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
             </Avatar>
-            {!collapsed && (
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
-                    color: 'text.primary',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User'}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: 'text.secondary',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: 'block',
-                  }}
-                >
-                  {userEmail}
-                </Typography>
-              </Box>
-            )}
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                opacity: collapsed ? 0 : 1,
+                width: collapsed ? 0 : 'auto',
+                marginLeft: collapsed ? 0 : undefined,
+                transition: 'opacity 0.25s ease, width 0.25s ease, margin-left 0.25s ease',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User'}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'block',
+                }}
+              >
+                {userEmail}
+              </Typography>
+            </Box>
           </Box>
         </Box>
       </Box>
@@ -301,12 +325,16 @@ function AppLayout() {
             display: { xs: 'none', md: 'block' },
             width: desktopOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED,
             flexShrink: 0,
+            transition: theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
             '& .MuiDrawer-paper': {
               width: desktopOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED,
               boxSizing: 'border-box',
               overflowX: 'hidden',
               backgroundColor: 'transparent',
-              borderRight: desktopOpen ? 'none' : 'none',
+              borderRight: 'none',
               transition: theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
@@ -387,10 +415,6 @@ function AppLayout() {
           flexDirection: 'column',
           minHeight: '100vh',
           minWidth: 0,
-          transition: theme.transitions.create('margin-left', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
         }}
       >
 
