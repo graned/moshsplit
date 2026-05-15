@@ -17,8 +17,10 @@ import Grid from '@mui/material/Grid2';
 import {
   Receipt as ReceiptIcon,
   CalendarToday as CalendarIcon,
-  Euro as EuroIcon,
   LocationOn as LocationIcon,
+  AccountBalanceWallet as WalletIcon,
+  TrendingUp as TrendingUpIcon,
+  ListAlt as ListIcon,
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -41,47 +43,18 @@ const formatAmount = (cents: number, currency = 'EUR') => {
   }).format(cents / 100);
 };
 
-interface ExpenseCardProps {
+interface ExpenseCardData {
   group: GroupListItem;
-  balance: { paid_cents: number; owes_cents: number; balance_cents: number } | null;
-  onClick: () => void;
+  paidCents: number;
+  balanceCents: number;
+  expenseCount: number;
+  currency: string;
 }
 
-function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
-  const userPaid = balance?.paid_cents || 0;
-  const userOwes = balance?.owes_cents || 0;
-  const netBalance = balance?.balance_cents || 0;
-  const isSettled = netBalance === 0;
-  const hasData = balance !== null;
-
-  const summary = (
-    <>
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <EuroIcon sx={{ fontSize: 22, color: 'primary.main' }} />
-          <Typography variant="h3" fontWeight={700} color="primary.main">
-            {hasData ? formatAmount(userPaid, group.currency) : '—'}
-          </Typography>
-        </Box>
-        <Typography variant="body1" color="text.secondary">
-          You Paid
-        </Typography>
-      </Box>
-      <Box sx={{ textAlign: 'right' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, justifyContent: 'flex-end' }}>
-          <Typography variant="h6" fontWeight={600}>
-            {hasData ? formatAmount(userOwes, group.currency) : '—'}
-          </Typography>
-        </Box>
-        <Typography variant="body1" color="text.secondary">
-          Your Share
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {group.member_count} {group.member_count === 1 ? 'participant' : 'participants'}
-        </Typography>
-      </Box>
-    </>
-  );
+function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => void }) {
+  const { group, paidCents, balanceCents, expenseCount, currency } = data;
+  const isSettled = balanceCents === 0;
+  const hasData = paidCents > 0 || expenseCount > 0;
 
   return (
     <Card
@@ -99,7 +72,6 @@ function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
     >
       {/* ===== MOBILE: horizontal layout ===== */}
       <Box sx={{ display: { xs: 'flex', md: 'none' }, minHeight: 110 }}>
-        {/* Left: hero with gradient */}
         <Box
           sx={{
             width: 100,
@@ -119,9 +91,7 @@ function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
           <ReceiptIcon sx={{ fontSize: 40, color: alpha('#fff', 0.3), zIndex: 0 }} />
         </Box>
 
-        {/* Right: details + summary */}
         <Box sx={{ display: 'flex', flex: 1, minWidth: 0, p: 1.5 }}>
-          {/* Details */}
           <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
             <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.3, mb: 0.5 }}>
               {group.name}
@@ -145,21 +115,20 @@ function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
                 px: 1,
                 py: 0.2,
                 borderRadius: 0.5,
-                bgcolor: isSettled ? alpha('#10b981', 0.15) : netBalance > 0 ? alpha('#10b981', 0.15) : alpha('#ef4444', 0.15),
-                color: isSettled ? '#34d399' : netBalance > 0 ? '#34d399' : '#f87171',
+                bgcolor: isSettled ? alpha('#10b981', 0.15) : balanceCents > 0 ? alpha('#10b981', 0.15) : alpha('#ef4444', 0.15),
+                color: isSettled ? '#34d399' : balanceCents > 0 ? '#34d399' : '#f87171',
                 fontSize: '0.6rem',
                 fontWeight: 700,
                 letterSpacing: '0.05em',
               }}
             >
-              {isSettled ? 'SETTLED' : netBalance > 0 ? 'THEY OWE YOU' : 'YOU OWE'}
+              {isSettled ? 'SETTLED' : balanceCents > 0 ? 'THEY OWE YOU' : 'YOU OWE'}
             </Box>
           </Box>
 
-          {/* Paid amount */}
           <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
             <Typography variant="body1" fontWeight={700} color="primary.main" sx={{ lineHeight: 1.2 }}>
-              {hasData ? formatAmount(userPaid, group.currency) : '—'}
+              {hasData ? formatAmount(paidCents, currency) : '—'}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block', whiteSpace: 'nowrap' }}>
               You Paid
@@ -170,7 +139,6 @@ function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
 
       {/* ===== DESKTOP: vertical layout ===== */}
       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-        {/* Hero */}
         <Box
           sx={{
             height: 200,
@@ -210,8 +178,46 @@ function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
 
           <Box sx={{ height: 1, bgcolor: 'divider', mb: 3 }} />
 
+          {/* Three stat columns */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            {summary}
+            {/* You Paid */}
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+                <WalletIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ lineHeight: 1 }}>
+                  {hasData ? formatAmount(paidCents, currency) : '—'}
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                You Paid
+              </Typography>
+            </Box>
+
+            {/* My Expenses */}
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+                <ListIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                <Typography variant="h4" fontWeight={800} sx={{ lineHeight: 1 }}>
+                  {hasData ? expenseCount : '—'}
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                My Expenses
+              </Typography>
+            </Box>
+
+            {/* Balance */}
+            <Box sx={{ textAlign: 'center', flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+                <TrendingUpIcon sx={{ fontSize: 18, color: balanceCents >= 0 ? 'success.main' : 'error.main' }} />
+                <Typography variant="h4" fontWeight={800} color={balanceCents >= 0 ? 'success.main' : 'error.main'} sx={{ lineHeight: 1 }}>
+                  {hasData ? formatAmount(balanceCents, currency) : '—'}
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                Balance
+              </Typography>
+            </Box>
           </Box>
 
           <Box
@@ -221,14 +227,14 @@ function ExpenseCard({ group, balance, onClick }: ExpenseCardProps) {
               px: 2.5,
               py: 0.8,
               borderRadius: 1,
-              bgcolor: isSettled ? alpha('#10b981', 0.15) : netBalance > 0 ? alpha('#10b981', 0.15) : alpha('#ef4444', 0.15),
-              color: isSettled ? '#34d399' : netBalance > 0 ? '#34d399' : '#f87171',
+              bgcolor: isSettled ? alpha('#10b981', 0.15) : balanceCents > 0 ? alpha('#10b981', 0.15) : alpha('#ef4444', 0.15),
+              color: isSettled ? '#34d399' : balanceCents > 0 ? '#34d399' : '#f87171',
               fontSize: '0.9rem',
               fontWeight: 700,
               letterSpacing: '0.05em',
             }}
           >
-            {isSettled ? 'SETTLED' : netBalance > 0 ? 'THEY OWE YOU' : 'YOU OWE'}
+            {isSettled ? 'SETTLED' : balanceCents > 0 ? 'THEY OWE YOU' : 'YOU OWE'}
           </Box>
         </CardContent>
       </Box>
@@ -251,18 +257,25 @@ export default function ExpensesPage() {
 
   const groups = groupsData?.data || [];
 
-  const { data: balancesData, isLoading: balancesLoading } = useQuery({
-    queryKey: ['expenses-page-balances', userId],
+  const { data: explainData, isLoading: explainLoading } = useQuery({
+    queryKey: ['expenses-page-explain', userId],
     queryFn: async () => {
       if (!userId) return {};
       const results = await Promise.allSettled(
-        groups.map((g) => balancesApi.getUserBalance(g.id, userId))
+        groups.map((g) => balancesApi.explainUserBalance(g.id, userId))
       );
-      const map: Record<string, { paid_cents: number; owes_cents: number; balance_cents: number } | null> = {};
+      const map: Record<string, ExpenseCardData | null> = {};
       groups.forEach((g, i) => {
         const r = results[i];
         if (r.status === 'fulfilled') {
-          map[g.id] = r.value;
+          const myExpenses = r.value.expenses.filter((e) => e.paid_by === userId);
+          map[g.id] = {
+            group: g,
+            paidCents: r.value.paid_cents,
+            balanceCents: r.value.balance_cents,
+            expenseCount: myExpenses.length,
+            currency: g.currency,
+          };
         } else {
           map[g.id] = null;
         }
@@ -272,14 +285,14 @@ export default function ExpensesPage() {
     enabled: !!userId && groups.length > 0,
   });
 
-  const groupBalances = useMemo(() => balancesData || {}, [balancesData]);
+  const cardDataMap = useMemo(() => explainData || {}, [explainData]);
 
   const [tab, setTab] = useState(0);
   const current = useMemo(() => groups.filter((g) => g.status === 'active'), [groups]);
   const past = useMemo(() => groups.filter((g) => g.status === 'archived' || g.status === 'deleted'), [groups]);
   const visible = tab === 0 ? current : past;
 
-  const isLoading = groupsLoading || balancesLoading;
+  const isLoading = groupsLoading || explainLoading;
 
   return (
     <Box>
@@ -359,15 +372,24 @@ export default function ExpensesPage() {
             </Box>
           ) : (
             <Grid container spacing={3}>
-              {visible.map((group) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={group.id}>
-                  <ExpenseCard
-                    group={group}
-                    balance={groupBalances[group.id] || null}
-                    onClick={() => navigate(`/app/expenses/${group.id}`)}
-                  />
-                </Grid>
-              ))}
+              {visible.map((group) => {
+                const cardData = cardDataMap[group.id];
+                const data: ExpenseCardData = cardData || {
+                  group,
+                  paidCents: 0,
+                  balanceCents: 0,
+                  expenseCount: 0,
+                  currency: group.currency,
+                };
+                return (
+                  <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={group.id}>
+                    <ExpenseCard
+                      data={data}
+                      onClick={() => navigate(`/app/expenses/${group.id}`)}
+                    />
+                  </Grid>
+                );
+              })}
             </Grid>
           )}
         </>
