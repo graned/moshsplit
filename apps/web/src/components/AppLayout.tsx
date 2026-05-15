@@ -293,11 +293,10 @@ function AppLayout() {
         </Drawer>
       )}
 
-      {/* Desktop: Persistent drawer (collapsible) */}
+      {/* Desktop: Permanent drawer (collapsible via width) */}
       {isDesktop && (
         <Drawer
-          variant="persistent"
-          open={desktopOpen}
+          variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
             width: desktopOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED,
@@ -387,15 +386,8 @@ function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
-          width: {
-            xs: '100%',
-            md: desktopOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : `calc(100% - ${DRAWER_COLLAPSED}px)`,
-          },
-          ml: {
-            xs: 0,
-            md: 0,
-          },
-          transition: theme.transitions.create('width', {
+          minWidth: 0,
+          transition: theme.transitions.create('margin-left', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
