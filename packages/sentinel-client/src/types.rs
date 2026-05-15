@@ -111,8 +111,10 @@ pub struct TokenExchangeRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TokenExchangeResponse {
-    #[serde(rename = "session")]
-    pub session: Session,
+    pub user_id: String,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub expires_at: String,
 }
 
 /// Login response - either a session or MFA challenge
@@ -141,13 +143,9 @@ pub struct MfaChallengeResponse {
 /// Session object
 #[derive(Debug, Clone, Deserialize)]
 pub struct Session {
-    #[serde(rename = "userId")]
     pub user_id: String,
-    #[serde(rename = "accessToken")]
     pub access_token: String,
-    #[serde(rename = "refreshToken")]
     pub refresh_token: String,
-    #[serde(rename = "expiresAt")]
     pub expires_at: String,
 }
 

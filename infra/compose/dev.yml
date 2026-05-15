@@ -74,7 +74,7 @@ services:
 
   # ── Sentinel (auth service) ─────────────────────────────────────────────────
   sentinel:
-    image: ghcr.io/graned/sentinel-core:v1.1.0
+    image: ghcr.io/graned/sentinel-core:v1.2.0
     container_name: moshsplit-sentinel
     ports:
       - "9000:8000"
@@ -106,7 +106,7 @@ services:
   # The pre-built image expects sentinel-core at http://localhost:9000.
   # For custom URLs, build your own image with --build-arg VITE_API_URL=<your-url>
   sentinel-ui:
-    image: ghcr.io/graned/sentinel-ui:v1.1.0
+    image: ghcr.io/graned/sentinel-ui:v1.2.0
     container_name: moshsplit-sentinel-ui
     ports:
       - "3000:80"

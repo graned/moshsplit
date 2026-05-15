@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import type { LoginCredentials } from '../pages/auth/types';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '@moshsplit/auth-react';
+import { AuthClient } from '@moshsplit/sentinel-sdk';
 
 interface LoginCardProps {
 	onSubmit: (credentials: LoginCredentials) => Promise<void>;
@@ -29,24 +30,49 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
 			const apiToken = import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
 			const testEmail = import.meta.env.VITE_TEST_USER_EMAIL || 'admin@example.com';
 
-			const response = await authApi.externalLogin({
-				apiToken,
+			console.log('[ExternalLogin] Sending request with api_token length:', apiToken.length);
+
+			const exchangeResult = await authApi.externalLogin({
+				api_token: apiToken,
 				email: testEmail,
 			});
 
+			console.log('[ExternalLogin] exchangeResult keys:', Object.keys(exchangeResult));
+			console.log('[ExternalLogin] access_token present:', typeof exchangeResult.access_token);
+			console.log('[ExternalLogin] access_token value (first 30 chars):', exchangeResult.access_token?.substring(0, 30));
+
 			// Store the session
 			setSession(
-				response.userId,
-				response.accessToken,
-				response.refreshToken,
-				response.emailVerified,
+				exchangeResult.user_id,
+				exchangeResult.access_token,
+				exchangeResult.refresh_token,
+				exchangeResult.email_verified,
 				false
 			);
+
+			// Fetch user profile to get name and email
+			try {
+				const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+				const authClient = new AuthClient(sentinelUrl);
+				const token = exchangeResult.access_token;
+				console.log('[ExternalLogin] Calling getMe with token (first 30):', token?.substring(0, 30));
+				const profile = await authClient.user.getMe(token);
+				console.log('[ExternalLogin] Profile fetched:', JSON.stringify(profile, null, 2));
+				const { setUserProfile } = useAuthStore.getState();
+				const firstName = (profile as any).first_name || (profile as any).firstName || '';
+				const lastName = (profile as any).last_name || (profile as any).lastName || '';
+				const email = (profile as any).email || '';
+				setUserProfile(email, firstName, lastName);
+			} catch (profileErr) {
+				console.error('[ExternalLogin] Failed to fetch user profile:', profileErr);
+				console.error('[ExternalLogin] Token used:', exchangeResult.access_token?.substring(0, 30));
+			}
 
 			// Redirect to app
 			window.location.href = '/app/home';
 		} catch (err) {
 			setExternalError(err instanceof Error ? err.message : 'External login failed');
+			console.error('[ExternalLogin] Top-level error:', err);
 		} finally {
 			setExternalLoading(false);
 		}

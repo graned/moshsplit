@@ -53,16 +53,16 @@ export interface InvitationAcceptResponse {
 }
 
 export interface ExternalLoginRequest {
-  apiToken: string;
+  api_token: string;
   email: string;
 }
 
 export interface ExternalLoginResponse {
-  userId: string;
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-  emailVerified: boolean;
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  expires_at: string;
+  email_verified: boolean;
 }
 
 export const authApi = {
@@ -120,7 +120,13 @@ export const authApi = {
       success: boolean;
       data: ExternalLoginResponse | null;
       error: { code: string; message: string } | null;
+      timestamp: string;
+      request_id: string;
     }>(API_ENDPOINTS.auth.externalLogin, data);
+
+    console.log('[authApi.externalLogin] Raw response keys:', Object.keys(response));
+    console.log('[authApi.externalLogin] response.data keys:', response.data ? Object.keys(response.data) : null);
+    console.log('[authApi.externalLogin] response.data.access_token:', typeof response.data?.access_token);
 
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'External login failed');
