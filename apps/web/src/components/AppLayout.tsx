@@ -23,7 +23,6 @@ import {
   Menu as MenuIcon,
   MenuOpen as MenuOpenIcon,
   ArrowBack as ArrowBackIcon,
-  Group as UsersIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -37,7 +36,7 @@ import BgTextureUrl from '../../assets/bg-texture-1.svg';
 const DRAWER_WIDTH = 280;
 
 const navItems = [
-  { path: '/app/events', label: 'nav.groups', icon: EventsIconUrl },
+  { path: '/app/events', label: 'nav.events', icon: EventsIconUrl },
   { path: '/app/expenses', label: 'nav.expenses', icon: ExpensesIconUrl },
   { path: '/app/balances', label: 'nav.balances', icon: BalanceIconUrl },
   { path: '/app/settlements', label: 'nav.settlements', icon: SettlementsIconUrl },
@@ -50,12 +49,7 @@ function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { firstName, lastName, userEmail, isAdmin, clearTokens } = useAuthStore();
-
-  // Admin navigation items (only shown for admins)
-  const adminItems = isAdmin
-    ? [{ path: '/app/admin/users', label: 'nav.users', icon: <UsersIcon /> }]
-    : [];
+  const { firstName, lastName, userEmail, clearTokens } = useAuthStore();
 
   // Mobile: drawer is temporary (overlay)
   // Desktop: drawer is persistent (can be toggled)
@@ -203,45 +197,6 @@ function AppLayout() {
             );
           })}
         </List>
-
-        {/* Admin section - only shown for admins */}
-        {adminItems.length > 0 && (
-          <>
-            <Divider sx={{ opacity: 0.1, mx: 2 }} />
-            <List sx={{ py: 1, px: 1 }}>
-              {adminItems.map((item) => {
-                const isSelected = location.pathname === item.path;
-                return (
-                  <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
-                    <ListItemButton
-                      selected={isSelected}
-                      onClick={() => handleNavigation(item.path)}
-                      sx={{
-                        mx: 1,
-                        borderRadius: 2,
-                        py: 1,
-                        backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        },
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 44, color: isSelected ? 'primary.main' : 'text.secondary' }}>
-                        <UsersIcon />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={t(item.label)}
-                        primaryTypographyProps={{
-                          fontWeight: isSelected ? 600 : 400,
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-            </List>
-          </>
-        )}
 
         {/* Spacer to push user to bottom */}
         <Box sx={{ flex: 1 }} />
