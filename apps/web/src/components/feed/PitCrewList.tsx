@@ -135,7 +135,7 @@ export function PitCrewList({ members, isLoading, onManageClick, onMessageClick 
                     color: 'text.secondary',
                   }}
                 >
-                  {member.role}
+                  {member.email}
                 </Typography>
               </Box>
             </Box>

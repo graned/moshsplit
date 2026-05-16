@@ -3,6 +3,7 @@ import Grid from '@mui/material/Grid2';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@moshsplit/auth-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { EventBanner } from '../../components/feed/EventBanner';
 import { FeedSectionHeader } from '../../components/feed/FeedSectionHeader';
@@ -10,8 +11,9 @@ import { FeedList } from '../../components/feed/FeedList';
 import { MyStandingCard } from '../../components/feed/MyStandingCard';
 import { FestivalMetricsCard } from '../../components/feed/FestivalMetricsCard';
 import { PitCrewList } from '../../components/feed/PitCrewList';
-import { groupsApi } from '../../api/groups.api';
+import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
+import { usersApi, UserInfo } from '../../api/users.api';
 
 export default function FeedPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -48,17 +50,45 @@ export default function FeedPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Build userMap from members for FeedList
+  // Enrich members with sentinel user info
+  const [sentinelUsers, setSentinelUsers] = useState<Record<string, UserInfo>>({});
+
+  useEffect(() => {
+    const userIds = members.map((m) => m.user_id);
+    if (userIds.length === 0) return;
+
+    usersApi.getMany(userIds).then((users) => {
+      setSentinelUsers(users);
+    });
+  }, [members]);
+
+  const enrichedMembers = useMemo(() => {
+    return members.map((m: GroupMember) => {
+      const sentinel = sentinelUsers[m.user_id];
+      return {
+        ...m,
+        user_name: m.user_name || (sentinel ? `${sentinel.firstName} ${sentinel.lastName}`.trim() : undefined),
+        user_email: m.user_email || sentinel?.email,
+      };
+    });
+  }, [members, sentinelUsers]);
+
+  // Build userMap from enriched members for FeedList
   const userMap: Record<string, { id: string; firstName: string; lastName: string; email: string }> = {};
-  members.forEach((m) => {
-    const name = m.user_name || m.user_email || '';
-    const parts = name.split(' ');
-    userMap[m.user_id] = {
-      id: m.user_id,
-      firstName: parts[0] || '',
-      lastName: parts.slice(1).join(' '),
-      email: m.user_email || '',
-    };
+  enrichedMembers.forEach((m) => {
+    const sentinel = sentinelUsers[m.user_id];
+    if (sentinel) {
+      userMap[m.user_id] = sentinel;
+    } else {
+      const name = m.user_name || m.user_email || '';
+      const parts = name.split(' ');
+      userMap[m.user_id] = {
+        id: m.user_id,
+        firstName: parts[0] || '',
+        lastName: parts.slice(1).join(' '),
+        email: m.user_email || '',
+      };
+    }
   });
 
   // Compute Avg/Day (approximate from first expense date if available)
@@ -124,7 +154,7 @@ export default function FeedPage() {
                 avgPerDay={avgPerDay}
               />
 
-              <PitCrewList members={members} currentUserId={userId || ''} isLoading={membersLoading} />
+              <PitCrewList members={enrichedMembers} currentUserId={userId || ''} isLoading={membersLoading} />
             </Box>
           </Grid>
         </Grid>

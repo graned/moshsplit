@@ -47,7 +47,7 @@ export function ExpenseFeedCard({
   const theme = useTheme();
   const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
 
-  const payerName = paidBy ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email : activity.paid_by;
+  const payerName = paidBy?.email || activity.paid_by;
 
   const isPayerCurrentUser = activity.paid_by === currentUserId;
   const payerInitial = payerName.charAt(0).toUpperCase();

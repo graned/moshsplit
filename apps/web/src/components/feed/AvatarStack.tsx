@@ -23,9 +23,9 @@ export function AvatarStack({ users, currentUserId, maxVisible = 5, size = 24 }:
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       {visible.map((u, i) => {
         const isMe = u.id === currentUserId;
-        const initial = (u.firstName || u.email || '?').charAt(0).toUpperCase();
+        const initial = (u.email || u.firstName || '?').charAt(0).toUpperCase();
         return (
-          <Tooltip key={u.id} title={`${u.firstName} ${u.lastName}`.trim() || u.email}>
+          <Tooltip key={u.id} title={u.email || `${u.firstName} ${u.lastName}`.trim()}>
             <Avatar
               sx={{
                 width: size,

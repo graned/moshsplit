@@ -29,11 +29,9 @@ export function SettlementFeedCard({
   onClick,
 }: SettlementFeedCardProps) {
   const theme = useTheme();
-  const fromName = fromUser
-    ? `${fromUser.firstName} ${fromUser.lastName}`.trim() || fromUser.email
-    : activity.from_user;
+  const fromName = fromUser?.email || activity.from_user;
 
-  const toName = toUser ? `${toUser.firstName} ${toUser.lastName}`.trim() || toUser.email : activity.to_user;
+  const toName = toUser?.email || activity.to_user;
 
   const isFromCurrentUser = activity.from_user === currentUserId;
   const isToCurrentUser = activity.to_user === currentUserId;

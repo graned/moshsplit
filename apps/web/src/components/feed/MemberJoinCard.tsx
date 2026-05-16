@@ -15,9 +15,7 @@ export function MemberJoinCard({ activity, joinedUser, currentUserId, onClick }:
   const accent = '#6366f1';
   const isTargetCurrentUser = activity.user_id === currentUserId;
 
-  const userName = joinedUser
-    ? `${joinedUser.firstName} ${joinedUser.lastName}`.trim() || joinedUser.email
-    : null;
+  const userName = joinedUser?.email || null;
 
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
