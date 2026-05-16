@@ -85,33 +85,49 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
           flexShrink: 0,
           display: 'flex',
           justifyContent: collapsed ? 'center' : 'flex-start',
+          alignItems: 'center',
+          minHeight: 60,
+          transition: theme.transitions.create(['padding', 'min-height'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.standard,
+          }),
         }}
       >
-        {collapsed ? (
-          <Tooltip title="MoshSplit" placement="right">
-            <Box
-              component="img"
-              src="/assets/logo.svg"
-              alt="MoshSplit"
-              sx={{
-                height: 32,
-                width: 32,
-                filter: `drop-shadow(0 0 8px ${alpha(theme.palette.primary.main, 0.3)})`,
-              }}
-            />
-          </Tooltip>
-        ) : (
+        <Tooltip title="MoshSplit" placement="right">
           <Box
             component="img"
             src="/assets/logo.svg"
             alt="MoshSplit"
             sx={{
-              height: 40,
-              width: 'auto',
+              height: 32,
+              width: 32,
+              position: 'absolute',
+              opacity: collapsed ? 1 : 0,
+              transform: collapsed ? 'scale(1)' : 'scale(0.8)',
+              transition: theme.transitions.create(['opacity', 'transform'], {
+                easing: theme.transitions.easing.easeInOut,
+                duration: theme.transitions.duration.standard,
+              }),
               filter: `drop-shadow(0 0 8px ${alpha(theme.palette.primary.main, 0.3)})`,
             }}
           />
-        )}
+        </Tooltip>
+        <Box
+          component="img"
+          src="/assets/long-logo.svg"
+          alt="MoshSplit"
+          sx={{
+            height: 110,
+            width: 'auto',
+            opacity: collapsed ? 0 : 1,
+            transform: collapsed ? 'scale(0.8)' : 'scale(1)',
+            transition: theme.transitions.create(['opacity', 'transform'], {
+              easing: theme.transitions.easing.easeInOut,
+              duration: theme.transitions.duration.standard,
+            }),
+            filter: `drop-shadow(0 0 8px ${alpha(theme.palette.primary.main, 0.3)})`,
+          }}
+        />
       </Box>
 
       <Divider sx={{ borderColor: 'divider', mx: 2 }} />
@@ -123,45 +139,22 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
           const isSelected = location.pathname === activePath || location.pathname.startsWith(activePath + '/');
           return (
             <ListItem key={item.fallbackPath} disablePadding sx={{ mb: 0.5 }}>
-              {collapsed ? (
-                <Tooltip title={item.label} placement="right">
-                  <ListItemButton
-                    selected={isSelected}
-                    onClick={() => handleNavigation(item)}
-                    sx={{
-                      borderRadius: 3,
-                      py: 1.5,
-                      px: 1,
-                      justifyContent: 'center',
-                      bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                      border: isSelected ? '1px solid' : '1px solid transparent',
-                      borderColor: isSelected ? 'divider' : 'transparent',
-                      '&:hover': {
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                      },
-                    }}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        minWidth: 'auto',
-                        color: isSelected ? 'primary.main' : 'text.secondary',
-                      }}
-                    >
-                      {item.icon}
-                    </ListItemIcon>
-                  </ListItemButton>
-                </Tooltip>
-              ) : (
+              <Tooltip title={collapsed ? item.label : undefined} placement="right" disableHoverListener={!collapsed}>
                 <ListItemButton
                   selected={isSelected}
                   onClick={() => handleNavigation(item)}
                   sx={{
                     borderRadius: 3,
                     py: 1.5,
-                    px: 2,
+                    px: collapsed ? 1 : 2,
+                    justifyContent: collapsed ? 'center' : 'flex-start',
                     bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
                     border: isSelected ? '1px solid' : '1px solid transparent',
                     borderColor: isSelected ? 'divider' : 'transparent',
+                    transition: theme.transitions.create(['padding', 'background-color', 'border-color', 'justify-content'], {
+                      easing: theme.transitions.easing.sharp,
+                      duration: theme.transitions.duration.standard,
+                    }),
                     '&:hover': {
                       bgcolor: alpha(theme.palette.primary.main, 0.05),
                     },
@@ -169,74 +162,93 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
                 >
                   <ListItemIcon
                     sx={{
-                      minWidth: 36,
+                      minWidth: collapsed ? 'auto' : 36,
                       color: isSelected ? 'primary.main' : 'text.secondary',
+                      transition: theme.transitions.create('min-width', {
+                        easing: theme.transitions.easing.sharp,
+                        duration: theme.transitions.duration.standard,
+                      }),
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: '0.9375rem',
-                      fontWeight: isSelected ? 700 : 500,
-                      color: isSelected ? 'text.primary' : 'text.secondary',
+                  <Box
+                    sx={{
+                      opacity: collapsed ? 0 : 1,
+                      width: collapsed ? 0 : 'auto',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      transform: collapsed ? 'translateX(-8px)' : 'translateX(0)',
+                      transition: theme.transitions.create(['opacity', 'transform', 'width'], {
+                        easing: theme.transitions.easing.easeInOut,
+                        duration: 400,
+                      }),
                     }}
-                  />
+                  >
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{
+                        fontSize: '0.9375rem',
+                        fontWeight: isSelected ? 700 : 500,
+                        color: isSelected ? 'text.primary' : 'text.secondary',
+                      }}
+                    />
+                  </Box>
                 </ListItemButton>
-              )}
+              </Tooltip>
             </ListItem>
           );
         })}
       </List>
 
       {/* Add Expense Button */}
-      <Box sx={{ px: collapsed ? 2 : 3, pb: 3, flexShrink: 0 }}>
-        {collapsed ? (
-          <Tooltip title="Deploy Damage" placement="right">
-            <Button
-              variant="contained"
-              onClick={onAddExpense}
-              sx={{
-                minWidth: 40,
-                width: 40,
-                height: 40,
-                p: 0,
-                borderRadius: 3,
-                bgcolor: 'primary.main',
-                color: '#121212',
-                '&:hover': {
-                  bgcolor: 'primary.dark',
-                },
-                mx: 'auto',
-                display: 'flex',
-              }}
-            >
-              <AddIcon />
-            </Button>
-          </Tooltip>
-        ) : (
+      <Box sx={{ px: collapsed ? 2 : 3, pb: 3, flexShrink: 0, position: 'relative' }}>
+        <Tooltip title={collapsed ? 'Deploy Damage' : undefined} placement="right" disableHoverListener={!collapsed}>
           <Button
             variant="contained"
-            fullWidth
-            startIcon={<AddIcon />}
             onClick={onAddExpense}
+            fullWidth={!collapsed}
+            startIcon={<AddIcon />}
             sx={{
-              py: 1.75,
-              fontWeight: 700,
-              fontSize: '0.9375rem',
-              textTransform: 'none',
+              py: collapsed ? 0 : 1.75,
+              px: collapsed ? 0 : 2,
+              minWidth: collapsed ? 40 : 'auto',
+              width: collapsed ? 40 : '100%',
+              height: collapsed ? 40 : 'auto',
+              p: collapsed ? 0 : undefined,
               borderRadius: 3,
               bgcolor: 'primary.main',
               color: '#121212',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              transition: theme.transitions.create(['padding', 'width', 'min-width', 'height', 'justify-content'], {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.standard,
+              }),
               '&:hover': {
                 bgcolor: 'primary.dark',
               },
+              mx: collapsed ? 'auto' : undefined,
+              display: collapsed ? 'flex' : undefined,
             }}
           >
-            Deploy Damage
+            <Box
+              component="span"
+              sx={{
+                opacity: collapsed ? 0 : 1,
+                width: collapsed ? 0 : 'auto',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                transform: collapsed ? 'translateX(-8px)' : 'translateX(0)',
+                transition: theme.transitions.create(['opacity', 'transform', 'width'], {
+                  easing: theme.transitions.easing.easeInOut,
+                  duration: 400,
+                }),
+              }}
+            >
+              Deploy Damage
+            </Box>
           </Button>
-        )}
+        </Tooltip>
       </Box>
 
       {/* User Section */}
@@ -247,44 +259,51 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
           borderColor: 'divider',
           flexShrink: 0,
           bgcolor: 'background.default',
+          display: 'flex',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          transition: theme.transitions.create(['padding', 'justify-content'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.standard,
+          }),
         }}
       >
-        {collapsed ? (
-          <Tooltip title={displayName} placement="right">
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: 'action.disabledBackground',
-                  color: 'text.primary',
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  border: '2px solid',
-                  borderColor: 'divider',
-                }}
-              >
-                {initials}
-              </Avatar>
-            </Box>
-          </Tooltip>
-        ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Tooltip title={collapsed ? displayName : undefined} placement="right" disableHoverListener={!collapsed}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, justifyContent: collapsed ? 'center' : 'flex-start' }}>
             <Avatar
               sx={{
-                width: 40,
-                height: 40,
+                width: collapsed ? 36 : 40,
+                height: collapsed ? 36 : 40,
                 bgcolor: 'action.disabledBackground',
                 color: 'text.primary',
-                fontSize: '1rem',
+                fontSize: collapsed ? '0.875rem' : '1rem',
                 fontWeight: 700,
                 border: '2px solid',
                 borderColor: 'divider',
+                transition: theme.transitions.create(['width', 'height', 'fontSize'], {
+                  easing: theme.transitions.easing.sharp,
+                  duration: theme.transitions.duration.standard,
+                }),
               }}
             >
               {initials}
             </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                opacity: collapsed ? 0 : 1,
+                width: collapsed ? 0 : 'auto',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                transform: collapsed ? 'translateX(-8px)' : 'translateX(0)',
+                transition: theme.transitions.create(['opacity', 'transform', 'width'], {
+                  easing: theme.transitions.easing.easeInOut,
+                  duration: 400,
+                }),
+                pointerEvents: collapsed ? 'none' : 'auto',
+                position: collapsed ? 'absolute' : 'relative',
+              }}
+            >
               <Typography
                 variant="body2"
                 sx={{
@@ -302,7 +321,7 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
               </Typography>
             </Box>
           </Box>
-        )}
+        </Tooltip>
       </Box>
     </Box>
   );
