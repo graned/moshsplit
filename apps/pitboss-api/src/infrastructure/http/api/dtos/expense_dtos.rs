@@ -24,6 +24,8 @@ pub struct CreateExpenseRequest {
     pub split_data: serde_json::Value,
     /// Optional notes.
     pub notes: Option<String>,
+    /// Expense category.
+    pub expense_type: Option<String>,
 }
 
 /// Payload to update an expense (creates a new version).
@@ -36,6 +38,7 @@ pub struct UpdateExpenseRequest {
     pub split_type: String,
     pub split_data: serde_json::Value,
     pub notes: Option<String>,
+    pub expense_type: Option<String>,
 }
 
 /// Query params for listing expenses.
@@ -85,6 +88,12 @@ pub struct ExpenseListItem {
     pub amount_cents: Option<i32>,
     pub paid_by: Option<Uuid>,
     pub split_type: Option<String>,
+    /// Expense category (food, beer, gas, etc.)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expense_type: Option<String>,
+    /// UUIDs of all participants in this expense
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_ids: Option<Vec<Uuid>>,
 }
 
 /// A single version of an expense.

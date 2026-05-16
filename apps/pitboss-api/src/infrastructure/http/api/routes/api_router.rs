@@ -21,6 +21,7 @@ use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
+use crate::infrastructure::http::api::handlers::activity_handlers;
 use crate::infrastructure::http::api::handlers::auth_handlers;
 use crate::infrastructure::http::api::handlers::balance_handlers;
 use crate::infrastructure::http::api::handlers::event_handlers;
@@ -28,9 +29,11 @@ use crate::infrastructure::http::api::handlers::expense_handlers;
 use crate::infrastructure::http::api::handlers::member_handlers;
 use crate::infrastructure::http::api::handlers::payment_handlers;
 use crate::infrastructure::http::api::handlers::settlement_handlers;
+use crate::infrastructure::http::api::handlers::stats_handlers;
 use crate::infrastructure::http::api::handlers::system_handlers;
 use crate::infrastructure::http::api::middlewares::request_id_middleware;
 use crate::infrastructure::http::api::middlewares::response_wrapper;
+use crate::infrastructure::http::api::routes::admin_router;
 use crate::infrastructure::http::AppState;
 
 /// Build the API router with all middleware layers applied.
@@ -132,13 +135,24 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(balance_handlers::explain_balance),
         );
 
+    // ── Activity (Battle Log) ──────────────────────────────────────────
+    let activity_routes = Router::new()
+        .route("/v1/events/{id}/activity", get(activity_handlers::list_activity));
+
+    // ── Stats ──────────────────────────────────────────────────────────
+    let stats_routes = Router::new()
+        .route("/v1/events/{id}/stats", get(stats_handlers::get_event_stats));
+
     // Merge all protected routes
     let protected_api = event_routes
         .merge(member_routes)
         .merge(expense_routes)
         .merge(payment_routes)
         .merge(settlement_routes)
-        .merge(balance_routes);
+        .merge(balance_routes)
+        .merge(activity_routes)
+        .merge(stats_routes)
+        .merge(admin_router::build_admin_router());
 
     // Create Sentinel auth middleware using the client from app state
     let sentinel_client = state.sentinel_client.clone();

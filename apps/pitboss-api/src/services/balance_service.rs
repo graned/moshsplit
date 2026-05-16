@@ -142,6 +142,9 @@ impl BalanceService {
                 paid_cents: r.paid_cents,
                 share_cents: r.share_cents,
                 paid_by: r.paid_by,
+                expense_type: r.expense_type,
+                participants: r.participants,
+                created_at: r.created_at,
             })
             .collect();
 

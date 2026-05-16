@@ -35,6 +35,9 @@ export interface ExpenseBreakdown {
   paid_cents: number;
   share_cents: number;
   paid_by: string;
+  expense_type?: string;
+  participants?: string[];
+  created_at: string;
 }
 
 export interface PaymentBreakdown {
@@ -48,6 +51,18 @@ export interface SettlementBreakdown {
   to_user: string;
   amount_cents: number;
   status: string;
+}
+
+export interface EventStats {
+  total_expenses_cents: number;
+  total_paid_cents: number;
+  total_owed_cents: number;
+  your_share_cents: number;
+  your_paid_cents: number;
+  your_balance_cents: number;
+  member_count: number;
+  expense_count: number;
+  settled_count: number;
 }
 
 export interface ExplainBalanceResponse {
@@ -106,6 +121,18 @@ export const balancesApi = {
     );
     if (!response.success) {
       throw new Error(response.error as string || 'Failed to explain balance');
+    }
+    return response.data;
+  },
+
+  // Get event-level stats
+  getStats: async (eventId: string, userId: string): Promise<EventStats> => {
+    const params = new URLSearchParams({ user_id: userId });
+    const response = await apiClient.get<{ success: boolean; data: EventStats; error: unknown }>(
+      `/v1/events/${eventId}/balances/stats?${params.toString()}`
+    );
+    if (!response.success) {
+      throw new Error(response.error as string || 'Failed to get event stats');
     }
     return response.data;
   },

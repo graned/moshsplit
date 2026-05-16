@@ -48,6 +48,8 @@ export interface ExpenseListItem {
   amount_cents: number;
   paid_by: string;
   split_type?: string;
+  expense_type?: string;
+  participant_ids?: string[];
 }
 
 export interface CreateExpenseRequest {
@@ -59,6 +61,7 @@ export interface CreateExpenseRequest {
   split_type: string;
   split_data: Record<string, unknown>;
   notes?: string;
+  expense_type?: string;
 }
 
 export interface UpdateExpenseRequest {
@@ -70,6 +73,7 @@ export interface UpdateExpenseRequest {
   split_type: string;
   split_data: Record<string, unknown>;
   notes?: string;
+  expense_type?: string;
 }
 
 // API calls

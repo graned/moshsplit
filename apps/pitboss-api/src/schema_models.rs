@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
-use crate::schema_enums::{EventMemberRole, EventStatus, SettlementStatus, SplitType};
+use crate::schema_enums::{EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType};
 use diesel::prelude::*;
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -57,6 +57,7 @@ pub struct ExpenseVersion {
     pub notes: Option<String>,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub expense_type: Option<ExpenseType>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]

@@ -13,7 +13,7 @@ use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
-use crate::schema_enums::SplitType;
+use crate::schema_enums::{ExpenseType, SplitType};
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 
 pub struct ExpenseService {
@@ -41,6 +41,20 @@ impl ExpenseService {
             "percentage" => Ok(SplitType::Percentage),
             "shares" => Ok(SplitType::Shares),
             _ => Err(ServiceError::Validation(format!("Unknown split_type: {}", s))),
+        }
+    }
+
+    /// Parse an expense_type string into an ExpenseType enum.
+    fn parse_expense_type(s: &str) -> Result<ExpenseType, ServiceError> {
+        match s {
+            "food" => Ok(ExpenseType::Food),
+            "beer" => Ok(ExpenseType::Beer),
+            "gas" => Ok(ExpenseType::Gas),
+            "transport" => Ok(ExpenseType::Transport),
+            "merch" => Ok(ExpenseType::Merch),
+            "camping" => Ok(ExpenseType::Camping),
+            "other" => Ok(ExpenseType::Other),
+            _ => Err(ServiceError::Validation(format!("Unknown expense_type: {}", s))),
         }
     }
 
@@ -238,6 +252,7 @@ impl ExpenseService {
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
         let split_type = Self::parse_split_type(&req.split_type)?;
+        let expense_type = req.expense_type.as_deref().map(Self::parse_expense_type).transpose()?;
 
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
@@ -281,6 +296,7 @@ impl ExpenseService {
             notes: req.notes,
             created_by,
             created_at: now,
+            expense_type,
         };
         self.version_repo.create(&version)?;
 
@@ -321,6 +337,7 @@ impl ExpenseService {
         }
 
         let split_type = Self::parse_split_type(&req.split_type)?;
+        let expense_type = req.expense_type.as_deref().map(Self::parse_expense_type).transpose()?;
 
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
@@ -353,6 +370,7 @@ impl ExpenseService {
             notes: req.notes,
             created_by,
             created_at: now,
+            expense_type,
         };
         self.version_repo.create(&version)?;
 
@@ -404,6 +422,8 @@ impl ExpenseService {
                 amount_cents: r.amount_cents,
                 paid_by: r.paid_by,
                 split_type: r.split_type.map(|s| s.to_string()),
+                expense_type: r.expense_type.map(|et| et.to_string()),
+                participant_ids: r.participant_ids,
             })
             .collect();
 

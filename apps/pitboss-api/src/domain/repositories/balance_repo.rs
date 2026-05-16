@@ -5,9 +5,10 @@
 //! query builder cannot express the `DISTINCT ON` / window-function
 //! patterns needed to efficiently compute latest-expense-version data.
 
+use chrono::{DateTime, Utc};
 use diesel::deserialize::QueryableByName;
 use diesel::sql_query;
-use diesel::sql_types::{Integer, Text, Uuid as DUuid};
+use diesel::sql_types::{Array, Integer, Nullable, Text, Timestamptz, Uuid as DUuid};
 use diesel::OptionalExtension;
 use diesel::RunQueryDsl;
 use uuid::Uuid;
@@ -41,6 +42,12 @@ pub struct ExpenseBreakdownRow {
     pub share_cents: i32,
     #[diesel(sql_type = DUuid)]
     pub paid_by: Uuid,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub expense_type: Option<String>,
+    #[diesel(sql_type = Array<DUuid>)]
+    pub participants: Vec<Uuid>,
+    #[diesel(sql_type = Timestamptz)]
+    pub created_at: DateTime<Utc>,
 }
 
 /// A payment breakdown entry.
@@ -233,21 +240,32 @@ impl BalanceRepository {
         let sql = r#"
             WITH latest_versions AS (
                 SELECT DISTINCT ON (ev.expense_id) ev.id, ev.expense_id,
-                    ev.title, ev.amount_cents, ev.paid_by
+                    ev.title, ev.amount_cents, ev.paid_by, ev.expense_type, ev.created_at
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
                 ORDER BY ev.expense_id, ev.version_number DESC
+            ),
+            participants AS (
+                SELECT sh.expense_version_id,
+                       array_agg(sh.user_id) AS user_ids
+                FROM app.expense_version_share sh
+                GROUP BY sh.expense_version_id
             )
             SELECT
                 lv.title,
                 lv.amount_cents,
                 CASE WHEN lv.paid_by = $2 THEN lv.amount_cents ELSE 0 END AS paid_cents,
                 COALESCE(sh.share_cents, 0) AS share_cents,
-                lv.paid_by
+                lv.paid_by,
+                lv.expense_type::TEXT,
+                COALESCE(p.user_ids, ARRAY[]::uuid[]) AS participants,
+                lv.created_at
             FROM latest_versions lv
             LEFT JOIN app.expense_version_share sh
                 ON sh.expense_version_id = lv.id AND sh.user_id = $2
+            LEFT JOIN participants p
+                ON p.expense_version_id = lv.id
             ORDER BY lv.expense_id
         "#;
 

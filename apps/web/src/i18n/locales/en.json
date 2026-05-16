@@ -14,7 +14,9 @@
     "edit": "Edit",
     "search": "Search",
     "noResults": "No results found",
-    "required": "Required"
+    "required": "Required",
+    "retry": "Try Again",
+    "somethingWentWrong": "Something went wrong"
   },
   "auth": {
     "loginTitle": "Welcome back",
@@ -143,7 +145,61 @@
     "expenses": "Expenses",
     "balances": "Balances",
     "settlements": "Settlements",
+    "feed": "Battle Log",
     "users": "Users"
+  },
+  "expense": {
+    "addExpense": "Add Expense",
+    "deployDamage": "Deploy Damage",
+    "title": "Title",
+    "amount": "Amount",
+    "paidBy": "Paid by",
+    "splitWith": "Split with",
+    "splitEqually": "Split equally",
+    "splitByShares": "Split by shares",
+    "splitByPercentage": "Split by percentage",
+    "splitByExact": "Split by exact amounts"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "commandCenter": "Command Center",
+    "events": "Events",
+    "users": "Users",
+    "import": "Summon Survivors",
+    "audit": "Eternal Ledger",
+    "backToApp": "Back to App",
+    "signOut": "Sign out",
+    "stats": {
+      "totalEvents": "Total Events",
+      "activeEvents": "Active Events",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "totalExpenses": "Total Expenses",
+      "systemHealth": "System Health",
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "critical": "Critical"
+    },
+    "emptyStates": {
+      "noEvents": "No survivors found",
+      "noEventsDesc": "The pit is empty. Summon your first event.",
+      "noUsers": "No survivors found",
+      "noUsersDesc": "No user accounts have been created yet",
+      "noActivity": "The pit is silent",
+      "noActivityDesc": "No recent activity to report. The survivors are resting.",
+      "noAuditEntries": "The ledger is blank",
+      "noAuditEntriesDesc": "No entries have been recorded yet."
+    },
+    "actions": {
+      "summonEvent": "Summon Event",
+      "summonSurvivors": "Summon Survivors",
+      "honorRestored": "Honor Restored!",
+      "deployDamage": "Deploy Damage",
+      "restore": "Restore",
+      "activate": "Activate",
+      "suspend": "Suspend",
+      "deactivate": "Deactivate"
+    }
   },
   "placeholder": {
     "events": "No events yet",

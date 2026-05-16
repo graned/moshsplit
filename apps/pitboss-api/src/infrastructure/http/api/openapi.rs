@@ -83,6 +83,11 @@ pub struct FieldErrorSchema {
         super::handlers::balance_handlers::user_balance,
         super::handlers::balance_handlers::simplified_debts,
         super::handlers::balance_handlers::explain_balance,
+        // stats
+        super::handlers::stats_handlers::get_event_stats,
+        // admin
+        super::handlers::admin_handlers::list_audit_entries,
+        super::handlers::admin_handlers::get_admin_stats,
     ),
     components(schemas(
         // envelope
@@ -124,6 +129,13 @@ pub struct FieldErrorSchema {
         super::dtos::balance_dtos::PaymentBreakdown,
         super::dtos::balance_dtos::SettlementBreakdown,
         super::dtos::balance_dtos::ExplainBalanceResponse,
+        // stats
+        super::dtos::stats_dtos::EventStats,
+        // admin
+        super::dtos::admin_dtos::AuditEntry,
+        super::dtos::admin_dtos::AuditLogResponse,
+        super::dtos::admin_dtos::AdminStats,
+        super::dtos::admin_dtos::SystemHealth,
         // common
         super::dtos::common::PaginatedResponse<super::dtos::event_dtos::EventListItem>,
         super::dtos::common::PaginationMeta,
@@ -136,6 +148,8 @@ pub struct FieldErrorSchema {
         (name = "Payments", description = "Payment recording"),
         (name = "Settlements", description = "Settlement proposal and confirmation"),
         (name = "Balances", description = "Balance computation and debt simplification"),
+        (name = "Stats", description = "Event statistics and settlement progress"),
+        (name = "Admin", description = "Admin-only endpoints (audit log, system stats)"),
     ),
 )]
 pub struct ApiDoc;

@@ -27,6 +27,11 @@ pub struct SplitTypeType;
 #[diesel(postgres_type(name = "settlement_status", schema = "app"))]
 pub struct SettlementStatusType;
 
+/// SQL type for `app.expense_type` enum.
+#[derive(diesel::sql_types::SqlType, Debug, Clone)]
+#[diesel(postgres_type(name = "expense_type", schema = "app"))]
+pub struct ExpenseTypeType;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
 #[diesel(sql_type = EventStatusType)]
 pub enum EventStatus {
@@ -232,6 +237,78 @@ impl FromSql<Text, Pg> for SettlementStatus {
             b"confirmed" => Ok(Self::Confirmed),
             b"disputed" => Ok(Self::Disputed),
             _ => Err("Unrecognized SettlementStatus variant".into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[diesel(sql_type = ExpenseTypeType)]
+pub enum ExpenseType {
+    Food,
+    Beer,
+    Gas,
+    Transport,
+    Merch,
+    Camping,
+    Other,
+}
+
+impl ToSql<ExpenseTypeType, Pg> for ExpenseType {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Food => out.write_all(b"food")?,
+            Self::Beer => out.write_all(b"beer")?,
+            Self::Gas => out.write_all(b"gas")?,
+            Self::Transport => out.write_all(b"transport")?,
+            Self::Merch => out.write_all(b"merch")?,
+            Self::Camping => out.write_all(b"camping")?,
+            Self::Other => out.write_all(b"other")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<ExpenseTypeType, Pg> for ExpenseType {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"food" => Ok(Self::Food),
+            b"beer" => Ok(Self::Beer),
+            b"gas" => Ok(Self::Gas),
+            b"transport" => Ok(Self::Transport),
+            b"merch" => Ok(Self::Merch),
+            b"camping" => Ok(Self::Camping),
+            b"other" => Ok(Self::Other),
+            _ => Err("Unrecognized ExpenseType variant".into()),
+        }
+    }
+}
+
+impl ToSql<Text, Pg> for ExpenseType {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Food => out.write_all(b"food")?,
+            Self::Beer => out.write_all(b"beer")?,
+            Self::Gas => out.write_all(b"gas")?,
+            Self::Transport => out.write_all(b"transport")?,
+            Self::Merch => out.write_all(b"merch")?,
+            Self::Camping => out.write_all(b"camping")?,
+            Self::Other => out.write_all(b"other")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for ExpenseType {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"food" => Ok(Self::Food),
+            b"beer" => Ok(Self::Beer),
+            b"gas" => Ok(Self::Gas),
+            b"transport" => Ok(Self::Transport),
+            b"merch" => Ok(Self::Merch),
+            b"camping" => Ok(Self::Camping),
+            b"other" => Ok(Self::Other),
+            _ => Err("Unrecognized ExpenseType variant".into()),
         }
     }
 }

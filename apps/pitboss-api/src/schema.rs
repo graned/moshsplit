@@ -61,6 +61,7 @@ pub mod app {
             notes -> Nullable<Text>,
             created_by -> Uuid,
             created_at -> Timestamptz,
+            expense_type -> Nullable<crate::schema_enums::ExpenseTypeType>,
         }
     }
 
@@ -103,6 +104,18 @@ pub mod app {
         }
     }
 
+    diesel::table! {
+        app.audit_log (id) {
+            id -> Uuid,
+            action -> Text,
+            entity_type -> Text,
+            entity_id -> Uuid,
+            user_id -> Uuid,
+            details -> Nullable<Jsonb>,
+            created_at -> Timestamptz,
+        }
+    }
+
     diesel::joinable!(event_member -> event (event_id));
     diesel::joinable!(expense -> event (event_id));
     diesel::joinable!(expense_version -> expense (expense_id));
@@ -112,6 +125,7 @@ pub mod app {
 
     diesel::allow_tables_to_appear_in_same_query!(
         _sqlx_migrations,
+        audit_log,
         event,
         event_member,
         expense,

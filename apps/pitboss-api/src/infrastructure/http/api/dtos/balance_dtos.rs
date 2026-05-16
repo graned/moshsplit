@@ -1,5 +1,6 @@
 //! DTOs for Balance-related endpoints.
 
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -50,6 +51,9 @@ pub struct ExpenseBreakdown {
     pub paid_cents: i32,
     pub share_cents: i32,
     pub paid_by: Uuid,
+    pub expense_type: Option<String>,
+    pub participants: Vec<Uuid>,
+    pub created_at: DateTime<Utc>,
 }
 
 /// Breakdown of a single payment for the "explain" endpoint.

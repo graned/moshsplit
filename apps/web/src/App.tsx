@@ -12,8 +12,9 @@ import {
 import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
-import AppLayout from './components/AppLayout';
+import AppShell from './components/layout/AppShell';
 import HomePage from './pages/app/HomePage';
 import EventsPage from './pages/app/EventsPage';
 import EventDetailPage from './pages/app/EventDetailPage';
@@ -21,9 +22,16 @@ import ExpensesPage from './pages/app/ExpensesPage';
 import ExpenseReportPage from './pages/app/ExpenseReportPage';
 import BalancesPage from './pages/app/BalancesPage';
 import SettlementsPage from './pages/app/SettlementsPage';
+import FeedPage from './pages/app/FeedPage';
 import SettingsProfilePage from './pages/app/settings/SettingsProfilePage';
 import SettingsSecurityPage from './pages/app/settings/SettingsSecurityPage';
 import UsersPage from './pages/admin/UsersPage';
+import AdminShell from './components/admin/AdminShell';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminEvents from './pages/admin/AdminEvents';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminImport from './pages/admin/AdminImport';
+import AdminAudit from './pages/admin/AdminAudit';
 import { apiClient } from './api/client';
 
 // Create the Sentinel auth client with the base URL from env
@@ -42,9 +50,6 @@ function TokenSync() {
 }
 
 function AppContent() {
-	// The store auto-initializes from localStorage via persist middleware
-	// No explicit loading state needed - the store handles session restoration
-
 	return (
 		<Routes>
 			<Route path="/login" element={<LoginPage />} />
@@ -55,7 +60,7 @@ function AppContent() {
 			<Route path="/invitation/accept" element={<InvitationAcceptPage />} />
 
 			<Route element={<ProtectedRoute />}>
-				<Route path="/app" element={<AppLayout />}>
+				<Route path="/app" element={<AppShell />}>
 					<Route index element={<Navigate to="/app/home" replace />} />
 					<Route path="home" element={<HomePage />} />
           <Route path="events" element={<EventsPage />} />
@@ -63,10 +68,23 @@ function AppContent() {
           <Route path="expenses" element={<ExpensesPage />} />
           <Route path="expenses/:eventId" element={<ExpenseReportPage />} />
 					<Route path="balances" element={<BalancesPage />} />
+					<Route path="events/:eventId/balances" element={<BalancesPage />} />
 					<Route path="settlements" element={<SettlementsPage />} />
+					<Route path="feed" element={<FeedPage />} />
 					<Route path="settings/profile" element={<SettingsProfilePage />} />
 					<Route path="settings/security" element={<SettingsSecurityPage />} />
 					<Route path="admin/users" element={<UsersPage />} />
+				</Route>
+
+				{/* Admin Routes - protected by admin role check */}
+				<Route element={<AdminRoute />}>
+					<Route path="/admin" element={<AdminShell />}>
+						<Route index element={<AdminDashboard />} />
+						<Route path="events" element={<AdminEvents />} />
+						<Route path="users" element={<AdminUsers />} />
+						<Route path="import" element={<AdminImport />} />
+						<Route path="audit" element={<AdminAudit />} />
+					</Route>
 				</Route>
 			</Route>
 

@@ -16,7 +16,6 @@ import {
   Tooltip,
   alpha,
 } from '@mui/material';
-import Grid from '@mui/material/Grid2';
 import {
   ArrowBack as ArrowBackIcon,
   Add as AddIcon,
@@ -29,8 +28,24 @@ import { groupsApi } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem, CreateExpenseRequest } from '../../api/expenses.api';
 import { balancesApi } from '../../api/balances.api';
 import { usersApi, UserInfo } from '../../api/users.api';
-import { ExpenseCard } from '../../components/expenses/ExpenseCard';
+import { ExpenseFeed } from '../../components/expenses/ExpenseFeed';
 import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
+
+import foodIcon from '../../../assets/food-icon.png';
+import beerIcon from '../../../assets/beer-icon.png';
+import tankIcon from '../../../assets/tank-icon.png';
+import transportIcon from '../../../assets/transport-icon.png';
+import merchIcon from '../../../assets/merch-icon.png';
+import campingIcon from '../../../assets/camping-icon.png';
+
+const EXPENSE_TYPE_ICONS: Record<string, string> = {
+  food: foodIcon,
+  beer: beerIcon,
+  gas: tankIcon,
+  transport: transportIcon,
+  merch: merchIcon,
+  camping: campingIcon,
+};
 
 const formatAmount = (cents: number, currency = 'EUR') => {
   return new Intl.NumberFormat('en-US', {
@@ -59,6 +74,15 @@ export default function ExpenseReportPage() {
     enabled: !!eventId,
   });
 
+  const { data: members, isLoading: membersLoading } = useQuery({
+    queryKey: ['event-members', eventId],
+    queryFn: async () => {
+      if (!eventId) return [];
+      return groupsApi.listMembers(eventId);
+    },
+    enabled: !!eventId,
+  });
+
   const { data: expensesData, isLoading: expensesLoading } = useQuery({
     queryKey: ['expenses', eventId, userId],
     queryFn: async () => {
@@ -77,30 +101,22 @@ export default function ExpenseReportPage() {
     enabled: !!eventId && !!userId,
   });
 
-  // Collect all unique user IDs
-  const allUserIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (expensesData?.data) {
-      expensesData.data.forEach((e) => ids.add(e.paid_by));
-    }
-    if (explainData?.expenses) {
-      explainData.expenses.forEach((e) => ids.add(e.paid_by));
-    }
-    if (explainData?.payments) {
-      explainData.payments.forEach((p) => {
-        ids.add(p.from_user);
-        ids.add(p.to_user);
-      });
-    }
-    return Array.from(ids);
-  }, [expensesData, explainData]);
+  const memberUserIds = useMemo(() => {
+    return (members || []).map((m) => m.user_id);
+  }, [members]);
 
-  // Fetch user info from sentinel
   const { data: userMap } = useQuery({
-    queryKey: ['expense-users', allUserIds],
-    queryFn: () => usersApi.getMany(allUserIds),
-    enabled: allUserIds.length > 0,
+    queryKey: ['expense-users', ...memberUserIds],
+    queryFn: () => usersApi.getMany(memberUserIds),
+    enabled: memberUserIds.length > 0,
   });
+
+  const eventMembers = useMemo(() => {
+    const map = userMap || {};
+    return (members || [])
+      .map((m) => map[m.user_id])
+      .filter((u): u is UserInfo => u !== undefined);
+  }, [members, userMap]);
 
   const createMutation = useMutation({
     mutationFn: (data: CreateExpenseRequest) => {
@@ -113,24 +129,11 @@ export default function ExpenseReportPage() {
       queryClient.invalidateQueries({ queryKey: ['expenses-page-balances'] });
       usersApi.clearCache();
       queryClient.invalidateQueries({ queryKey: ['expense-users'] });
+      queryClient.invalidateQueries({ queryKey: ['event-members'] });
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (expenseId: string) => {
-      if (!eventId) throw new Error('No event ID');
-      return expensesApi.delete(eventId, expenseId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['expense-report-explain', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['expenses-page-balances'] });
-      usersApi.clearCache();
-      queryClient.invalidateQueries({ queryKey: ['expense-users'] });
-    },
-  });
-
-  const isLoading = eventLoading || expensesLoading || explainLoading;
+  const isLoading = eventLoading || membersLoading || expensesLoading || explainLoading;
   const expenses = expensesData?.data || [];
   const currency = event?.currency || 'EUR';
 
@@ -163,12 +166,6 @@ export default function ExpenseReportPage() {
     if (!userId) throw new Error('User not authenticated');
     await createMutation.mutateAsync({ ...data, user_id: userId });
     setAddDialogOpen(false);
-  };
-
-  const handleDeleteExpense = async (expenseId: string) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      await deleteMutation.mutateAsync(expenseId);
-    }
   };
 
   const getUser = (id: string): UserInfo | undefined => userMap?.[id];
@@ -341,56 +338,122 @@ export default function ExpenseReportPage() {
               {explainData.expenses.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {explainData.expenses.map((item, i) => {
-                    const user = getUser(item.paid_by);
+                    const payer = getUser(item.paid_by);
                     const isCurrentUser = item.paid_by === userId;
-                    const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email : item.paid_by;
-                    const initial = name.charAt(0).toUpperCase();
+                    const payerName = payer ? `${payer.firstName} ${payer.lastName}`.trim() || payer.email : item.paid_by;
+                    const payerInitial = payerName.charAt(0).toUpperCase();
+
+                    const participantUsers = (item.participants || [])
+                      .map((id) => getUser(id))
+                      .filter((u): u is UserInfo => u !== undefined);
+
+                    const expenseTypeIcon = item.expense_type ? EXPENSE_TYPE_ICONS[item.expense_type] : null;
 
                     return (
                       <Card key={i} variant="outlined">
                         <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <Box sx={{ minWidth: 0, flex: 1 }}>
                               <Typography variant="body1" fontWeight={600} noWrap>
                                 {item.title}
                               </Typography>
-                              <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+
+                              {/* Type + Paid by row */}
+                              <Box sx={{ display: 'flex', gap: 1.5, mt: 0.75, alignItems: 'center', flexWrap: 'wrap' }}>
+                                {/* Expense type icon only */}
+                                {expenseTypeIcon && (
+                                  <img src={expenseTypeIcon} alt="" style={{ width: 18, height: 18 }} />
+                                )}
+
+                                {/* Paid by */}
                                 <Tooltip
                                   title={
                                     <Box sx={{ py: 0.5 }}>
-                                      <Typography variant="body2" fontWeight={600}>{name}</Typography>
-                                      {user?.email && (
-                                        <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                                      <Typography variant="body2" fontWeight={600}>{payerName}</Typography>
+                                      {payer?.email && (
+                                        <Typography variant="caption" color="text.secondary">{payer.email}</Typography>
                                       )}
                                     </Box>
                                   }
                                   arrow
                                 >
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Paid by:
+                                    </Typography>
                                     <Avatar
                                       sx={{
-                                        width: 22,
-                                        height: 22,
-                                        fontSize: '0.65rem',
+                                        width: 18,
+                                        height: 18,
+                                        fontSize: '0.55rem',
                                         fontWeight: 700,
                                         bgcolor: isCurrentUser ? 'primary.main' : 'action.disabledBackground',
                                         cursor: 'default',
                                       }}
                                     >
-                                      {initial}
+                                      {payerInitial}
                                     </Avatar>
                                     <Typography variant="caption" color="text.secondary">
-                                      {isCurrentUser ? 'You' : name}
+                                      {isCurrentUser ? 'You' : payerName}
                                     </Typography>
                                   </Box>
                                 </Tooltip>
-                                <Typography variant="caption" color="text.secondary">
-                                  Paid: {formatAmount(item.paid_cents, currency)}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Your share: {formatAmount(item.share_cents, currency)}
-                                </Typography>
                               </Box>
+
+                              {/* Split participants row */}
+                              {participantUsers.length > 0 && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Split:
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    {participantUsers.slice(0, 4).map((u) => {
+                                      const isMe = u.id === userId;
+                                      return (
+                                        <Tooltip key={u.id} title={`${u.firstName} ${u.lastName}`.trim() || u.email}>
+                                          <Avatar
+                                            sx={{
+                                              width: 18,
+                                              height: 18,
+                                              fontSize: '0.55rem',
+                                              fontWeight: 700,
+                                              bgcolor: isMe ? 'primary.main' : 'action.disabledBackground',
+                                              ml: -0.5,
+                                              border: 1,
+                                              borderColor: 'background.paper',
+                                            }}
+                                          >
+                                            {u.firstName.charAt(0).toUpperCase()}
+                                          </Avatar>
+                                        </Tooltip>
+                                      );
+                                    })}
+                                    {participantUsers.length > 4 && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                                        +{participantUsers.length - 4}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Box>
+                              )}
+                            </Box>
+
+                            {/* Amounts */}
+                            <Box sx={{ textAlign: 'right', ml: 2, flexShrink: 0 }}>
+                              <Typography variant="body2" fontWeight={600}>
+                                {formatAmount(item.paid_cents, currency)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Your share: {formatAmount(item.share_cents, currency)}
+                              </Typography>
+                              {item.created_at && (() => {
+                                const d = new Date(item.created_at);
+                                return isNaN(d.getTime()) ? null : (
+                                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
+                                    {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </Typography>
+                                );
+                              })()}
                             </Box>
                           </Box>
                         </CardContent>
@@ -436,8 +499,12 @@ export default function ExpenseReportPage() {
           )}
 
           {tab === 1 && (
-            <Box>
-              {expenses.length === 0 ? (
+            <ExpenseFeed
+              eventId={eventId!}
+              userId={userId!}
+              currency={currency}
+              userMap={userMap || {}}
+              emptyState={
                 <Box sx={{ textAlign: 'center', py: 6 }}>
                   <ReceiptIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="body1" color="text.secondary">
@@ -452,25 +519,8 @@ export default function ExpenseReportPage() {
                     Add the first expense
                   </Button>
                 </Box>
-              ) : (
-                <Grid container spacing={2}>
-                  {expenses.map((expense) => {
-                    const paidBy = getUser(expense.paid_by);
-                    return (
-                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={expense.id}>
-                        <ExpenseCard
-                          expense={expense}
-                          onClick={() => {}}
-                          onDelete={() => handleDeleteExpense(expense.id)}
-                          paidBy={paidBy}
-                          currentUserId={userId || ''}
-                        />
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              )}
-            </Box>
+              }
+            />
           )}
         </Box>
       </Box>
@@ -480,8 +530,8 @@ export default function ExpenseReportPage() {
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           onSubmit={handleAddExpense}
-          members={[]}
-          currentUserId={userId || ''}
+          members={eventMembers}
+          currentUser={getUser(userId || '') || { id: userId || '', firstName: '', lastName: '', email: '' }}
           groupCurrency={currency}
         />
       )}
