@@ -5,57 +5,47 @@ import { apiClient } from './client';
 /** Base shape shared by all activity items */
 export interface ActivityItemBase {
   id: string;
-  event_id: string;
   created_at: string;
-  actor_id: string;
 }
 
-/** Expense activity – an expense was created or updated */
+/** Expense activity – an expense was created */
 export interface ExpenseActivity extends ActivityItemBase {
-  type: 'expense_created' | 'expense_updated';
-  expense_id: string;
-  expense_title: string;
-  expense_amount_cents: number;
-  expense_type?: string;
+  type: 'expense';
+  title: string;
+  amount_cents: number;
   paid_by: string;
-  participant_ids?: string[];
+  participant_count: number;
+  expense_type?: string;
 }
 
-/** Settlement activity – a settlement was created or confirmed */
+/** Settlement activity – a payment between users */
 export interface SettlementActivity extends ActivityItemBase {
-  type: 'settlement_created' | 'settlement_confirmed';
-  settlement_id: string;
+  type: 'settlement';
+  amount_cents: number;
   from_user: string;
   to_user: string;
-  amount_cents: number;
-  status: string;
 }
 
-/** Milestone activity – a user joined, event milestone, etc. */
-export interface MilestoneActivity extends ActivityItemBase {
-  type: 'member_joined' | 'event_milestone';
-  title: string;
-  description: string;
-  target_user_id?: string;
+/** Member join activity – a user joined the event */
+export interface MemberJoinActivity extends ActivityItemBase {
+  type: 'member_join';
+  user_id: string;
 }
 
 /** Discriminated union of all activity item types */
-export type ActivityItem =
-  | ExpenseActivity
-  | SettlementActivity
-  | MilestoneActivity;
+export type ActivityItem = ExpenseActivity | SettlementActivity | MemberJoinActivity;
 
 /** Helper type-guards */
 export function isExpenseActivity(item: ActivityItem): item is ExpenseActivity {
-  return item.type === 'expense_created' || item.type === 'expense_updated';
+  return item.type === 'expense';
 }
 
 export function isSettlementActivity(item: ActivityItem): item is SettlementActivity {
-  return item.type === 'settlement_created' || item.type === 'settlement_confirmed';
+  return item.type === 'settlement';
 }
 
-export function isMilestoneActivity(item: ActivityItem): item is MilestoneActivity {
-  return item.type === 'member_joined' || item.type === 'event_milestone';
+export function isMemberJoinActivity(item: ActivityItem): item is MemberJoinActivity {
+  return item.type === 'member_join';
 }
 
 // ─── API Calls ─────────────────────────────────────────────────────────────
@@ -67,27 +57,27 @@ export const activityApi = {
    */
   list: async (
     eventId: string,
-    userId: string,
+    _userId: string,
     cursor?: string,
     limit = 20
   ): Promise<{ data: ActivityItem[]; hasMore: boolean; nextCursor?: string }> => {
     const params = new URLSearchParams({
       limit: String(limit),
-      user_id: userId,
     });
     if (cursor) params.set('cursor', cursor);
 
     const response = await apiClient.get<{
       data: {
         items: ActivityItem[];
-        pagination: { has_more: boolean; next_cursor?: string };
+        has_more: boolean;
+        next_cursor?: string;
       };
     }>(`/v1/events/${eventId}/activity?${params.toString()}`);
 
     return {
       data: response.data.items,
-      hasMore: response.data.pagination.has_more,
-      nextCursor: response.data.pagination.next_cursor,
+      hasMore: response.data.has_more,
+      nextCursor: response.data.next_cursor,
     };
   },
 };

@@ -25,14 +25,11 @@ export function ExpenseFeed({
   emptyState,
   className,
 }: ExpenseFeedProps) {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = useInfiniteExpenses({ eventId, userId, pageSize });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useInfiniteExpenses({
+    eventId,
+    userId,
+    pageSize,
+  });
 
   const expenses = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -55,10 +52,7 @@ export function ExpenseFeed({
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const getUser = useCallback(
-    (id: string) => userMap[id],
-    [userMap]
-  );
+  const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
   if (isLoading) {
     return (

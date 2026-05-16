@@ -71,6 +71,7 @@ cat > "${SCHEMA_MODELS}" <<-'EOF'
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
+use crate::schema_enums::{EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType};
 use diesel::prelude::*;
 
 EOF
@@ -111,10 +112,12 @@ for table in ${TABLES}; do
                    WHEN data_type = 'jsonb'                 THEN 'serde_json::Value'
                    WHEN data_type = 'json'                  THEN 'serde_json::Value'
                    WHEN data_type = 'bytea'                 THEN 'Vec<u8>'
-                   WHEN data_type = 'event_status'          THEN 'crate::schema_enums::EventStatus'
-                   WHEN data_type = 'event_member_role'     THEN 'crate::schema_enums::EventMemberRole'
-                   WHEN data_type = 'split_type'            THEN 'crate::schema_enums::SplitType'
-                   WHEN data_type = 'settlement_status'     THEN 'crate::schema_enums::SettlementStatus'
+                   WHEN udt_name = 'event_status'           THEN 'crate::schema_enums::EventStatus'
+                   WHEN udt_name = 'event_member_role'      THEN 'crate::schema_enums::EventMemberRole'
+                   WHEN udt_name = 'split_type'             THEN 'crate::schema_enums::SplitType'
+                   WHEN udt_name = 'settlement_status'      THEN 'crate::schema_enums::SettlementStatus'
+                   WHEN udt_name = 'expense_type'           THEN 'crate::schema_enums::ExpenseType'
+                   WHEN udt_name = 'event_image_type'       THEN 'crate::schema_enums::EventImageType'
                    ELSE 'String'  -- fallback
                END,
                CASE WHEN is_nullable = 'YES' THEN '>' ELSE '' END

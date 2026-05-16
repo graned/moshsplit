@@ -16,10 +16,7 @@ import {
   alpha,
   Chip,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-} from '@mui/icons-material';
+import { Search as SearchIcon, FilterList as FilterIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { adminAuditApi, AuditEntry } from '../../api/admin/audit.api';
 import { TableSkeleton } from '../../components/ui/Skeleton';
@@ -153,7 +150,11 @@ export default function AdminAudit() {
           <EmptyState
             icon={<FilterIcon sx={{ fontSize: 40, color: '#f59e0b' }} />}
             title="The ledger is blank"
-            description={search || actionFilter || resourceFilter ? 'Try adjusting your filters' : 'No entries have been recorded yet.'}
+            description={
+              search || actionFilter || resourceFilter
+                ? 'Try adjusting your filters'
+                : 'No entries have been recorded yet.'
+            }
           />
         </Card>
       )}

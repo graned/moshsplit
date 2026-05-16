@@ -88,7 +88,9 @@ function AppLayout() {
     // Handle string URLs (SVG files)
     if (typeof icon === 'string') {
       return (
-        <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', ...props.sx }}>
+        <Box
+          sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', ...props.sx }}
+        >
           <img src={icon} alt="" style={{ width: '100%', height: '100%' }} />
         </Box>
       );
@@ -167,8 +169,17 @@ function AppLayout() {
                     },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: collapsed ? 0 : 68, color: isSelected ? 'primary.main' : 'text.secondary' }}>
-                    <IconWrapper icon={item.icon} sx={{ width: collapsed ? 28 : 48, height: collapsed ? 28 : 48, color: isSelected ? 'primary.main' : 'text.secondary' }} />
+                  <ListItemIcon
+                    sx={{ minWidth: collapsed ? 0 : 68, color: isSelected ? 'primary.main' : 'text.secondary' }}
+                  >
+                    <IconWrapper
+                      icon={item.icon}
+                      sx={{
+                        width: collapsed ? 28 : 48,
+                        height: collapsed ? 28 : 48,
+                        color: isSelected ? 'primary.main' : 'text.secondary',
+                      }}
+                    />
                   </ListItemIcon>
                   <ListItemText
                     primary={t(item.label)}
@@ -196,17 +207,19 @@ function AppLayout() {
         <Box sx={{ flex: 1 }} />
 
         {/* User section */}
-        <Box sx={{ p: collapsed ? 1 : 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0, 0, 0, 0.2)' }}>
+        <Box
+          sx={{ p: collapsed ? 1 : 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(0, 0, 0, 0.2)' }}
+        >
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: collapsed ? 0 : 1.5,
-            cursor: 'pointer',
-            p: collapsed ? 0.5 : 1,
-            borderRadius: 2,
-            transition: 'background-color 0.2s, gap 0.3s ease, padding 0.3s ease',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: collapsed ? 0 : 1.5,
+              cursor: 'pointer',
+              p: collapsed ? 0.5 : 1,
+              borderRadius: 2,
+              transition: 'background-color 0.2s, gap 0.3s ease, padding 0.3s ease',
               '&:hover': {
                 bgcolor: 'rgba(255, 255, 255, 0.05)',
               },
@@ -333,7 +346,14 @@ function AppLayout() {
       {/* Mobile: Bottom navigation bar */}
       {isMobile && (
         <Paper
-          sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, display: { xs: 'block', md: 'none' } }}
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: theme.zIndex.appBar,
+            display: { xs: 'block', md: 'none' },
+          }}
           elevation={8}
         >
           <BottomNavigation
@@ -382,7 +402,11 @@ function AppLayout() {
                   }}
                 >
                   <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={navItems[0].icon} alt="" style={{ width: '100%', height: '100%', filter: 'brightness(0) invert(1)' }} />
+                    <img
+                      src={navItems[0].icon}
+                      alt=""
+                      style={{ width: '100%', height: '100%', filter: 'brightness(0) invert(1)' }}
+                    />
                   </Box>
                 </Box>
               }
@@ -438,7 +462,6 @@ function AppLayout() {
           minWidth: 0,
         }}
       >
-
         <Box
           sx={{
             flex: 1,

@@ -67,12 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400 }}>
               {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={this.handleRetry}
-              sx={{ mt: 1 }}
-            >
+            <Button variant="contained" startIcon={<RefreshIcon />} onClick={this.handleRetry} sx={{ mt: 1 }}>
               Try Again
             </Button>
           </Box>

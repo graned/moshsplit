@@ -63,11 +63,7 @@ function LoginPage() {
           zIndex: 1,
         }}
       >
-        <LoginCard
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          error={localError}
-        />
+        <LoginCard onSubmit={handleSubmit} isLoading={isLoading} error={localError} />
 
         {/* Footer */}
         <Box

@@ -2,18 +2,22 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::Json;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
     BalancesResponse, ExplainBalanceResponse, SimplifiedDebtsResponse, UserBalanceResponse,
 };
+use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::infrastructure::http::AppState;
 use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::services::balance_service::BalanceService;
+use crate::services::stats_service::StatsService;
 
 /// GET /v1/events/:id/balances — all balances for an event.
 #[utoipa::path(
@@ -119,4 +123,39 @@ pub async fn explain_balance(
 
     let explanation = svc.explain_balance(event_id, user_id)?;
     Ok(Json(explanation))
+}
+
+/// Query parameters for the balance stats endpoint.
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
+pub struct BalanceStatsQuery {
+    /// The user ID to get stats for.
+    pub user_id: Uuid,
+}
+
+/// GET /v1/events/:id/balances/stats — event statistics for a specified user.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/balances/stats",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        BalanceStatsQuery,
+    ),
+    responses(
+        (status = 200, description = "Event statistics for the specified user", body = EventStats),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Balances"
+)]
+pub async fn balance_stats(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    Query(query): Query<BalanceStatsQuery>,
+) -> Result<Json<EventStats>, ServiceError> {
+    let svc = StatsService::new(
+        EventRepository::new(state.db_client.clone()),
+        StatsRepository::new(state.db_client.clone()),
+    );
+
+    let stats = svc.get_stats(event_id, query.user_id)?;
+    Ok(Json(stats))
 }

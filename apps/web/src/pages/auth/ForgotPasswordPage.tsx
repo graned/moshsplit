@@ -1,20 +1,7 @@
 import { useState } from 'react';
 import { Link as RouterLink } from 'react-router';
-import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  InputAdornment,
-  Link,
-} from '@mui/material';
-import {
-  Email as EmailIcon,
-  ArrowBack as ArrowBackIcon,
-} from '@mui/icons-material';
+import { Box, Card, CardContent, TextField, Button, Typography, Alert, InputAdornment, Link } from '@mui/material';
+import { Email as EmailIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../../api/auth.api';
 
@@ -98,9 +85,7 @@ function ForgotPasswordPage() {
               </Typography>
             </Box>
 
-            <Alert severity="success">
-              {t('forgotPassword.successMessage')}
-            </Alert>
+            <Alert severity="success">{t('forgotPassword.successMessage')}</Alert>
 
             <Button
               component={RouterLink}
@@ -182,11 +167,7 @@ function ForgotPasswordPage() {
             </Alert>
           )}
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
-          >
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <TextField
               label={t('forgotPassword.emailLabel')}
               type="email"
@@ -204,13 +185,7 @@ function ForgotPasswordPage() {
               }}
             />
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mt: 1 }}
-            >
+            <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ mt: 1 }}>
               {loading ? t('common.loading') : t('forgotPassword.submitButton')}
             </Button>
           </Box>

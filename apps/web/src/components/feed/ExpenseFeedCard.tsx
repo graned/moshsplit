@@ -1,18 +1,8 @@
-import {
-  Typography,
-  Box,
-  Tooltip,
-  Avatar,
-  Chip,
-} from '@mui/material';
-import {
-  Receipt as ReceiptIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
+import { Typography, Box, Tooltip, Avatar, alpha, useTheme } from '@mui/material';
+import { Receipt as ReceiptIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../api/activity.api';
 import { UserInfo } from '../../api/users.api';
 import { FeedCard } from './FeedCard';
-import { AvatarStack } from './AvatarStack';
 
 import foodIcon from '../../../assets/food-icon.png';
 import beerIcon from '../../../assets/beer-icon.png';
@@ -40,7 +30,7 @@ const formatAmount = (cents: number, currency = 'EUR') => {
 interface ExpenseFeedCardProps {
   activity: ExpenseActivity;
   paidBy?: UserInfo;
-  participants?: UserInfo[];
+  participantCount?: number;
   currentUserId?: string;
   currency?: string;
   onClick?: () => void;
@@ -49,18 +39,15 @@ interface ExpenseFeedCardProps {
 export function ExpenseFeedCard({
   activity,
   paidBy,
-  participants = [],
+  participantCount,
   currentUserId,
   currency = 'EUR',
   onClick,
 }: ExpenseFeedCardProps) {
-  const iconSrc = activity.expense_type
-    ? EXPENSE_TYPE_ICONS[activity.expense_type]
-    : null;
+  const theme = useTheme();
+  const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
 
-  const payerName = paidBy
-    ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email
-    : activity.paid_by;
+  const payerName = paidBy ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email : activity.paid_by;
 
   const isPayerCurrentUser = activity.paid_by === currentUserId;
   const payerInitial = payerName.charAt(0).toUpperCase();
@@ -68,17 +55,14 @@ export function ExpenseFeedCard({
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
 
-  const isUpdate = activity.type === 'expense_updated';
-
   return (
-    <FeedCard onClick={onClick} accentColor="#F59E0B">
-      {/* Left icon */}
+    <FeedCard onClick={onClick} accentColor={theme.palette.primary.main}>
       <Box
         sx={{
           width: 40,
           height: 40,
           borderRadius: 2,
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          backgroundColor: alpha(theme.palette.primary.main, 0.1),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -93,35 +77,13 @@ export function ExpenseFeedCard({
         )}
       </Box>
 
-      {/* Content */}
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        {/* Row 1: Type badge + Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-          {isUpdate && (
-            <Chip
-              icon={<EditIcon sx={{ fontSize: 14 }} />}
-              label="Updated"
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                bgcolor: 'rgba(245, 158, 11, 0.15)',
-                color: 'primary.main',
-              }}
-            />
-          )}
-          <Typography
-            variant="h6"
-            fontWeight={600}
-            noWrap
-            sx={{ fontSize: '0.95rem' }}
-          >
-            {activity.expense_title}
+          <Typography variant="h6" fontWeight={600} noWrap sx={{ fontSize: '0.95rem' }}>
+            {activity.title}
           </Typography>
         </Box>
 
-        {/* Row 2: Paid by */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Tooltip
             title={
@@ -161,31 +123,21 @@ export function ExpenseFeedCard({
           </Tooltip>
         </Box>
 
-        {/* Row 3: Participants */}
-        {participants.length > 0 && (
+        {participantCount !== undefined && participantCount > 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
               Split:
             </Typography>
-            <AvatarStack
-              users={participants}
-              currentUserId={currentUserId}
-              maxVisible={4}
-              size={20}
-            />
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+              {participantCount} {participantCount === 1 ? 'person' : 'people'}
+            </Typography>
           </Box>
         )}
       </Box>
 
-      {/* Right side: Amount + Date */}
       <Box sx={{ textAlign: 'right', ml: 1, flexShrink: 0 }}>
-        <Typography
-          variant="h6"
-          fontWeight={700}
-          color="primary.main"
-          sx={{ fontSize: '1rem' }}
-        >
-          {formatAmount(activity.expense_amount_cents, currency)}
+        <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ fontSize: '1rem' }}>
+          {formatAmount(activity.amount_cents, currency)}
         </Typography>
         {isValidDate && (
           <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>

@@ -1,17 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Tabs,
-  Tab,
-  alpha,
-} from '@mui/material';
+import { Box, Typography, Card, CardContent, CircularProgress, Alert, Tabs, Tab, alpha } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import {
   Receipt as ReceiptIcon,
@@ -71,10 +61,13 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
             flexShrink: 0,
           }}
         >
-          <Box sx={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to right, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
-          }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: `linear-gradient(to right, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
+            }}
+          />
           <ReceiptIcon sx={{ fontSize: 40, color: alpha('#fff', 0.3), zIndex: 0 }} />
         </Box>
 
@@ -89,7 +82,11 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
             <Typography variant="body1" fontWeight={700} color="primary.main" sx={{ lineHeight: 1.2 }}>
               {hasData ? formatAmount(paidCents, currency) : '—'}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block', whiteSpace: 'nowrap' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1.2, display: 'block', whiteSpace: 'nowrap' }}
+            >
               You Paid
             </Typography>
           </Box>
@@ -108,10 +105,13 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
             position: 'relative',
           }}
         >
-          <Box sx={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to bottom, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
-          }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: `linear-gradient(to bottom, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
+            }}
+          />
           <ReceiptIcon sx={{ fontSize: 80, color: alpha('#fff', 0.2), zIndex: 0 }} />
         </Box>
 
@@ -152,7 +152,12 @@ function ExpenseCard({ data, onClick }: { data: ExpenseCardData; onClick: () => 
             <Box sx={{ textAlign: 'center', flex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
                 <TrendingUpIcon sx={{ fontSize: 18, color: balanceCents >= 0 ? 'success.main' : 'error.main' }} />
-                <Typography variant="h4" fontWeight={800} color={balanceCents >= 0 ? 'success.main' : 'error.main'} sx={{ lineHeight: 1 }}>
+                <Typography
+                  variant="h4"
+                  fontWeight={800}
+                  color={balanceCents >= 0 ? 'success.main' : 'error.main'}
+                  sx={{ lineHeight: 1 }}
+                >
                   {hasData ? formatAmount(balanceCents, currency) : '—'}
                 </Typography>
               </Box>
@@ -171,7 +176,11 @@ export default function ExpensesPage() {
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.userId);
 
-  const { data: groupsData, isLoading: groupsLoading, error: groupsError } = useQuery({
+  const {
+    data: groupsData,
+    isLoading: groupsLoading,
+    error: groupsError,
+  } = useQuery({
     queryKey: ['groups', userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -186,9 +195,7 @@ export default function ExpensesPage() {
     queryKey: ['expenses-page-explain', userId],
     queryFn: async () => {
       if (!userId) return {};
-      const results = await Promise.allSettled(
-        groups.map((g) => balancesApi.explainUserBalance(g.id, userId))
-      );
+      const results = await Promise.allSettled(groups.map((g) => balancesApi.explainUserBalance(g.id, userId)));
       const map: Record<string, ExpenseCardData | null> = {};
       groups.forEach((g, i) => {
         const r = results[i];
@@ -274,11 +281,7 @@ export default function ExpensesPage() {
 
       {!isLoading && !groupsError && groups.length > 0 && (
         <>
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-          >
+          <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Tab
               label={`CURRENT (${current.length})`}
               sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.85rem' }}
@@ -308,10 +311,7 @@ export default function ExpensesPage() {
                 };
                 return (
                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={group.id}>
-                    <ExpenseCard
-                      data={data}
-                      onClick={() => navigate(`/app/expenses/${group.id}`)}
-                    />
+                    <ExpenseCard data={data} onClick={() => navigate(`/app/expenses/${group.id}`)} />
                   </Grid>
                 );
               })}

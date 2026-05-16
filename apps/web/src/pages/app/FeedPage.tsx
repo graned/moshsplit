@@ -1,96 +1,134 @@
 import { Box, Typography } from '@mui/material';
-import { AutoStories as FeedIcon } from '@mui/icons-material';
-import { useAuthStore } from '@moshsplit/auth-react';
-import { FeedList } from '../../components/feed/FeedList';
-import { usersApi, UserInfo } from '../../api/users.api';
+import Grid from '@mui/material/Grid2';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useAuthStore } from '@moshsplit/auth-react';
 
-/**
- * FeedPage: The Battle Log — a mixed activity feed showing
- * expenses, settlements, and milestones for all events.
- */
+import { EventBanner } from '../../components/feed/EventBanner';
+import { FeedSectionHeader } from '../../components/feed/FeedSectionHeader';
+import { FeedList } from '../../components/feed/FeedList';
+import { MyStandingCard } from '../../components/feed/MyStandingCard';
+import { FestivalMetricsCard } from '../../components/feed/FestivalMetricsCard';
+import { PitCrewList } from '../../components/feed/PitCrewList';
+import { groupsApi } from '../../api/groups.api';
+import { balancesApi } from '../../api/balances.api';
+
 export default function FeedPage() {
+  const { eventId } = useParams<{ eventId: string }>();
   const userId = useAuthStore((state) => state.userId);
-  const [userMap, setUserMap] = useState<Record<string, UserInfo>>({});
 
-  // Pre-fetch all users for avatar/name resolution
-  const { data: userList } = useQuery({
-    queryKey: ['users-list'],
-    queryFn: () => usersApi.list(),
-    staleTime: 1000 * 60 * 5,
-    enabled: !!userId,
+  // Fetch event details
+  const { data: event, isLoading: eventLoading } = useQuery({
+    queryKey: ['event', eventId],
+    queryFn: () => groupsApi.get(eventId!),
+    enabled: !!eventId,
   });
 
-  useEffect(() => {
-    if (userList) {
-      const map: Record<string, UserInfo> = {};
-      userList.forEach((u) => {
-        // Reconstruct UserInfo from UserListItem
-        const parts = u.name.split(' ');
-        map[u.id] = {
-          id: u.id,
-          firstName: parts[0] || '',
-          lastName: parts.slice(1).join(' '),
-          email: u.email,
-        };
-      });
-      setUserMap(map);
-    }
-  }, [userList]);
+  // Fetch event stats
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['event-stats', eventId, userId],
+    queryFn: () => balancesApi.getStats(eventId!, userId!),
+    enabled: !!eventId && !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
 
-  // For now, use a default event ID. In a real app this would come from
-  // context, URL params, or a selected event.
-  // TODO: Wire up event selection or use current event context.
-  const eventId = ''; // Placeholder — will be populated from event context
+  // Fetch user balance
+  const { data: userBalance, isLoading: balanceLoading } = useQuery({
+    queryKey: ['user-balance', eventId, userId],
+    queryFn: () => balancesApi.getUserBalance(eventId!, userId!),
+    enabled: !!eventId && !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Fetch members
+  const { data: members = [], isLoading: membersLoading } = useQuery({
+    queryKey: ['event-members', eventId],
+    queryFn: () => groupsApi.listMembers(eventId!),
+    enabled: !!eventId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Build userMap from members for FeedList
+  const userMap: Record<string, { id: string; firstName: string; lastName: string; email: string }> = {};
+  members.forEach((m) => {
+    const name = m.user_name || m.user_email || '';
+    const parts = name.split(' ');
+    userMap[m.user_id] = {
+      id: m.user_id,
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' '),
+      email: m.user_email || '',
+    };
+  });
+
+  // Compute Avg/Day (approximate from first expense date if available)
+  const avgPerDay = stats?.total_spent_cents ? Math.round(stats.total_spent_cents / 3) : undefined;
+
+  // Derive top spender name from stats or members
+  const topSpenderName = members.length > 0 ? members[0].user_name || members[0].user_email || '' : undefined;
+
+  if (!eventId) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
+        <Typography variant="body1">Select an event to view its battle log.</Typography>
+      </Box>
+    );
+  }
+
+  const currency = event?.currency || 'EUR';
+  const isLoading = eventLoading || statsLoading;
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <FeedIcon sx={{ color: 'primary.main', fontSize: 24 }} />
-        </Box>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Battle Log
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            All expenses, settlements, and milestones in one place
-          </Typography>
-        </Box>
-      </Box>
+    <Box sx={{ ml: '0px', minHeight: '100vh' }}>
+      {/* Event Banner */}
+      <EventBanner event={event} stats={stats} isLoading={isLoading} currency={currency} />
 
-      {/* Feed */}
-      {eventId ? (
-        <FeedList
-          eventId={eventId}
-          userId={userId || ''}
-          userMap={userMap}
-        />
-      ) : (
-        <Box
-          sx={{
-            p: 4,
-            textAlign: 'center',
-            color: 'text.secondary',
-          }}
-        >
-          <Typography variant="body1">
-            Select an event to view its battle log.
-          </Typography>
-        </Box>
-      )}
+      {/* Main Content */}
+      <Box
+        sx={{
+          maxWidth: 1280,
+          mx: 'auto',
+          px: { xs: 2, md: 3 },
+          pt: 3,
+          pb: 4,
+        }}
+      >
+        {/* Feed Section Header */}
+        <FeedSectionHeader />
+
+        {/* Two-Column Grid */}
+        <Grid container spacing={3} columns={12} sx={{ mt: 0 }}>
+          {/* LEFT: Feed */}
+          <Grid size={{ xs: 12, lg: 8 }}>
+            <FeedList eventId={eventId} userId={userId || ''} userMap={userMap} currency={currency} />
+          </Grid>
+
+          {/* RIGHT: Sticky Sidebar */}
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <Box
+              sx={{
+                position: { xs: 'static', lg: 'sticky' },
+                top: { lg: 24 },
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+              }}
+            >
+              <MyStandingCard balance={userBalance} isLoading={balanceLoading} currency={currency} />
+
+              <FestivalMetricsCard
+                stats={stats}
+                isLoading={statsLoading}
+                currency={currency}
+                topSpenderName={topSpenderName}
+                avgPerDay={avgPerDay}
+              />
+
+              <PitCrewList members={members} currentUserId={userId || ''} isLoading={membersLoading} />
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
     </Box>
   );
 }

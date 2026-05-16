@@ -1,19 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Box, CircularProgress, Typography, Card, CardContent } from '@mui/material';
-import {
-  SearchOff as SearchOffIcon,
-} from '@mui/icons-material';
+import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
-import {
-  ActivityItem,
-  isExpenseActivity,
-  isSettlementActivity,
-  isMilestoneActivity,
-} from '../../api/activity.api';
+import { ActivityItem, isExpenseActivity, isSettlementActivity, isMemberJoinActivity } from '../../api/activity.api';
 import { UserInfo } from '../../api/users.api';
 import { ExpenseFeedCard } from './ExpenseFeedCard';
 import { SettlementFeedCard } from './SettlementFeedCard';
-import { MilestoneCard } from './MilestoneCard';
+import { MemberJoinCard } from './MemberJoinCard';
 
 interface FeedListProps {
   eventId: string;
@@ -40,14 +33,11 @@ export function FeedList({
   onSettlementClick,
   className,
 }: FeedListProps) {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = useActivityFeed({ eventId, userId, pageSize });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useActivityFeed({
+    eventId,
+    userId,
+    pageSize,
+  });
 
   const items = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -70,28 +60,22 @@ export function FeedList({
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const getUser = useCallback(
-    (id: string) => userMap[id],
-    [userMap]
-  );
+  const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
   const renderActivityItem = useCallback(
     (item: ActivityItem) => {
       if (isExpenseActivity(item)) {
         const paidBy = getUser(item.paid_by);
-        const participantUsers = (item.participant_ids ?? [])
-          .map(getUser)
-          .filter((u): u is UserInfo => u !== undefined);
 
         return (
           <ExpenseFeedCard
             key={item.id}
             activity={item}
             paidBy={paidBy}
-            participants={participantUsers}
+            participantCount={item.participant_count}
             currentUserId={userId}
             currency={currency}
-            onClick={() => onExpenseClick?.(item.expense_id)}
+            onClick={() => onExpenseClick?.(item.id)}
           />
         );
       }
@@ -108,22 +92,15 @@ export function FeedList({
             toUser={toUser}
             currentUserId={userId}
             currency={currency}
-            onClick={() => onSettlementClick?.(item.settlement_id)}
+            onClick={() => onSettlementClick?.(item.id)}
           />
         );
       }
 
-      if (isMilestoneActivity(item)) {
-        const targetUser = item.target_user_id ? getUser(item.target_user_id) : undefined;
+      if (isMemberJoinActivity(item)) {
+        const joinedUser = getUser(item.user_id);
 
-        return (
-          <MilestoneCard
-            key={item.id}
-            activity={item}
-            targetUser={targetUser}
-            currentUserId={userId}
-          />
-        );
+        return <MemberJoinCard key={item.id} activity={item} joinedUser={joinedUser} currentUserId={userId} />;
       }
 
       // Fallback for unknown activity types
@@ -157,7 +134,7 @@ export function FeedList({
   // Empty state
   if (items.length === 0) {
     return (
-      <Card sx={{ backgroundColor: '#1E1E1E', borderColor: 'divider' }}>
+      <Card sx={{ backgroundColor: 'background.paper', borderColor: 'divider' }}>
         <CardContent sx={{ py: 8, textAlign: 'center' }}>
           <Box
             sx={{
@@ -186,7 +163,7 @@ export function FeedList({
 
   // Feed content
   return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {items.map(renderActivityItem)}
 
       {/* Sentinel for infinite scroll */}

@@ -15,13 +15,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Lock as LockIcon,
-  CheckCircle,
-  Circle,
-} from '@mui/icons-material';
+import { Visibility, VisibilityOff, Lock as LockIcon, CheckCircle, Circle } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
@@ -45,11 +39,7 @@ function PasswordRequirements({ password }: { password: string }) {
         return (
           <ListItem key={label} disablePadding sx={{ py: 0.25 }}>
             <ListItemIcon sx={{ minWidth: 28 }}>
-              {met ? (
-                <CheckCircle fontSize="small" color="success" />
-              ) : (
-                <Circle fontSize="small" color="disabled" />
-              )}
+              {met ? <CheckCircle fontSize="small" color="success" /> : <Circle fontSize="small" color="disabled" />}
             </ListItemIcon>
             <ListItemText
               primary={label}
@@ -149,12 +139,7 @@ function ChangePasswordPage() {
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
-              fullWidth
-              size="large"
-              onClick={() => navigate('/app/home')}
-            >
+            <Button variant="contained" fullWidth size="large" onClick={() => navigate('/app/events')}>
               {t('changePassword.goToApp')}
             </Button>
           </CardContent>
@@ -213,11 +198,7 @@ function ChangePasswordPage() {
             </Alert>
           )}
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
-          >
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <TextField
               label={t('changePassword.currentPassword')}
               type={showCurrentPassword ? 'text' : 'password'}
@@ -234,11 +215,7 @@ function ChangePasswordPage() {
                 ),
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      edge="end"
-                      size="small"
-                    >
+                    <IconButton onClick={() => setShowCurrentPassword(!showCurrentPassword)} edge="end" size="small">
                       {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
@@ -263,11 +240,7 @@ function ChangePasswordPage() {
                   ),
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        edge="end"
-                        size="small"
-                      >
+                      <IconButton onClick={() => setShowNewPassword(!showNewPassword)} edge="end" size="small">
                         {showNewPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
@@ -294,13 +267,7 @@ function ChangePasswordPage() {
               }}
             />
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mt: 1 }}
-            >
+            <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ mt: 1 }}>
               {loading ? t('common.loading') : t('changePassword.submitButton')}
             </Button>
           </Box>

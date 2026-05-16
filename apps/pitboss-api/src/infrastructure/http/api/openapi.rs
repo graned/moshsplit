@@ -83,8 +83,14 @@ pub struct FieldErrorSchema {
         super::handlers::balance_handlers::user_balance,
         super::handlers::balance_handlers::simplified_debts,
         super::handlers::balance_handlers::explain_balance,
+        super::handlers::balance_handlers::balance_stats,
         // stats
         super::handlers::stats_handlers::get_event_stats,
+        // event images
+        super::handlers::event_image_handlers::list_event_images,
+        super::handlers::event_image_handlers::create_event_image,
+        super::handlers::event_image_handlers::update_event_image,
+        super::handlers::event_image_handlers::delete_event_image,
         // admin
         super::handlers::admin_handlers::list_audit_entries,
         super::handlers::admin_handlers::get_admin_stats,
@@ -99,6 +105,11 @@ pub struct FieldErrorSchema {
         super::dtos::event_dtos::UpdateEventRequest,
         super::dtos::event_dtos::EventResponse,
         super::dtos::event_dtos::EventListItem,
+        // event image
+        super::dtos::event_image_dtos::CreateEventImageRequest,
+        super::dtos::event_image_dtos::UpdateEventImageRequest,
+        super::dtos::event_image_dtos::EventImageResponse,
+        super::dtos::event_image_dtos::EventImagesResponse,
         // member
         super::dtos::member_dtos::AddMemberRequest,
         super::dtos::member_dtos::MemberListItem,
@@ -143,6 +154,7 @@ pub struct FieldErrorSchema {
     tags(
         (name = "System", description = "System health and readiness endpoints"),
         (name = "Events", description = "Event CRUD operations"),
+        (name = "Event Images", description = "Event image management (banner + gallery)"),
         (name = "Members", description = "Event member management"),
         (name = "Expenses", description = "Expense CRUD with versioning"),
         (name = "Payments", description = "Payment recording"),

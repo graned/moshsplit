@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::event_image_dtos::EventImagesResponse;
+
 // ── Request DTOs ───────────────────────────────────────────────────────────────
 
 /// Payload to create a new event.
@@ -46,6 +48,7 @@ pub struct EventResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub member_count: i64,
+    pub images: EventImagesResponse,
 }
 
 /// Lightweight event row used in list responses.

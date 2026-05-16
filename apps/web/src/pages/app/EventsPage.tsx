@@ -26,11 +26,17 @@ import {
   CalendarToday as CalendarIcon,
   Euro as EuroIcon,
   Receipt as ReceiptIcon,
-
 } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
-import { groupsApi, GroupListItem, CreateGroupRequest, UpdateGroupRequest, Group, GroupMember } from '../../api/groups.api';
+import {
+  groupsApi,
+  GroupListItem,
+  CreateGroupRequest,
+  UpdateGroupRequest,
+  Group,
+  GroupMember,
+} from '../../api/groups.api';
 import { CreateGroupDialog } from '../../components/groups/CreateGroupDialog';
 import { JoinGroupDialog } from '../../components/groups/JoinGroupDialog';
 import { EditEventDialog } from '../../components/groups/EditEventDialog';
@@ -57,7 +63,10 @@ function EventCard({ group, onClick, onDelete, onEdit }: EventCardProps) {
       {onEdit && (
         <IconButton
           size="small"
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
           sx={{ bgcolor: alpha('#000', 0.4), color: '#fff', '&:hover': { bgcolor: alpha('#000', 0.6) } }}
         >
           <EditIcon fontSize="small" />
@@ -66,7 +75,10 @@ function EventCard({ group, onClick, onDelete, onEdit }: EventCardProps) {
       {onDelete && (
         <IconButton
           size="small"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
           sx={{ bgcolor: alpha('#000', 0.4), color: '#fff', '&:hover': { bgcolor: alpha('#000', 0.6) } }}
         >
           <MoreIcon fontSize="small" />
@@ -116,7 +128,11 @@ function EventCard({ group, onClick, onDelete, onEdit }: EventCardProps) {
       <Typography variant="body1" fontWeight={700} color="primary.main" sx={{ lineHeight: 1.2 }}>
         —
       </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block', whiteSpace: 'nowrap' }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ lineHeight: 1.2, display: 'block', whiteSpace: 'nowrap' }}
+      >
         Total Expenses
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mt: 0.5 }}>
@@ -157,28 +173,25 @@ function EventCard({ group, onClick, onDelete, onEdit }: EventCardProps) {
             flexShrink: 0,
           }}
         >
-          <Box sx={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to right, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
-          }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: `linear-gradient(to right, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
+            }}
+          />
           <ReceiptIcon sx={{ fontSize: 40, color: alpha('#fff', 0.3), zIndex: 0 }} />
           {/* Actions on mobile */}
-          <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 0.3, zIndex: 1 }}>
-            {actions}
-          </Box>
+          <Box sx={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 0.3, zIndex: 1 }}>{actions}</Box>
         </Box>
 
         {/* Right: details + expenses */}
         <Box sx={{ display: 'flex', flex: 1, minWidth: 0, p: 1.5 }}>
           {/* Details */}
-          <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
-            {details}
-          </Box>
+          <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>{details}</Box>
 
           {/* Expenses summary */}
-          <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-            {expenses}
-          </Box>
+          <Box sx={{ textAlign: 'right', flexShrink: 0 }}>{expenses}</Box>
         </Box>
       </Box>
 
@@ -196,14 +209,15 @@ function EventCard({ group, onClick, onDelete, onEdit }: EventCardProps) {
           }}
         >
           {/* Top-to-bottom transparent gradient overlay */}
-          <Box sx={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to bottom, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
-          }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: `linear-gradient(to bottom, transparent 40%, ${alpha('#1E1E1E', 0.95)} 100%)`,
+            }}
+          />
           <ReceiptIcon sx={{ fontSize: 96, color: alpha('#fff', 0.2), zIndex: 0 }} />
-          <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1, zIndex: 1 }}>
-            {actions}
-          </Box>
+          <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1, zIndex: 1 }}>{actions}</Box>
         </Box>
 
         <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
@@ -314,8 +328,7 @@ export default function EventsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ groupId, data }: { groupId: string; data: UpdateGroupRequest }) =>
-      groupsApi.update(groupId, data),
+    mutationFn: ({ groupId, data }: { groupId: string; data: UpdateGroupRequest }) => groupsApi.update(groupId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -333,12 +346,56 @@ export default function EventsPage() {
   });
 
   const removeMemberMutation = useMutation({
-    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) =>
-      groupsApi.removeMember(groupId, userId),
+    mutationFn: ({ groupId, userId }: { groupId: string; userId: string }) => groupsApi.removeMember(groupId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       if (selectedEvent) {
         groupsApi.listMembers(selectedEvent.id).then(setSelectedEventMembers).catch(console.error);
+      }
+    },
+  });
+
+  const addImageMutation = useMutation({
+    mutationFn: ({
+      groupId,
+      data,
+    }: {
+      groupId: string;
+      data: { url: string; alt_text?: string; image_type: 'banner' | 'gallery'; sort_order?: number };
+    }) => groupsApi.addImage(groupId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      if (selectedEvent) {
+        groupsApi.get(selectedEvent.id).then(setSelectedEvent).catch(console.error);
+      }
+    },
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: ({ groupId, imageId }: { groupId: string; imageId: string }) =>
+      groupsApi.deleteImage(groupId, imageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      if (selectedEvent) {
+        groupsApi.get(selectedEvent.id).then(setSelectedEvent).catch(console.error);
+      }
+    },
+  });
+
+  const updateImageMutation = useMutation({
+    mutationFn: ({
+      groupId,
+      imageId,
+      data,
+    }: {
+      groupId: string;
+      imageId: string;
+      data: { alt_text?: string; sort_order?: number };
+    }) => groupsApi.updateImage(groupId, imageId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      if (selectedEvent) {
+        groupsApi.get(selectedEvent.id).then(setSelectedEvent).catch(console.error);
       }
     },
   });
@@ -349,7 +406,12 @@ export default function EventsPage() {
   const past = useMemo(() => groups.filter((g) => g.status === 'archived' || g.status === 'deleted'), [groups]);
   const visible = tab === 0 ? upcoming : past;
 
-  const handleCreateGroup = async (data: { name: string; description?: string; currency: string; memberIds?: string[] }) => {
+  const handleCreateGroup = async (data: {
+    name: string;
+    description?: string;
+    currency: string;
+    memberIds?: string[];
+  }) => {
     if (!userId) throw new Error('User not authenticated');
     const mutationData = { ...data, user_id: userId };
     const group = await createMutation.mutateAsync(mutationData);
@@ -401,18 +463,10 @@ export default function EventsPage() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<JoinIcon />}
-            onClick={() => setJoinDialogOpen(true)}
-          >
+          <Button variant="outlined" startIcon={<JoinIcon />} onClick={() => setJoinDialogOpen(true)}>
             Join
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
             New Event
           </Button>
         </Box>
@@ -432,11 +486,15 @@ export default function EventsPage() {
 
       {/* Error state */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>
-            Retry
-          </Button>
-        }>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
           Failed to load events
         </Alert>
       )}
@@ -474,18 +532,10 @@ export default function EventsPage() {
               Create a new event to start tracking shared expenses with friends.
             </Typography>
             <Stack direction="row" spacing={2} justifyContent="center">
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setCreateDialogOpen(true)}
-              >
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
                 Create Event
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<JoinIcon />}
-                onClick={() => setJoinDialogOpen(true)}
-              >
+              <Button variant="outlined" startIcon={<JoinIcon />} onClick={() => setJoinDialogOpen(true)}>
                 Join Event
               </Button>
             </Stack>
@@ -496,11 +546,7 @@ export default function EventsPage() {
       {/* Tabs + groups grid */}
       {!isLoading && !error && groups.length > 0 && (
         <>
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-          >
+          <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Tab
               label={`UPCOMING (${upcoming.length})`}
               sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.85rem' }}
@@ -541,11 +587,7 @@ export default function EventsPage() {
         onSubmit={handleCreateGroup}
       />
 
-      <JoinGroupDialog
-        open={joinDialogOpen}
-        onClose={() => setJoinDialogOpen(false)}
-        onSubmit={handleJoinGroup}
-      />
+      <JoinGroupDialog open={joinDialogOpen} onClose={() => setJoinDialogOpen(false)} onSubmit={handleJoinGroup} />
 
       <EditEventDialog
         open={editDialogOpen}
@@ -565,6 +607,15 @@ export default function EventsPage() {
         }}
         onRemoveMember={async (eventId, userId) => {
           await removeMemberMutation.mutateAsync({ groupId: eventId, userId });
+        }}
+        onAddImage={async (eventId, data) => {
+          await addImageMutation.mutateAsync({ groupId: eventId, data });
+        }}
+        onDeleteImage={async (eventId, imageId) => {
+          await deleteImageMutation.mutateAsync({ groupId: eventId, imageId });
+        }}
+        onUpdateImage={async (eventId, imageId, data) => {
+          await updateImageMutation.mutateAsync({ groupId: eventId, imageId, data });
         }}
       />
     </Box>

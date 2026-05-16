@@ -43,11 +43,7 @@ function PasswordRequirements({ password }: { password: string }) {
         return (
           <ListItem key={label} disablePadding sx={{ py: 0.25 }}>
             <ListItemIcon sx={{ minWidth: 28 }}>
-              {met ? (
-                <CheckCircle fontSize="small" color="success" />
-              ) : (
-                <Circle fontSize="small" color="disabled" />
-              )}
+              {met ? <CheckCircle fontSize="small" color="success" /> : <Circle fontSize="small" color="disabled" />}
             </ListItemIcon>
             <ListItemText
               primary={label}
@@ -142,9 +138,7 @@ function ResetPasswordPage() {
               </Typography>
             </Box>
 
-            <Alert severity="success">
-              {t('resetPassword.successMessage')}
-            </Alert>
+            <Alert severity="success">{t('resetPassword.successMessage')}</Alert>
 
             <Button
               component={RouterLink}
@@ -198,11 +192,7 @@ function ResetPasswordPage() {
             </Alert>
           )}
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
-          >
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <div>
               <TextField
                 label={t('resetPassword.newPassword')}
@@ -220,11 +210,7 @@ function ResetPasswordPage() {
                   ),
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        size="small"
-                      >
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
@@ -251,13 +237,7 @@ function ResetPasswordPage() {
               }}
             />
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading || !token}
-              sx={{ mt: 1 }}
-            >
+            <Button type="submit" variant="contained" size="large" disabled={loading || !token} sx={{ mt: 1 }}>
               {loading ? t('common.loading') : t('resetPassword.submitButton')}
             </Button>
           </Box>

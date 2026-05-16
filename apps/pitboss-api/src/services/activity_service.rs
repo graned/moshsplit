@@ -126,7 +126,7 @@ impl ActivityService {
               AND e.deleted_at IS NULL
               AND ($2::timestamptz IS NULL
                    OR e.created_at < $2
-                   OR (e.created_at = $2 AND e.id < $5::uuid))
+                   OR (e.created_at = $2 AND e.id < $4::uuid))
 
             UNION ALL
 
@@ -146,7 +146,7 @@ impl ActivityService {
             WHERE s.event_id = $1
               AND ($2::timestamptz IS NULL
                    OR s.created_at < $2
-                   OR (s.created_at = $2 AND s.id < $5::uuid))
+                   OR (s.created_at = $2 AND s.id < $4::uuid))
 
             UNION ALL
 
@@ -166,10 +166,10 @@ impl ActivityService {
             WHERE em.event_id = $1
               AND ($2::timestamptz IS NULL
                    OR em.joined_at < $2
-                   OR (em.joined_at = $2 AND em.id < $5::uuid))
+                   OR (em.joined_at = $2 AND em.id < $4::uuid))
 
             ORDER BY created_at DESC, id DESC
-            LIMIT $4
+            LIMIT $3
         "#;
 
         let results: Vec<ActivityRawRow> = sql_query(sql)

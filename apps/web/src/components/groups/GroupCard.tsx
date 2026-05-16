@@ -1,16 +1,5 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Chip,
-  IconButton,
-} from '@mui/material';
-import {
-  MoreVert as MoreIcon,
-  Group as MembersIcon,
-  AttachMoney as CurrencyIcon,
-} from '@mui/icons-material';
+import { Card, CardContent, Typography, Box, Chip, IconButton } from '@mui/material';
+import { MoreVert as MoreIcon, Group as MembersIcon, AttachMoney as CurrencyIcon } from '@mui/icons-material';
 import { GroupListItem } from '../../api/groups.api';
 
 interface GroupCardProps {
@@ -75,12 +64,7 @@ export function GroupCard({ group, onClick, onDelete }: GroupCardProps) {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip
-              label={group.status}
-              size="small"
-              color={getStatusColor(group.status)}
-              variant="outlined"
-            />
+            <Chip label={group.status} size="small" color={getStatusColor(group.status)} variant="outlined" />
             {onDelete && (
               <IconButton
                 size="small"

@@ -1,19 +1,5 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Avatar,
-  Button,
-  alpha,
-  Collapse,
-  IconButton,
-  Chip,
-} from '@mui/material';
-import {
-  ExpandMore as ExpandIcon,
-  Gavel as RoleIcon,
-} from '@mui/icons-material';
+import { Card, CardContent, Typography, Box, Avatar, Button, alpha, Collapse, IconButton, Chip } from '@mui/material';
+import { ExpandMore as ExpandIcon, Gavel as RoleIcon } from '@mui/icons-material';
 import { useState } from 'react';
 import { UserBalanceItem } from '../../api/balances.api';
 
@@ -89,17 +75,9 @@ export function RelationshipCard({
     <Card
       sx={{
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-        borderColor: isSettled
-          ? alpha('#10b981', 0.2)
-          : isOwed
-            ? alpha('#f59e0b', 0.2)
-            : alpha('#ef4444', 0.2),
+        borderColor: isSettled ? alpha('#10b981', 0.2) : isOwed ? alpha('#f59e0b', 0.2) : alpha('#ef4444', 0.2),
         '&:hover': {
-          borderColor: isSettled
-            ? alpha('#10b981', 0.4)
-            : isOwed
-              ? alpha('#f59e0b', 0.4)
-              : alpha('#ef4444', 0.4),
+          borderColor: isSettled ? alpha('#10b981', 0.4) : isOwed ? alpha('#f59e0b', 0.4) : alpha('#ef4444', 0.4),
         },
       }}
     >
@@ -110,11 +88,7 @@ export function RelationshipCard({
             sx={{
               width: 44,
               height: 44,
-              bgcolor: isSettled
-                ? 'success.main'
-                : isOwed
-                  ? 'warning.main'
-                  : 'error.main',
+              bgcolor: isSettled ? 'success.main' : isOwed ? 'warning.main' : 'error.main',
               color: '#121212',
               fontSize: '1rem',
               fontWeight: 700,
@@ -188,13 +162,9 @@ export function RelationshipCard({
               </Typography>
             ) : (
               <>
-                <Typography
-                  variant="h6"
-                  fontWeight={700}
-                  color={amountColor}
-                  sx={{ lineHeight: 1.2 }}
-                >
-                  {amountPrefix}{formatAmount(balanceCents)}
+                <Typography variant="h6" fontWeight={700} color={amountColor} sx={{ lineHeight: 1.2 }}>
+                  {amountPrefix}
+                  {formatAmount(balanceCents)}
                 </Typography>
                 <Typography
                   variant="caption"

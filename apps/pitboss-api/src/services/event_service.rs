@@ -63,6 +63,7 @@ impl EventService {
             created_at: event.created_at,
             updated_at: event.updated_at,
             member_count: 1,
+            images: Default::default(),
         })
     }
 
@@ -113,6 +114,7 @@ impl EventService {
             created_at: row.created_at,
             updated_at: row.updated_at,
             member_count: row.member_count,
+            images: Default::default(),
         })
     }
 

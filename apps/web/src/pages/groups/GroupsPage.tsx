@@ -1,23 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Stack,
-} from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, CircularProgress, Alert, Stack } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import {
-  Add as AddIcon,
-  GroupAdd as JoinIcon,
-  Group as GroupsIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon, GroupAdd as JoinIcon, Group as GroupsIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupListItem, CreateGroupRequest } from '../../api/groups.api';
@@ -113,18 +99,10 @@ export function GroupsPage() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<JoinIcon />}
-            onClick={() => setJoinDialogOpen(true)}
-          >
+          <Button variant="outlined" startIcon={<JoinIcon />} onClick={() => setJoinDialogOpen(true)}>
             Join
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
             New Group
           </Button>
         </Box>
@@ -132,11 +110,15 @@ export function GroupsPage() {
 
       {/* Error state */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>
-            Retry
-          </Button>
-        }>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
           Failed to load groups
         </Alert>
       )}
@@ -174,18 +156,10 @@ export function GroupsPage() {
               Create a new group to start tracking shared expenses with friends.
             </Typography>
             <Stack direction="row" spacing={2} justifyContent="center">
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setCreateDialogOpen(true)}
-              >
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
                 Create Group
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<JoinIcon />}
-                onClick={() => setJoinDialogOpen(true)}
-              >
+              <Button variant="outlined" startIcon={<JoinIcon />} onClick={() => setJoinDialogOpen(true)}>
                 Join Group
               </Button>
             </Stack>
@@ -211,11 +185,7 @@ export function GroupsPage() {
           {/* Load more indicator */}
           {hasMore && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={() => refetch()}
-              >
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
                 Load More
               </Button>
             </Box>
@@ -231,11 +201,7 @@ export function GroupsPage() {
       />
 
       {/* Join Group Dialog */}
-      <JoinGroupDialog
-        open={joinDialogOpen}
-        onClose={() => setJoinDialogOpen(false)}
-        onSubmit={handleJoinGroup}
-      />
+      <JoinGroupDialog open={joinDialogOpen} onClose={() => setJoinDialogOpen(false)} onSubmit={handleJoinGroup} />
     </Box>
   );
 }

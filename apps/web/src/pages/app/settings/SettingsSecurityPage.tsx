@@ -1,19 +1,6 @@
 import { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Alert,
-  Switch,
-  Chip,
-} from '@mui/material';
-import {
-  Security as SecurityIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
+import { Box, Typography, Card, CardContent, TextField, Button, Alert, Switch, Chip } from '@mui/material';
+import { Security as SecurityIcon, Lock as LockIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../../api/settings.api';
 

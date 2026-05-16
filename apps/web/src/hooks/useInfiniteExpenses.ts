@@ -18,11 +18,9 @@ export function useInfiniteExpenses({
 }: UseInfiniteExpensesParams) {
   return useInfiniteQuery({
     queryKey: ['expenses-infinite', eventId, userId, includeDeleted],
-    queryFn: ({ pageParam }) =>
-      expensesApi.list(eventId, userId, pageParam, pageSize, includeDeleted),
+    queryFn: ({ pageParam }) => expensesApi.list(eventId, userId, pageParam, pageSize, includeDeleted),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.hasMore ? lastPage.nextCursor : undefined,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     enabled: enabled && !!eventId && !!userId,
     staleTime: 1000 * 60,
   });

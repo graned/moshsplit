@@ -53,16 +53,20 @@ export interface SettlementBreakdown {
   status: string;
 }
 
+export interface SettlementProgress {
+  total_cents: number;
+  settled_cents: number;
+  remaining_cents: number;
+  percentage: number;
+}
+
 export interface EventStats {
-  total_expenses_cents: number;
-  total_paid_cents: number;
-  total_owed_cents: number;
+  total_spent_cents: number;
+  total_settled_cents: number;
+  outstanding_cents: number;
   your_share_cents: number;
-  your_paid_cents: number;
-  your_balance_cents: number;
-  member_count: number;
-  expense_count: number;
-  settled_count: number;
+  settlement_progress: SettlementProgress | null;
+  top_spender_id: string | null;
 }
 
 export interface ExplainBalanceResponse {
@@ -84,7 +88,7 @@ export const balancesApi = {
       `/v1/events/${eventId}/balances?${params.toString()}`
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get balances');
+      throw new Error((response.error as string) || 'Failed to get balances');
     }
     return response.data;
   },
@@ -96,7 +100,7 @@ export const balancesApi = {
       `/v1/events/${eventId}/balances/simplified?${params.toString()}`
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get simplified debts');
+      throw new Error((response.error as string) || 'Failed to get simplified debts');
     }
     return response.data;
   },
@@ -108,7 +112,7 @@ export const balancesApi = {
       `/v1/events/${eventId}/balances/${userId}?${params.toString()}`
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get user balance');
+      throw new Error((response.error as string) || 'Failed to get user balance');
     }
     return response.data;
   },
@@ -120,7 +124,7 @@ export const balancesApi = {
       `/v1/events/${eventId}/balances/${userId}/explain?${params.toString()}`
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to explain balance');
+      throw new Error((response.error as string) || 'Failed to explain balance');
     }
     return response.data;
   },
@@ -132,7 +136,7 @@ export const balancesApi = {
       `/v1/events/${eventId}/balances/stats?${params.toString()}`
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get event stats');
+      throw new Error((response.error as string) || 'Failed to get event stats');
     }
     return response.data;
   },

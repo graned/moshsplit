@@ -18,12 +18,7 @@ import { UserSelect } from '../UserSelect';
 interface CreateGroupDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    name: string;
-    description?: string;
-    currency: string;
-    memberIds: string[];
-  }) => Promise<void>;
+  onSubmit: (data: { name: string; description?: string; currency: string; memberIds: string[] }) => Promise<void>;
 }
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'BRL', 'JPY', 'CAD', 'AUD'];
@@ -101,11 +96,7 @@ export function CreateGroupDialog({ open, onClose, onSubmit }: CreateGroupDialog
             />
             <FormControl fullWidth>
               <InputLabel>Currency</InputLabel>
-              <Select
-                value={currency}
-                label="Currency"
-                onChange={(e) => setCurrency(e.target.value)}
-              >
+              <Select value={currency} label="Currency" onChange={(e) => setCurrency(e.target.value)}>
                 {CURRENCIES.map((curr) => (
                   <MenuItem key={curr} value={curr}>
                     {curr}

@@ -1,21 +1,6 @@
 import { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Alert,
-  Avatar,
-  InputAdornment,
-} from '@mui/material';
-import {
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Edit as EditIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
+import { Box, Typography, Card, CardContent, TextField, Button, Alert, Avatar, InputAdornment } from '@mui/material';
+import { Person as PersonIcon, Email as EmailIcon, Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { usersApi } from '../../../api/users.api';
@@ -41,7 +26,11 @@ function SettingsProfilePage() {
       const response = await usersApi.updateProfile({ name: name.trim() });
       // Update the store with the new profile data
       if (response.user) {
-        setUserProfile(response.user.email, response.user.name?.split(' ')[0] || null, response.user.name?.split(' ').slice(1).join(' ') || null);
+        setUserProfile(
+          response.user.email,
+          response.user.name?.split(' ')[0] || null,
+          response.user.name?.split(' ').slice(1).join(' ') || null
+        );
       }
       setSuccess(true);
       setIsEditing(false);
@@ -75,11 +64,7 @@ function SettingsProfilePage() {
 
       <Card>
         <CardContent sx={{ p: 4 }}>
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
-          >
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Avatar
                 sx={{
@@ -143,21 +128,12 @@ function SettingsProfilePage() {
                   >
                     {t('common.cancel')}
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={loading}
-                    startIcon={<SaveIcon />}
-                  >
+                  <Button type="submit" variant="contained" disabled={loading} startIcon={<SaveIcon />}>
                     {loading ? t('common.loading') : t('common.save')}
                   </Button>
                 </>
               ) : (
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  onClick={() => setIsEditing(true)}
-                >
+                <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setIsEditing(true)}>
                   {t('common.edit')}
                 </Button>
               )}

@@ -21,8 +21,12 @@ export function UserSelect({
   limit,
 }: UserSelectProps) {
   console.log('[UserSelect] Rendering component, disabled:', disabled);
-  
-  const { data: users = [], isLoading, error } = useQuery({
+
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['users', 'list'],
     queryFn: async () => {
       console.log('[UserSelect] queryFn called');
@@ -93,11 +97,7 @@ export function UserSelect({
               py: 1,
             }}
           >
-            <Avatar
-              src={option.avatarUrl}
-              alt={option.name}
-              sx={{ width: 32, height: 32, fontSize: 14 }}
-            >
+            <Avatar src={option.avatarUrl} alt={option.name} sx={{ width: 32, height: 32, fontSize: 14 }}>
               {option.name?.charAt(0).toUpperCase() || '?'}
             </Avatar>
             <Box>

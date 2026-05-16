@@ -26,11 +26,7 @@ import {
   DialogActions,
   Alert,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  Add as AddIcon,
-  Restore as RestoreIcon,
-} from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, Restore as RestoreIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminEventsApi, AdminEvent } from '../../api/admin/events.api';
 import { TableSkeleton } from '../../components/ui/Skeleton';
@@ -296,9 +292,15 @@ export default function AdminEvents() {
 
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>Retry</Button>
-        }>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
           Failed to load events
         </Alert>
       )}
@@ -312,7 +314,11 @@ export default function AdminEvents() {
           <EmptyState
             icon={<RestoreIcon />}
             title="No survivors found"
-            description={search || statusFilter ? 'Try adjusting your search or filters' : 'The pit is empty. Summon your first event.'}
+            description={
+              search || statusFilter
+                ? 'Try adjusting your search or filters'
+                : 'The pit is empty. Summon your first event.'
+            }
             actionLabel="Summon Event"
             onAction={() => setSummonDialogOpen(true)}
           />

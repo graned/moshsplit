@@ -1,16 +1,5 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Chip,
-  IconButton,
-  Avatar,
-  Tooltip,
-} from '@mui/material';
-import {
-  MoreVert as MoreIcon,
-} from '@mui/icons-material';
+import { Card, CardContent, Typography, Box, Chip, IconButton, Avatar, Tooltip } from '@mui/material';
+import { MoreVert as MoreIcon } from '@mui/icons-material';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { UserInfo } from '../../api/users.api';
 
@@ -31,9 +20,13 @@ function UserAvatar({ user, currentUserId }: { user?: UserInfo; currentUserId?: 
     <Tooltip
       title={
         <Box sx={{ py: 0.5 }}>
-          <Typography variant="body2" fontWeight={600}>{name}</Typography>
+          <Typography variant="body2" fontWeight={600}>
+            {name}
+          </Typography>
           {user?.email && (
-            <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {user.email}
+            </Typography>
           )}
         </Box>
       }
@@ -85,9 +78,7 @@ export function ExpenseCard({ expense, onClick, onDelete, paidBy, currentUserId 
     }
   };
 
-  const paidByName = paidBy
-    ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email
-    : expense.paid_by;
+  const paidByName = paidBy ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email : expense.paid_by;
 
   return (
     <Card
@@ -121,11 +112,7 @@ export function ExpenseCard({ expense, onClick, onDelete, paidBy, currentUserId 
                 </Typography>
               </Box>
               {expense.split_type && (
-                <Chip
-                  label={getSplitTypeLabel(expense.split_type)}
-                  size="small"
-                  variant="outlined"
-                />
+                <Chip label={getSplitTypeLabel(expense.split_type)} size="small" variant="outlined" />
               )}
             </Box>
           </Box>
@@ -150,9 +137,7 @@ export function ExpenseCard({ expense, onClick, onDelete, paidBy, currentUserId 
           <Typography variant="caption" color="text.secondary">
             v{expense.version_number} • {formatDate(expense.created_at)}
           </Typography>
-          {expense.deleted_at && (
-            <Chip label="Deleted" size="small" color="error" variant="outlined" />
-          )}
+          {expense.deleted_at && <Chip label="Deleted" size="small" color="error" variant="outlined" />}
         </Box>
       </CardContent>
     </Card>

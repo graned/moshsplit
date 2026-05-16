@@ -5,32 +5,18 @@ use diesel::sql_types::Text;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 
-// ── Custom SQL types for PostgreSQL enums ─────────────────────────────────────
+// ── Re-export auto-generated SQL types from schema.rs ──────────────────────────
 
-/// SQL type for `app.event_status` enum.
-#[derive(diesel::sql_types::SqlType, Debug, Clone)]
-#[diesel(postgres_type(name = "event_status", schema = "app"))]
-pub struct EventStatusType;
+use crate::schema::app::sql_types::{
+    EventImageType as EventImageTypeType,
+    EventMemberRole as EventMemberRoleType,
+    EventStatus as EventStatusType,
+    ExpenseType as ExpenseTypeType,
+    SettlementStatus as SettlementStatusType,
+    SplitType as SplitTypeType,
+};
 
-/// SQL type for `app.event_member_role` enum.
-#[derive(diesel::sql_types::SqlType, Debug, Clone)]
-#[diesel(postgres_type(name = "event_member_role", schema = "app"))]
-pub struct EventMemberRoleType;
-
-/// SQL type for `app.split_type` enum.
-#[derive(diesel::sql_types::SqlType, Debug, Clone)]
-#[diesel(postgres_type(name = "split_type", schema = "app"))]
-pub struct SplitTypeType;
-
-/// SQL type for `app.settlement_status` enum.
-#[derive(diesel::sql_types::SqlType, Debug, Clone)]
-#[diesel(postgres_type(name = "settlement_status", schema = "app"))]
-pub struct SettlementStatusType;
-
-/// SQL type for `app.expense_type` enum.
-#[derive(diesel::sql_types::SqlType, Debug, Clone)]
-#[diesel(postgres_type(name = "expense_type", schema = "app"))]
-pub struct ExpenseTypeType;
+// ── Rust enum types with Diesel mappings ───────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
 #[diesel(sql_type = EventStatusType)]
@@ -309,6 +295,53 @@ impl FromSql<Text, Pg> for ExpenseType {
             b"camping" => Ok(Self::Camping),
             b"other" => Ok(Self::Other),
             _ => Err("Unrecognized ExpenseType variant".into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[diesel(sql_type = EventImageTypeType)]
+pub enum EventImageType {
+    Banner,
+    Gallery,
+}
+
+impl ToSql<EventImageTypeType, Pg> for EventImageType {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Banner => out.write_all(b"banner")?,
+            Self::Gallery => out.write_all(b"gallery")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<EventImageTypeType, Pg> for EventImageType {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"banner" => Ok(Self::Banner),
+            b"gallery" => Ok(Self::Gallery),
+            _ => Err("Unrecognized EventImageType variant".into()),
+        }
+    }
+}
+
+impl ToSql<Text, Pg> for EventImageType {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Banner => out.write_all(b"banner")?,
+            Self::Gallery => out.write_all(b"gallery")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for EventImageType {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"banner" => Ok(Self::Banner),
+            b"gallery" => Ok(Self::Gallery),
+            _ => Err("Unrecognized EventImageType variant".into()),
         }
     }
 }

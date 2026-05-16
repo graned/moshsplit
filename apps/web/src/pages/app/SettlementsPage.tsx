@@ -22,11 +22,7 @@ import {
   TextField,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import {
-  SwapHoriz as SettlementIcon,
-  CheckCircle as ConfirmIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
+import { SwapHoriz as SettlementIcon, CheckCircle as ConfirmIcon, Add as AddIcon } from '@mui/icons-material';
 
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
@@ -82,7 +78,11 @@ export default function SettlementsPage() {
   });
 
   // Fetch settlements
-  const { data: settlementsData, isLoading: settlementsLoading, error } = useQuery({
+  const {
+    data: settlementsData,
+    isLoading: settlementsLoading,
+    error,
+  } = useQuery({
     queryKey: ['settlements', selectedGroupId, userId],
     queryFn: () => {
       if (!userId) throw new Error('User not authenticated');
@@ -151,11 +151,7 @@ export default function SettlementsPage() {
           </Typography>
         </Box>
         {selectedGroupId && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialogOpen(true)}>
             Propose Settlement
           </Button>
         )}
@@ -205,11 +201,7 @@ export default function SettlementsPage() {
       ) : null}
 
       {/* Error */}
-      {error && selectedGroupId && (
-        <Alert severity="error">
-          Failed to load settlements
-        </Alert>
-      )}
+      {error && selectedGroupId && <Alert severity="error">Failed to load settlements</Alert>}
 
       {/* Empty state */}
       {!settlementsLoading && !error && selectedGroupId && settlements.length === 0 && (
@@ -257,11 +249,7 @@ export default function SettlementsPage() {
                         {getMemberName(members, settlement.to_user)}
                       </Typography>
                     </Box>
-                    <Chip
-                      label={settlement.status}
-                      color={getStatusColor(settlement.status)}
-                      size="small"
-                    />
+                    <Chip label={settlement.status} color={getStatusColor(settlement.status)} size="small" />
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" fontWeight={700}>
@@ -338,7 +326,9 @@ export default function SettlementsPage() {
           <Button
             variant="contained"
             onClick={handleCreateSettlement}
-            disabled={createMutation.isPending || !newSettlement.from_user || !newSettlement.to_user || !newSettlement.amount}
+            disabled={
+              createMutation.isPending || !newSettlement.from_user || !newSettlement.to_user || !newSettlement.amount
+            }
           >
             {createMutation.isPending ? 'Creating...' : 'Create'}
           </Button>

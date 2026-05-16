@@ -33,7 +33,7 @@ function AppShell() {
   const lastName = useAuthStore((state) => state.lastName);
   const userEmail = useAuthStore((state) => state.userEmail);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Expense wizard state
@@ -115,7 +115,7 @@ function AppShell() {
             },
           }}
         >
-          <Sidebar onAddExpense={handleAddExpense} />
+          <Sidebar eventId={eventId} collapsed={!sidebarOpen} onAddExpense={handleAddExpense} />
         </Drawer>
 
         {/* Toggle Button */}
@@ -125,8 +125,7 @@ function AppShell() {
           sx={{
             position: 'fixed',
             left: sidebarWidth - 16,
-            top: '50%',
-            transform: 'translateY(-50%)',
+            top: 20,
             zIndex: (t) => t.zIndex.drawer + 1,
             width: 32,
             height: 32,
@@ -134,7 +133,7 @@ function AppShell() {
             border: '1px solid',
             borderColor: 'divider',
             boxShadow: 1,
-            transition: theme.transitions.create('left', {
+            transition: theme.transitions.create(['left', 'background-color'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
@@ -144,11 +143,7 @@ function AppShell() {
           }}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          {sidebarOpen ? (
-            <ChevronLeftIcon fontSize="small" />
-          ) : (
-            <ChevronRightIcon fontSize="small" />
-          )}
+          {sidebarOpen ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
         </IconButton>
 
         {/* Main Content */}
@@ -157,22 +152,13 @@ function AppShell() {
           sx={{
             flexGrow: 1,
             minWidth: 0,
-            ml: `${sidebarWidth}px`,
             transition: theme.transitions.create('margin-left', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
           }}
         >
-          <Box
-            sx={{
-              p: { sm: 3, lg: 4 },
-              pb: 4,
-              minHeight: '100vh',
-            }}
-          >
-            <Outlet />
-          </Box>
+          <Outlet />
         </Box>
 
         {/* Expense Wizard Dialog */}
@@ -245,6 +231,7 @@ function AppShell() {
         }}
       >
         <Sidebar
+          eventId={eventId}
           onAddExpense={() => {
             setMobileDrawerOpen(false);
             handleAddExpense();

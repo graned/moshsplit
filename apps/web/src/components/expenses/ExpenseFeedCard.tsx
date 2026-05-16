@@ -1,11 +1,4 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Avatar,
-  Tooltip,
-} from '@mui/material';
+import { Card, CardContent, Typography, Box, Avatar, Tooltip } from '@mui/material';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { UserInfo } from '../../api/users.api';
 
@@ -50,15 +43,11 @@ export function ExpenseFeedCard({
   onClick,
 }: ExpenseFeedCardProps) {
   const iconSrc = expense.expense_type ? EXPENSE_TYPE_ICONS[expense.expense_type] : null;
-  const payerName = paidBy
-    ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email
-    : expense.paid_by;
+  const payerName = paidBy ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email : expense.paid_by;
   const isPayerCurrentUser = expense.paid_by === currentUserId;
   const payerInitial = payerName.charAt(0).toUpperCase();
 
-  const createdDate = expense.created_at
-    ? new Date(expense.created_at)
-    : null;
+  const createdDate = expense.created_at ? new Date(expense.created_at) : null;
   const isValidDate = createdDate && !isNaN(createdDate.getTime());
 
   return (
@@ -75,9 +64,7 @@ export function ExpenseFeedCard({
           <Box sx={{ minWidth: 0, flex: 1 }}>
             {/* Row 1: Icon + Title */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              {iconSrc && (
-                <img src={iconSrc} alt="" style={{ width: 22, height: 22, flexShrink: 0 }} />
-              )}
+              {iconSrc && <img src={iconSrc} alt="" style={{ width: 22, height: 22, flexShrink: 0 }} />}
               <Typography variant="h6" fontWeight={600} noWrap sx={{ fontSize: '1.05rem' }}>
                 {expense.title}
               </Typography>
@@ -88,9 +75,13 @@ export function ExpenseFeedCard({
               <Tooltip
                 title={
                   <Box sx={{ py: 0.5 }}>
-                    <Typography variant="body2" fontWeight={600}>{payerName}</Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {payerName}
+                    </Typography>
                     {paidBy?.email && (
-                      <Typography variant="caption" color="text.secondary">{paidBy.email}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {paidBy.email}
+                      </Typography>
                     )}
                   </Box>
                 }

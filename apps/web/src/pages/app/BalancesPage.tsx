@@ -156,6 +156,13 @@ export default function BalancesPage() {
   const currency = eventData?.currency || 'USD';
   const eventName = eventData?.name || '';
 
+  // Derive current user's paid/balance from the balances array
+  const currentUserBalance = useMemo(() => {
+    return balances.find((b) => b.user_id === userId);
+  }, [balances, userId]);
+  const yourPaidCents = currentUserBalance?.paid_cents ?? 0;
+  const yourBalanceCents = currentUserBalance?.balance_cents ?? 0;
+
   // Sort balances: highest debt first (most negative balance_cents first)
   const sortedBalances = useMemo(() => {
     return [...balances].sort((a, b) => a.balance_cents - b.balance_cents);
@@ -395,7 +402,7 @@ export default function BalancesPage() {
               <Grid size={{ xs: 4 }}>
                 <StatWidget
                   label="Total Damage"
-                  value={formatAmount(statsData?.total_expenses_cents || 0, currency)}
+                  value={formatAmount(statsData?.total_spent_cents || 0, currency)}
                   icon={<WalletIcon sx={{ fontSize: 18 }} />}
                   color="primary.main"
                 />
@@ -411,24 +418,16 @@ export default function BalancesPage() {
               <Grid size={{ xs: 4 }}>
                 <StatWidget
                   label="You Paid"
-                  value={formatAmount(statsData?.your_paid_cents || 0, currency)}
+                  value={formatAmount(yourPaidCents || 0, currency)}
                   icon={<PaymentsIcon sx={{ fontSize: 18 }} />}
-                  color={
-                    (statsData?.your_balance_cents || 0) >= 0
-                      ? 'success.main'
-                      : 'error.main'
-                  }
+                  color={yourBalanceCents >= 0 ? 'success.main' : 'error.main'}
                 />
               </Grid>
             </Grid>
           </Box>
 
           {/* Relationship Cards - sorted by amount (highest debt first) */}
-          <Typography
-            variant="h6"
-            fontWeight={600}
-            sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-          >
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
             <ScalesIcon sx={{ fontSize: 20, color: 'primary.main' }} />
             Debts & Balances
           </Typography>
@@ -442,11 +441,7 @@ export default function BalancesPage() {
                 userRole={getMemberRole(members, balance.user_id)}
                 isCurrentUser={balance.user_id === userId}
                 currency={currency}
-                onSettle={
-                  balance.balance_cents !== 0
-                    ? () => handleOpenSettleDialog(balance)
-                    : undefined
-                }
+                onSettle={balance.balance_cents !== 0 ? () => handleOpenSettleDialog(balance) : undefined}
               />
             ))}
           </Box>
@@ -454,11 +449,7 @@ export default function BalancesPage() {
           {/* Simplified debts (how to settle up) */}
           {transfers.length > 0 && (
             <Box>
-              <Typography
-                variant="h6"
-                fontWeight={600}
-                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PaymentsIcon sx={{ fontSize: 20, color: 'warning.main' }} />
                 How to Settle Up
               </Typography>

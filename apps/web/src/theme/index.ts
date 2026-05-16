@@ -3,35 +3,50 @@ import { createTheme, alpha } from '@mui/material/styles';
 declare module '@mui/material/styles' {
   interface Palette {
     accent: Palette['primary'];
-    elevated: Palette['background'];
+    elevated: Palette['primary'];
+    surface: {
+      low: string;
+      lowest: string;
+    };
   }
   interface PaletteOptions {
     accent?: PaletteOptions['primary'];
-    elevated?: PaletteOptions['background'];
+    elevated?: PaletteOptions['primary'];
+    surface?: {
+      low?: string;
+      lowest?: string;
+    };
   }
 }
 
-// Modern Heavy Metal design tokens
+// Stitch Design System — "High-End Underground" Matte Minimalism
+// Colors from DESIGN.md: surface #131313, primary #ffc174, on-surface #e5e2e1
 const colors = {
-  background: '#121212',
-  surface: '#1E1E1E',
-  elevated: '#2A2A2A',
-  primary: '#F59E0B',       // Amber - beer gold
-  primaryLight: '#FBBF24',
-  primaryDark: '#D97706',
-  textPrimary: '#F3F4F6',
-  textSecondary: '#9CA3AF',
+  background: '#131313',
+  surface: '#201f1f',
+  surfaceLow: '#1c1b1b',
+  surfaceLowest: '#0e0e0e',
+  elevated: '#2a2a2a',
+  elevatedHighest: '#353534',
+  primary: '#ffc174',
+  primaryLight: '#ffd79b',
+  primaryDark: '#f59e0b',
+  primaryContainer: '#f59e0b',
+  onPrimaryContainer: '#613b00',
+  textPrimary: '#e5e2e1',
+  textSecondary: '#d8c3ad',
   textMuted: '#6B7280',
   success: '#10b981',
   successLight: '#34d399',
   successDark: '#059669',
-  error: '#ef4444',
+  error: '#ffb4ab',
   errorLight: '#f87171',
   errorDark: '#dc2626',
   warning: '#f59e0b',
   warningLight: '#fbbf24',
   warningDark: '#d97706',
-  divider: alpha('#f8fafc', 0.08),
+  outlineVariant: '#534434',
+  divider: alpha('#534434', 0.2),
 };
 
 export const theme = createTheme({
@@ -41,7 +56,7 @@ export const theme = createTheme({
       main: colors.primary,
       light: colors.primaryLight,
       dark: colors.primaryDark,
-      contrastText: '#121212',
+      contrastText: colors.onPrimaryContainer,
     },
     secondary: {
       main: colors.elevated,
@@ -53,15 +68,30 @@ export const theme = createTheme({
       main: colors.primary,
       light: colors.primaryLight,
       dark: colors.primaryDark,
-      contrastText: '#121212',
+      contrastText: colors.onPrimaryContainer,
+    },
+    elevated: {
+      main: colors.elevated,
+      light: alpha('#f8fafc', 0.12),
+      dark: colors.surface,
+      contrastText: colors.textPrimary,
     },
     background: {
       default: colors.background,
       paper: colors.surface,
     },
+    surface: {
+      low: colors.surfaceLow,
+      lowest: colors.surfaceLowest,
+    },
+    action: {
+      selected: alpha(colors.primary, 0.08),
+      disabledBackground: alpha('#f8fafc', 0.08),
+    },
     text: {
       primary: colors.textPrimary,
       secondary: colors.textSecondary,
+      disabled: colors.textMuted,
     },
     success: {
       main: colors.success,
@@ -81,56 +111,65 @@ export const theme = createTheme({
     divider: colors.divider,
   },
   typography: {
-    fontFamily: '"Geist", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Space Grotesk", "Geist", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      fontWeight: 800,
-      fontSize: '2.5rem',
-      letterSpacing: '-0.03em',
+      fontFamily: '"Space Grotesk", sans-serif',
+      fontWeight: 700,
+      fontSize: '3rem',
+      letterSpacing: '-0.02em',
       lineHeight: 1.1,
     },
     h2: {
-      fontWeight: 700,
+      fontFamily: '"Space Grotesk", sans-serif',
+      fontWeight: 600,
       fontSize: '2rem',
-      letterSpacing: '-0.02em',
+      letterSpacing: '-0.01em',
       lineHeight: 1.2,
     },
     h3: {
-      fontWeight: 700,
-      fontSize: '1.75rem',
+      fontFamily: '"Space Grotesk", sans-serif',
+      fontWeight: 600,
+      fontSize: '1.5rem',
       letterSpacing: '-0.01em',
       lineHeight: 1.25,
     },
     h4: {
+      fontFamily: '"Space Grotesk", sans-serif',
       fontWeight: 600,
-      fontSize: '1.5rem',
-      letterSpacing: '-0.01em',
+      fontSize: '1.25rem',
       lineHeight: 1.3,
     },
     h5: {
+      fontFamily: '"Space Grotesk", sans-serif',
       fontWeight: 600,
-      fontSize: '1.25rem',
+      fontSize: '1.125rem',
       lineHeight: 1.35,
     },
     h6: {
+      fontFamily: '"Space Grotesk", sans-serif',
       fontWeight: 600,
       fontSize: '1rem',
       lineHeight: 1.4,
     },
     body1: {
-      fontSize: '0.9375rem',
-      lineHeight: 1.6,
-    },
-    body2: {
-      fontSize: '0.875rem',
+      fontFamily: '"Inter", sans-serif',
+      fontSize: '1rem',
       lineHeight: 1.5,
     },
+    body2: {
+      fontFamily: '"Inter", sans-serif',
+      fontSize: '0.875rem',
+      lineHeight: 1.43,
+    },
     button: {
+      fontFamily: '"Space Grotesk", sans-serif',
       textTransform: 'none',
-      fontWeight: 600,
-      fontSize: '0.9375rem',
-      letterSpacing: '0.01em',
+      fontWeight: 700,
+      fontSize: '0.75rem',
+      letterSpacing: '0.05em',
     },
     caption: {
+      fontFamily: '"JetBrains Mono", monospace',
       fontSize: '0.75rem',
       letterSpacing: '0.02em',
     },
@@ -154,8 +193,9 @@ export const theme = createTheme({
         root: {
           borderRadius: 10,
           padding: '10px 24px',
-          fontSize: '0.9375rem',
-          fontWeight: 600,
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          letterSpacing: '0.05em',
           transition: 'all 0.2s ease',
         },
         contained: {
@@ -209,13 +249,14 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          borderRadius: 14,
-          border: '1px solid',
-          borderColor: colors.divider,
+          borderRadius: 12,
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.05)',
           backgroundColor: colors.surface,
-          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
           '&:hover': {
-            borderColor: alpha(colors.primary, 0.2),
+            borderColor: alpha(colors.primary, 0.3),
+            backgroundColor: colors.elevated,
           },
         },
       },
@@ -262,8 +303,31 @@ export const theme = createTheme({
             bgcolor: alpha('#f8fafc', 0.25),
           },
         },
-        // Geist font face fallback if not loaded via link
         '@font-face': [
+          {
+            fontFamily: 'Space Grotesk',
+            fontStyle: 'normal',
+            fontWeight: 400,
+            src: 'local("Space Grotesk"), local("SpaceGrotesk-Regular")',
+          },
+          {
+            fontFamily: 'Space Grotesk',
+            fontStyle: 'normal',
+            fontWeight: 500,
+            src: 'local("Space Grotesk Medium"), local("SpaceGrotesk-Medium")',
+          },
+          {
+            fontFamily: 'Space Grotesk',
+            fontStyle: 'normal',
+            fontWeight: 600,
+            src: 'local("Space Grotesk SemiBold"), local("SpaceGrotesk-SemiBold")',
+          },
+          {
+            fontFamily: 'Space Grotesk',
+            fontStyle: 'normal',
+            fontWeight: 700,
+            src: 'local("Space Grotesk Bold"), local("SpaceGrotesk-Bold")',
+          },
           {
             fontFamily: 'Geist',
             fontStyle: 'normal',
@@ -293,6 +357,30 @@ export const theme = createTheme({
             fontStyle: 'normal',
             fontWeight: 800,
             src: 'local("Geist"), local("Geist-ExtraBold")',
+          },
+          {
+            fontFamily: 'JetBrains Mono',
+            fontStyle: 'normal',
+            fontWeight: 400,
+            src: 'local("JetBrains Mono"), local("JetBrainsMono-Regular")',
+          },
+          {
+            fontFamily: 'JetBrains Mono',
+            fontStyle: 'normal',
+            fontWeight: 500,
+            src: 'local("JetBrains Mono Medium"), local("JetBrainsMono-Medium")',
+          },
+          {
+            fontFamily: 'JetBrains Mono',
+            fontStyle: 'normal',
+            fontWeight: 600,
+            src: 'local("JetBrains Mono SemiBold"), local("JetBrainsMono-SemiBold")',
+          },
+          {
+            fontFamily: 'JetBrains Mono',
+            fontStyle: 'normal',
+            fontWeight: 700,
+            src: 'local("JetBrains Mono Bold"), local("JetBrainsMono-Bold")',
           },
         ],
       },

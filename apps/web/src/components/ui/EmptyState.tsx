@@ -9,13 +9,7 @@ interface EmptyStateProps {
   onAction?: () => void;
 }
 
-export default function EmptyState({
-  icon,
-  title,
-  description,
-  actionLabel,
-  onAction,
-}: EmptyStateProps) {
+export default function EmptyState({ icon, title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
     <Box
       sx={{

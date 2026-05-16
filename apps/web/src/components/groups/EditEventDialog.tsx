@@ -14,9 +14,12 @@ import {
   Typography,
   Chip,
   IconButton,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { UserSelect } from '../UserSelect';
+import { EventImagesManager } from './EventImagesManager';
 import { Group, GroupMember, UpdateGroupRequest } from '../../api/groups.api';
 
 interface EditEventDialogProps {
@@ -28,6 +31,12 @@ interface EditEventDialogProps {
   onUpdate: (eventId: string, data: UpdateGroupRequest) => Promise<void>;
   onAddMember: (eventId: string, userId: string) => Promise<void>;
   onRemoveMember: (eventId: string, userId: string) => Promise<void>;
+  onAddImage?: (
+    eventId: string,
+    data: { url: string; alt_text?: string; image_type: 'banner' | 'gallery'; sort_order?: number }
+  ) => Promise<void>;
+  onDeleteImage?: (eventId: string, imageId: string) => Promise<void>;
+  onUpdateImage?: (eventId: string, imageId: string, data: { alt_text?: string; sort_order?: number }) => Promise<void>;
 }
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'BRL', 'JPY', 'CAD', 'AUD'];
@@ -41,6 +50,9 @@ export function EditEventDialog({
   onUpdate,
   onAddMember,
   onRemoveMember,
+  onAddImage,
+  onDeleteImage,
+  onUpdateImage,
 }: EditEventDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -49,6 +61,7 @@ export function EditEventDialog({
   const [newMembers, setNewMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [imagesTab, setImagesTab] = useState(0);
 
   // Reset form when event changes
   useEffect(() => {
@@ -120,16 +133,24 @@ export function EditEventDialog({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {isArchived ? 'Restore Event' : 'Edit Event'}
-            <IconButton onClick={handleClose} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {isArchived ? 'Restore Event' : 'Edit Event'}
+          <IconButton onClick={handleClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        {/* Tabs */}
+        <Tabs value={imagesTab} onChange={(_, v) => setImagesTab(v)} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="General" />
+          <Tab label="Images" />
+        </Tabs>
+
+        {/* General Tab */}
+        {imagesTab === 0 && (
+        <form onSubmit={handleSubmit}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <TextField
               label="Group Name"
@@ -150,11 +171,7 @@ export function EditEventDialog({
             />
             <FormControl fullWidth disabled={isArchived}>
               <InputLabel>Currency</InputLabel>
-              <Select
-                value={currency || 'EUR'}
-                label="Currency"
-                onChange={(e) => setCurrency(e.target.value)}
-              >
+              <Select value={currency || 'EUR'} label="Currency" onChange={(e) => setCurrency(e.target.value)}>
                 {CURRENCIES.map((curr) => (
                   <MenuItem key={curr} value={curr}>
                     {curr}
@@ -205,27 +222,43 @@ export function EditEventDialog({
               </Typography>
             )}
           </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} disabled={loading}>
-            Cancel
-          </Button>
-          {isArchived ? (
-            <Button
-              type="submit"
-              variant="contained"
-              color="success"
-              disabled={loading}
-            >
-                {loading ? 'Restoring...' : 'Restore Event'}
-              </Button>
+        </form>
+        )}
+
+        {/* Images Tab */}
+        {imagesTab === 1 && (
+          <Box sx={{ pt: 1 }}>
+            {onAddImage && onDeleteImage && onUpdateImage ? (
+              <EventImagesManager
+                images={event.images}
+                onAddImage={(data) => onAddImage(event.id, data)}
+                onDeleteImage={(imageId) => onDeleteImage(event.id, imageId)}
+                onUpdateImage={(imageId, data) => onUpdateImage(event.id, imageId, data)}
+              />
             ) : (
-              <Button type="submit" variant="contained" disabled={loading}>
-                {loading ? 'Saving...' : 'Save Changes'}
-              </Button>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                Image management is not available for this event.
+              </Typography>
             )}
-          </DialogActions>
-      </form>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        {imagesTab === 0 && (
+          isArchived ? (
+            <Button type="submit" variant="contained" color="success" disabled={loading} onClick={handleSubmit}>
+              {loading ? 'Restoring...' : 'Restore Event'}
+            </Button>
+          ) : (
+            <Button type="submit" variant="contained" disabled={loading} onClick={handleSubmit}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          )
+        )}
+      </DialogActions>
     </Dialog>
   );
 }

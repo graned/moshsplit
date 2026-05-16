@@ -32,13 +32,19 @@ export interface UpdateSettlementStatusRequest {
 }
 
 export const settlementsApi = {
-  list: async (eventId: string, userId: string, cursor?: string, limit = 20, status?: string): Promise<{ data: SettlementListItem[]; hasMore: boolean; nextCursor?: string }> => {
+  list: async (
+    eventId: string,
+    userId: string,
+    cursor?: string,
+    limit = 20,
+    status?: string
+  ): Promise<{ data: SettlementListItem[]; hasMore: boolean; nextCursor?: string }> => {
     const params = new URLSearchParams({ limit: String(limit), user_id: userId });
     if (cursor) params.set('cursor', cursor);
     if (status) params.set('status', status);
-    const response = await apiClient.get<{ data: { items: SettlementListItem[]; pagination: { has_more: boolean; next_cursor?: string } } }>(
-      `/v1/events/${eventId}/settlements?${params.toString()}`
-    );
+    const response = await apiClient.get<{
+      data: { items: SettlementListItem[]; pagination: { has_more: boolean; next_cursor?: string } };
+    }>(`/v1/events/${eventId}/settlements?${params.toString()}`);
     return {
       data: response.data.items,
       hasMore: response.data.pagination.has_more,
@@ -51,7 +57,7 @@ export const settlementsApi = {
       `/v1/events/${eventId}/settlements/${settlementId}`
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get settlement');
+      throw new Error((response.error as string) || 'Failed to get settlement');
     }
     return response.data;
   },
@@ -62,7 +68,7 @@ export const settlementsApi = {
       data
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to create settlement');
+      throw new Error((response.error as string) || 'Failed to create settlement');
     }
     return response.data;
   },
@@ -73,7 +79,7 @@ export const settlementsApi = {
       { status }
     );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to update settlement');
+      throw new Error((response.error as string) || 'Failed to update settlement');
     }
     return response.data;
   },

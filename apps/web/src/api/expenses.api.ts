@@ -92,9 +92,9 @@ export const expensesApi = {
       user_id: userId,
     });
     if (cursor) params.set('cursor', cursor);
-    const response = await apiClient.get<{ data: { items: ExpenseListItem[]; pagination: { has_more: boolean; next_cursor?: string } } }>(
-      `/v1/events/${eventId}/expenses?${params.toString()}`
-    );
+    const response = await apiClient.get<{
+      data: { items: ExpenseListItem[]; pagination: { has_more: boolean; next_cursor?: string } };
+    }>(`/v1/events/${eventId}/expenses?${params.toString()}`);
     return {
       data: response.data.items,
       hasMore: response.data.pagination.has_more,
@@ -104,18 +104,23 @@ export const expensesApi = {
 
   // Get a single expense
   get: async (eventId: string, expenseId: string): Promise<Expense> => {
-    const response = await apiClient.get<{ success: boolean; data: Expense; error: unknown }>(`/v1/events/${eventId}/expenses/${expenseId}`);
+    const response = await apiClient.get<{ success: boolean; data: Expense; error: unknown }>(
+      `/v1/events/${eventId}/expenses/${expenseId}`
+    );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get expense');
+      throw new Error((response.error as string) || 'Failed to get expense');
     }
     return response.data;
   },
 
   // Create a new expense
   create: async (eventId: string, data: CreateExpenseRequest): Promise<Expense> => {
-    const response = await apiClient.post<{ success: boolean; data: Expense; error: unknown }>(`/v1/events/${eventId}/expenses`, data);
+    const response = await apiClient.post<{ success: boolean; data: Expense; error: unknown }>(
+      `/v1/events/${eventId}/expenses`,
+      data
+    );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to create expense');
+      throw new Error((response.error as string) || 'Failed to create expense');
     }
     return response.data;
   },

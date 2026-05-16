@@ -12,12 +12,7 @@ interface AvatarStackProps {
  * Overlapping avatar stack with overflow counter.
  * Highlights the current user with primary color.
  */
-export function AvatarStack({
-  users,
-  currentUserId,
-  maxVisible = 5,
-  size = 24,
-}: AvatarStackProps) {
+export function AvatarStack({ users, currentUserId, maxVisible = 5, size = 24 }: AvatarStackProps) {
   if (users.length === 0) return null;
 
   const visible = users.slice(0, maxVisible);
@@ -66,9 +61,7 @@ export function AvatarStack({
             zIndex: 0,
           }}
         >
-          <span style={{ fontSize, fontWeight: 700, color: 'text.secondary' }}>
-            +{overflow}
-          </span>
+          <span style={{ fontSize, fontWeight: 700, color: 'text.secondary' }}>+{overflow}</span>
         </Box>
       )}
     </Box>

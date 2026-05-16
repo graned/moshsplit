@@ -65,7 +65,11 @@ export default function ExpenseReportPage() {
   const [scrollY, setScrollY] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
+  const {
+    data: event,
+    isLoading: eventLoading,
+    error: eventError,
+  } = useQuery({
     queryKey: ['event', eventId],
     queryFn: async () => {
       if (!eventId) throw new Error('No event ID');
@@ -113,9 +117,7 @@ export default function ExpenseReportPage() {
 
   const eventMembers = useMemo(() => {
     const map = userMap || {};
-    return (members || [])
-      .map((m) => map[m.user_id])
-      .filter((u): u is UserInfo => u !== undefined);
+    return (members || []).map((m) => map[m.user_id]).filter((u): u is UserInfo => u !== undefined);
   }, [members, userMap]);
 
   const createMutation = useMutation({
@@ -144,9 +146,12 @@ export default function ExpenseReportPage() {
     while (parent) {
       const style = window.getComputedStyle(parent);
       if (
-        style.overflowY === 'auto' || style.overflowY === 'scroll' ||
-        style.overflow === 'auto' || style.overflow === 'scroll'
-      ) break;
+        style.overflowY === 'auto' ||
+        style.overflowY === 'scroll' ||
+        style.overflow === 'auto' ||
+        style.overflow === 'scroll'
+      )
+        break;
       parent = parent.parentElement;
     }
     const container = parent || document.documentElement;
@@ -196,20 +201,27 @@ export default function ExpenseReportPage() {
             pb: compact ? 1 : 3,
           }}
         >
-          <Box sx={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to bottom, transparent 40%, #121212 100%)`,
-          }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: `linear-gradient(to bottom, transparent 40%, #121212 100%)`,
+            }}
+          />
 
           {/* Back button */}
           <IconButton
             onClick={() => navigate('/app/expenses')}
             sx={{
-              position: 'absolute', top: 12, left: compact ? 8 : 16,
-              zIndex: 2, color: '#fff',
+              position: 'absolute',
+              top: 12,
+              left: compact ? 8 : 16,
+              zIndex: 2,
+              color: '#fff',
               bgcolor: alpha('#000', 0.35),
               '&:hover': { bgcolor: alpha('#000', 0.55) },
-              width: 32, height: 32,
+              width: 32,
+              height: 32,
             }}
           >
             <ArrowBackIcon sx={{ fontSize: 20 }} />
@@ -223,7 +235,9 @@ export default function ExpenseReportPage() {
               size="small"
               onClick={() => setAddDialogOpen(true)}
               sx={{
-                position: 'absolute', top: 12, right: compact ? 8 : 16,
+                position: 'absolute',
+                top: 12,
+                right: compact ? 8 : 16,
                 zIndex: 2,
                 bgcolor: alpha('#000', 0.35),
                 color: '#fff',
@@ -263,14 +277,16 @@ export default function ExpenseReportPage() {
 
         {/* Summary bar */}
         {!isLoading && explainData && (
-          <Box sx={{
-            display: 'flex',
-            gap: compact ? 1 : 2,
-            px: compact ? 1.5 : 3,
-            py: compact ? 1.5 : 2.5,
-            bgcolor: 'background.default',
-            transition: 'padding 0.25s, gap 0.25s',
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: compact ? 1 : 2,
+              px: compact ? 1.5 : 3,
+              py: compact ? 1.5 : 2.5,
+              bgcolor: 'background.default',
+              transition: 'padding 0.25s, gap 0.25s',
+            }}
+          >
             {[
               { value: formatAmount(explainData.paid_cents, currency), label: 'You Paid', color: 'primary.main' },
               { value: formatAmount(explainData.owes_cents, currency), label: 'My Share', color: 'text.primary' },
@@ -329,7 +345,10 @@ export default function ExpenseReportPage() {
           sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 64, bgcolor: 'background.default' }}
         >
           <Tab label="OVERVIEW" sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.95rem', py: 2.5 }} />
-          <Tab label={`EXPENSES (${expenses.length})`} sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.95rem', py: 2.5 }} />
+          <Tab
+            label={`EXPENSES (${expenses.length})`}
+            sx={{ fontWeight: 700, letterSpacing: '0.05em', fontSize: '0.95rem', py: 2.5 }}
+          />
         </Tabs>
 
         <Box sx={{ p: 3 }}>
@@ -340,7 +359,9 @@ export default function ExpenseReportPage() {
                   {explainData.expenses.map((item, i) => {
                     const payer = getUser(item.paid_by);
                     const isCurrentUser = item.paid_by === userId;
-                    const payerName = payer ? `${payer.firstName} ${payer.lastName}`.trim() || payer.email : item.paid_by;
+                    const payerName = payer
+                      ? `${payer.firstName} ${payer.lastName}`.trim() || payer.email
+                      : item.paid_by;
                     const payerInitial = payerName.charAt(0).toUpperCase();
 
                     const participantUsers = (item.participants || [])
@@ -369,9 +390,13 @@ export default function ExpenseReportPage() {
                                 <Tooltip
                                   title={
                                     <Box sx={{ py: 0.5 }}>
-                                      <Typography variant="body2" fontWeight={600}>{payerName}</Typography>
+                                      <Typography variant="body2" fontWeight={600}>
+                                        {payerName}
+                                      </Typography>
                                       {payer?.email && (
-                                        <Typography variant="caption" color="text.secondary">{payer.email}</Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                          {payer.email}
+                                        </Typography>
                                       )}
                                     </Box>
                                   }
@@ -446,14 +471,19 @@ export default function ExpenseReportPage() {
                               <Typography variant="caption" color="text.secondary">
                                 Your share: {formatAmount(item.share_cents, currency)}
                               </Typography>
-                              {item.created_at && (() => {
-                                const d = new Date(item.created_at);
-                                return isNaN(d.getTime()) ? null : (
-                                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
-                                    {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                  </Typography>
-                                );
-                              })()}
+                              {item.created_at &&
+                                (() => {
+                                  const d = new Date(item.created_at);
+                                  return isNaN(d.getTime()) ? null : (
+                                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
+                                      {d.toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })}
+                                    </Typography>
+                                  );
+                                })()}
                             </Box>
                           </Box>
                         </CardContent>
@@ -479,15 +509,16 @@ export default function ExpenseReportPage() {
                   {explainData.payments.map((p, i) => {
                     const fromUser = getUser(p.from_user);
                     const toUser = getUser(p.to_user);
-                    const fromName = fromUser ? `${fromUser.firstName} ${fromUser.lastName}`.trim() || fromUser.email : p.from_user;
+                    const fromName = fromUser
+                      ? `${fromUser.firstName} ${fromUser.lastName}`.trim() || fromUser.email
+                      : p.from_user;
                     const toName = toUser ? `${toUser.firstName} ${toUser.lastName}`.trim() || toUser.email : p.to_user;
 
                     return (
                       <Card key={i} variant="outlined" sx={{ mb: 1 }}>
                         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                           <Typography variant="body2">
-                            {fromName} → {toName}:{' '}
-                            <strong>{formatAmount(p.amount_cents, currency)}</strong>
+                            {fromName} → {toName}: <strong>{formatAmount(p.amount_cents, currency)}</strong>
                           </Typography>
                         </CardContent>
                       </Card>

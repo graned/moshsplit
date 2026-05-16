@@ -1,4 +1,17 @@
-import { Box, Typography, Card, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Card,
+  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  alpha,
+} from '@mui/material';
 import {
   Event as EventIcon,
   People as PeopleIcon,
@@ -123,28 +136,13 @@ export default function AdminDashboard() {
       ) : stats ? (
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid item xs={6} md={3}>
-            <StatCard
-              icon={<EventIcon />}
-              label="Total Events"
-              value={stats.total_events}
-              color="#f59e0b"
-            />
+            <StatCard icon={<EventIcon />} label="Total Events" value={stats.total_events} color="#f59e0b" />
           </Grid>
           <Grid item xs={6} md={3}>
-            <StatCard
-              icon={<PeopleIcon />}
-              label="Active Users"
-              value={stats.active_users}
-              color="#3b82f6"
-            />
+            <StatCard icon={<PeopleIcon />} label="Active Users" value={stats.active_users} color="#3b82f6" />
           </Grid>
           <Grid item xs={6} md={3}>
-            <StatCard
-              icon={<ExpenseIcon />}
-              label="Total Expenses"
-              value={stats.total_expenses}
-              color="#8b5cf6"
-            />
+            <StatCard icon={<ExpenseIcon />} label="Total Expenses" value={stats.total_expenses} color="#8b5cf6" />
           </Grid>
           <Grid item xs={6} md={3}>
             <Card sx={{ p: 3 }}>

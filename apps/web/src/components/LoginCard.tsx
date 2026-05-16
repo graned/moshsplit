@@ -6,6 +6,7 @@ import { InvitationOnlyNotice } from './InvitationOnlyNotice';
 import { useTranslation } from 'react-i18next';
 import type { LoginCredentials } from '../pages/auth/types';
 import { authApi } from '../api/auth.api';
+import { groupsApi } from '../api/groups.api';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
 
@@ -56,7 +57,16 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         console.error('[ExternalLogin] Failed to fetch user profile:', profileErr);
       }
 
-      window.location.href = '/app/home';
+      try {
+        const eventsResult = await groupsApi.list(exchangeResult.user_id, undefined, 1);
+        if (eventsResult.data.length > 0) {
+          window.location.href = `/app/events/${eventsResult.data[0].id}/feed`;
+        } else {
+          window.location.href = '/app/events';
+        }
+      } catch {
+        window.location.href = '/app/events';
+      }
     } catch (err) {
       setExternalError(err instanceof Error ? err.message : 'External login failed');
       console.error('[ExternalLogin] Top-level error:', err);
@@ -100,16 +110,9 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
           p: { xs: 3, sm: 4 },
         }}
       >
-        <AuthHeroLogo
-          title={t('auth.login.title')}
-          subtitle={t('auth.login.tagline')}
-        />
+        <AuthHeroLogo title={t('auth.login.title')} subtitle={t('auth.login.tagline')} />
 
-        <LoginForm
-          onSubmit={onSubmit}
-          isLoading={isLoading}
-          error={error}
-        />
+        <LoginForm onSubmit={onSubmit} isLoading={isLoading} error={error} />
 
         <Box sx={{ mt: 3, mb: 2 }}>
           <Button
@@ -129,9 +132,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
             {externalLoading ? <CircularProgress size={24} /> : 'Join with Pitboss'}
           </Button>
           {externalError && (
-            <Box sx={{ mt: 1, color: 'error.main', fontSize: '0.875rem', textAlign: 'center' }}>
-              {externalError}
-            </Box>
+            <Box sx={{ mt: 1, color: 'error.main', fontSize: '0.875rem', textAlign: 'center' }}>{externalError}</Box>
           )}
         </Box>
 

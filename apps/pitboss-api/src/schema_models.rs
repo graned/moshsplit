@@ -4,8 +4,20 @@
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
-use crate::schema_enums::{EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType};
+use crate::schema_enums::{EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType};
 use diesel::prelude::*;
+
+#[derive(Debug, Clone, Queryable, Insertable)]
+#[diesel(table_name = app::audit_log)]
+pub struct AuditLog {
+    pub id: uuid::Uuid,
+    pub action: String,
+    pub entity_type: String,
+    pub entity_id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub details: Option<serde_json::Value>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
 
 #[derive(Debug, Clone, Queryable, Insertable)]
 #[diesel(table_name = app::event)]
@@ -18,6 +30,19 @@ pub struct Event {
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Queryable, Insertable)]
+#[diesel(table_name = app::event_image)]
+pub struct EventImage {
+    pub id: uuid::Uuid,
+    pub event_id: uuid::Uuid,
+    pub url: String,
+    pub alt_text: Option<String>,
+    pub image_type: EventImageType,
+    pub sort_order: i32,
+    pub uploaded_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]

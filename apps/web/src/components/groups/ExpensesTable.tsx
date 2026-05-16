@@ -1,24 +1,20 @@
-import {
-  Box,
-  Typography,
-  Tooltip,
-  Chip,
-  alpha,
-} from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
+import { Box, Typography, Tooltip, Chip, alpha } from '@mui/material';
+import { CheckCircle as CheckCircleIcon, Warning as WarningIcon } from '@mui/icons-material';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { GroupMember } from '../../api/groups.api';
 
 const formatType = (type: string | undefined): string => {
   switch (type) {
-    case 'equal': return 'Equal';
-    case 'custom': return 'Custom';
-    case 'percentage': return 'Percent';
-    case 'shares': return 'Shares';
-    default: return type || 'Equal';
+    case 'equal':
+      return 'Equal';
+    case 'custom':
+      return 'Custom';
+    case 'percentage':
+      return 'Percent';
+    case 'shares':
+      return 'Shares';
+    default:
+      return type || 'Equal';
   }
 };
 
@@ -40,25 +36,39 @@ export function ExpensesTable({ expenses, members, getPayerName }: ExpensesTable
   return (
     <Box sx={{ maxHeight: 520, overflowY: 'auto' }}>
       {/* Table header */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(6, 1fr)',
-        gap: 1,
-        px: 2,
-        py: 1.5,
-        borderRadius: 1,
-        bgcolor: 'background.default',
-        position: 'sticky',
-        top: 0,
-        zIndex: 2,
-        mb: 1,
-      }}>
-        <Typography variant="caption" fontWeight={700} color="text.secondary">TITLE</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary">PAID BY</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary">TYPE</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'right' }}>AMOUNT</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'center' }}>SPLIT</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'center' }}>STATUS</Typography>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(6, 1fr)',
+          gap: 1,
+          px: 2,
+          py: 1.5,
+          borderRadius: 1,
+          bgcolor: 'background.default',
+          position: 'sticky',
+          top: 0,
+          zIndex: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="caption" fontWeight={700} color="text.secondary">
+          TITLE
+        </Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary">
+          PAID BY
+        </Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary">
+          TYPE
+        </Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'right' }}>
+          AMOUNT
+        </Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'center' }}>
+          SPLIT
+        </Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'center' }}>
+          STATUS
+        </Typography>
       </Box>
 
       {/* Rows */}

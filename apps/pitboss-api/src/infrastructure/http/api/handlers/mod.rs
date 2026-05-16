@@ -5,6 +5,7 @@ pub mod admin_handlers;
 pub mod auth_handlers;
 pub mod balance_handlers;
 pub mod event_handlers;
+pub mod event_image_handlers;
 pub mod expense_handlers;
 pub mod member_handlers;
 pub mod payment_handlers;

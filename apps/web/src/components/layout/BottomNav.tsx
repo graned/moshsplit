@@ -12,17 +12,17 @@ import {
   ListItemIcon,
   ListItemText,
   Fab,
+  alpha,
+  useTheme,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
-  Home as HomeIcon,
-  Event as EventIcon,
-  ReceiptLong as ReceiptIcon,
+  RssFeed as FeedIcon,
+  ReceiptLong as ExpensesIcon,
   AccountBalanceWallet as WalletIcon,
   SwapHoriz as SwapIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuthStore } from '@moshsplit/auth-react';
 
@@ -31,7 +31,7 @@ interface BottomNavProps {
 }
 
 function BottomNav({ onAddExpense }: BottomNavProps) {
-  const { t } = useTranslation();
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { firstName, lastName, userEmail, clearTokens } = useAuthStore();
@@ -39,11 +39,10 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const navItems = [
-    { path: '/app/home', label: t('app.home', 'Home'), icon: <HomeIcon /> },
-    { path: '/app/events', label: t('nav.events', 'Events'), icon: <EventIcon /> },
-    { path: '/app/expenses', label: t('nav.expenses', 'Expenses'), icon: <ReceiptIcon /> },
-    { path: '/app/balances', label: t('nav.balances', 'Balances'), icon: <WalletIcon /> },
-    { path: '/app/settlements', label: t('nav.settlements', 'Settlements'), icon: <SwapIcon /> },
+    { path: '/app/feed', label: 'Battle Log', icon: <FeedIcon /> },
+    { path: '/app/expenses', label: 'War Chest', icon: <ExpensesIcon /> },
+    { path: '/app/balances', label: 'Scales', icon: <WalletIcon /> },
+    { path: '/app/settlements', label: 'Settle', icon: <SwapIcon /> },
   ];
 
   const handleNavigation = (path: string) => {
@@ -69,15 +68,9 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
     }
   };
 
-  const initials =
-    firstName?.charAt(0)?.toUpperCase() ||
-    userEmail?.charAt(0)?.toUpperCase() ||
-    '?';
+  const initials = firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?';
 
-  const displayName =
-    firstName && lastName
-      ? `${firstName} ${lastName}`
-      : userEmail || 'User';
+  const displayName = firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'User';
 
   return (
     <>
@@ -90,10 +83,10 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
             position: 'fixed',
             bottom: 76,
             right: 16,
-            zIndex: (theme) => theme.zIndex.appBar,
-            boxShadow: '0 4px 16px rgba(245, 158, 11, 0.4)',
+            zIndex: (t) => t.zIndex.appBar,
+            boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
             '&:hover': {
-              boxShadow: '0 6px 24px rgba(245, 158, 11, 0.5)',
+              boxShadow: `0 6px 24px ${alpha(theme.palette.primary.main, 0.5)}`,
               transform: 'translateY(-2px)',
             },
           }}
@@ -109,7 +102,7 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: (theme) => theme.zIndex.appBar - 1,
+          zIndex: (t) => t.zIndex.appBar - 1,
           backgroundColor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
@@ -119,7 +112,9 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
           value={location.pathname}
           onChange={(_, newValue: string) => {
             if (newValue === 'profile') {
-              handleProfileOpen({ currentTarget: document.getElementById('mobile-profile-btn')! } as React.MouseEvent<HTMLElement>);
+              handleProfileOpen({
+                currentTarget: document.getElementById('mobile-profile-btn')!,
+              } as React.MouseEvent<HTMLElement>);
             } else {
               handleNavigation(newValue);
             }
@@ -220,15 +215,13 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
             navigate('/app/settings/profile');
           }}
         >
-          {t('settings.profile', 'Profile Settings')}
+          Profile Settings
         </MenuItem>
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <ArrowBackIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>
-            {t('app.goBack', { appName: import.meta.env.VITE_EXTERNAL_APP_NAME || 'App' })}
-          </ListItemText>
+          <ListItemText>{import.meta.env.VITE_EXTERNAL_APP_NAME || 'App'}</ListItemText>
         </MenuItem>
       </Menu>
     </>

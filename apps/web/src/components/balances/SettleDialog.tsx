@@ -156,12 +156,7 @@ export function SettleDialog({
             </Typography>
           </Box>
 
-          <Typography
-            variant="h5"
-            fontWeight={800}
-            color="warning.main"
-            sx={{ px: 1 }}
-          >
+          <Typography variant="h5" fontWeight={800} color="warning.main" sx={{ px: 1 }}>
             →
           </Typography>
 
@@ -210,46 +205,28 @@ export function SettleDialog({
               },
             }}
           />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mt: 1, textAlign: 'center' }}
-          >
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
             Full balance: {formatAmount(defaultAmountCents)}
           </Typography>
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          disabled={isPending}
-          sx={{ borderRadius: 2 }}
-        >
+        <Button onClick={onClose} variant="outlined" disabled={isPending} sx={{ borderRadius: 2 }}>
           Cancel
         </Button>
         <Button
           variant="contained"
           color="warning"
           onClick={handleConfirm}
-          disabled={
-            isPending ||
-            !amount ||
-            parseFloat(amount) <= 0 ||
-            parseFloat(amount) > defaultAmountCents / 100
-          }
+          disabled={isPending || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > defaultAmountCents / 100}
           sx={{
             borderRadius: 2,
             fontWeight: 700,
             px: 4,
           }}
         >
-          {isPending ? (
-            <CircularProgress size={20} color="inherit" />
-          ) : (
-            'Confirm Settlement'
-          )}
+          {isPending ? <CircularProgress size={20} color="inherit" /> : 'Confirm Settlement'}
         </Button>
       </DialogActions>
     </Dialog>

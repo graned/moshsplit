@@ -33,20 +33,15 @@ function formatCurrency(amountCents: number, currency: string = 'EUR'): string {
   }).format(amountCents / 100);
 }
 
-export function ExpenseDetailDialog({
-  open,
-  onClose,
-  expense,
-  eventId,
-  members,
-}: ExpenseDetailDialogProps) {
+export function ExpenseDetailDialog({ open, onClose, expense, eventId, members }: ExpenseDetailDialogProps) {
   const [loading, setLoading] = useState(false);
   const [fullExpense, setFullExpense] = useState<Expense | null>(null);
 
   useEffect(() => {
     if (expense && open) {
       setLoading(true);
-      expensesApi.get(eventId, expense.id)
+      expensesApi
+        .get(eventId, expense.id)
         .then(setFullExpense)
         .catch(console.error)
         .finally(() => setLoading(false));
@@ -55,12 +50,13 @@ export function ExpenseDetailDialog({
 
   if (!expense) return null;
 
-  const splitTypeLabel = {
-    equal: 'Split equally',
-    custom: 'Custom amounts',
-    percentage: 'By percentage',
-    shares: 'By shares',
-  }[expense.split_type || 'equal'] || 'Split equally';
+  const splitTypeLabel =
+    {
+      equal: 'Split equally',
+      custom: 'Custom amounts',
+      percentage: 'By percentage',
+      shares: 'By shares',
+    }[expense.split_type || 'equal'] || 'Split equally';
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -115,9 +111,7 @@ export function ExpenseDetailDialog({
               <Typography variant="subtitle2" color="text.secondary">
                 Created at
               </Typography>
-              <Typography>
-                {new Date(expense.created_at).toLocaleString()}
-              </Typography>
+              <Typography>{new Date(expense.created_at).toLocaleString()}</Typography>
             </Box>
 
             {fullExpense?.deleted_at && (
@@ -127,9 +121,7 @@ export function ExpenseDetailDialog({
                   <Typography variant="subtitle2" color="error">
                     Deleted at
                   </Typography>
-                  <Typography color="error">
-                    {new Date(fullExpense.deleted_at).toLocaleString()}
-                  </Typography>
+                  <Typography color="error">{new Date(fullExpense.deleted_at).toLocaleString()}</Typography>
                 </Box>
               </>
             )}

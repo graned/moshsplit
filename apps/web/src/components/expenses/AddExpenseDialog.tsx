@@ -1,12 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  Box,
-  Typography,
-  useMediaQuery,
-  useTheme,
-  IconButton,
-} from '@mui/material';
+import { Dialog, DialogContent, Box, Typography, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 
 import { AddExpenseWizard } from './AddExpenseWizard';

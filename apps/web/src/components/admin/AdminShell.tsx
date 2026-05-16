@@ -58,15 +58,9 @@ export default function AdminShell() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
 
-  const initials =
-    firstName?.charAt(0)?.toUpperCase() ||
-    userEmail?.charAt(0)?.toUpperCase() ||
-    '?';
+  const initials = firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?';
 
-  const displayName =
-    firstName && lastName
-      ? `${firstName} ${lastName}`
-      : userEmail || 'Admin';
+  const displayName = firstName && lastName ? `${firstName} ${lastName}` : userEmail || 'Admin';
 
   const sidebarWidth = sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED;
 
@@ -151,8 +145,7 @@ export default function AdminShell() {
         {navItems.map((item) => {
           // Match exact path or sub-paths
           const isSelected =
-            location.pathname === item.path ||
-            (item.path !== '/admin' && location.pathname.startsWith(item.path));
+            location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
           return (
             <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
@@ -162,9 +155,7 @@ export default function AdminShell() {
                   borderRadius: 2,
                   py: 1.25,
                   px: 2,
-                  backgroundColor: isSelected
-                    ? 'rgba(239, 68, 68, 0.12)'
-                    : 'transparent',
+                  backgroundColor: isSelected ? 'rgba(239, 68, 68, 0.12)' : 'transparent',
                   '&.Mui-selected': {
                     backgroundColor: 'rgba(239, 68, 68, 0.12)',
                     '&:hover': {
@@ -205,7 +196,7 @@ export default function AdminShell() {
       {/* Back to App */}
       <Box sx={{ px: 2, py: 1 }}>
         <ListItemButton
-          onClick={() => navigate('/app/home')}
+          onClick={() => navigate('/app/events')}
           sx={{
             borderRadius: 2,
             py: 1,

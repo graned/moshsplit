@@ -1,5 +1,5 @@
 use crate::schema_enums::{
-    EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType,
+    EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType,
 };
 
 impl std::fmt::Display for EventStatus {
@@ -116,6 +116,26 @@ impl std::str::FromStr for ExpenseType {
             "camping" => Ok(Self::Camping),
             "other" => Ok(Self::Other),
             _ => Err(format!("invalid expense type: {s}")),
+        }
+    }
+}
+
+impl std::fmt::Display for EventImageType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Banner => write!(f, "banner"),
+            Self::Gallery => write!(f, "gallery"),
+        }
+    }
+}
+
+impl std::str::FromStr for EventImageType {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "banner" => Ok(Self::Banner),
+            "gallery" => Ok(Self::Gallery),
+            _ => Err(format!("invalid image type: {s}")),
         }
     }
 }

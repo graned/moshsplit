@@ -1,6 +1,20 @@
 import { apiClient } from './client';
 
 // Types for groups (events)
+export interface EventImage {
+  id: string;
+  url: string;
+  alt_text?: string;
+  image_type: 'banner' | 'gallery';
+  sort_order: number;
+  uploaded_at: string;
+}
+
+export interface EventImages {
+  banner?: EventImage;
+  gallery: EventImage[];
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -11,6 +25,7 @@ export interface Group {
   created_at: string;
   updated_at: string;
   member_count: number;
+  images?: EventImages;
 }
 
 export interface GroupListItem {
@@ -58,13 +73,18 @@ export interface AddMemberRequest {
 // API calls
 export const groupsApi = {
   // List all groups (events)
-  list: async (userId: string, cursor?: string, limit = 20, status?: string): Promise<{ data: GroupListItem[]; hasMore: boolean; nextCursor?: string }> => {
+  list: async (
+    userId: string,
+    cursor?: string,
+    limit = 20,
+    status?: string
+  ): Promise<{ data: GroupListItem[]; hasMore: boolean; nextCursor?: string }> => {
     const params = new URLSearchParams({ limit: String(limit), user_id: userId });
     if (cursor) params.set('cursor', cursor);
     if (status) params.set('status', status);
-    const response = await apiClient.get<{ data: { items: GroupListItem[]; pagination: { has_more: boolean; next_cursor?: string } } }>(
-      `/v1/events?${params.toString()}`
-    );
+    const response = await apiClient.get<{
+      data: { items: GroupListItem[]; pagination: { has_more: boolean; next_cursor?: string } };
+    }>(`/v1/events?${params.toString()}`);
     console.log('[groupsApi] list response:', JSON.stringify(response));
     return {
       data: response.data.items,
@@ -77,7 +97,7 @@ export const groupsApi = {
   get: async (groupId: string): Promise<Group> => {
     const response = await apiClient.get<{ success: boolean; data: Group; error: unknown }>(`/v1/events/${groupId}`);
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to get group');
+      throw new Error((response.error as string) || 'Failed to get group');
     }
     return response.data;
   },
@@ -88,7 +108,7 @@ export const groupsApi = {
     const result = await apiClient.post<{ success: boolean; data: Group; error: unknown }>('/v1/events', data);
     console.log('[groupsApi] Create group raw result:', JSON.stringify(result));
     if (!result.success) {
-      throw new Error(result.error as string || 'Failed to create group');
+      throw new Error((result.error as string) || 'Failed to create group');
     }
     console.log('[groupsApi] Create group returning:', result.data);
     return result.data;
@@ -96,9 +116,12 @@ export const groupsApi = {
 
   // Update a group (can be used to restore archived events by setting status to 'active')
   update: async (groupId: string, data: UpdateGroupRequest): Promise<Group> => {
-    const response = await apiClient.patch<{ success: boolean; data: Group; error: unknown }>(`/v1/events/${groupId}`, data);
+    const response = await apiClient.patch<{ success: boolean; data: Group; error: unknown }>(
+      `/v1/events/${groupId}`,
+      data
+    );
     if (!response.success) {
-      throw new Error(response.error as string || 'Failed to update group');
+      throw new Error((response.error as string) || 'Failed to update group');
     }
     return response.data;
   },
@@ -129,5 +152,29 @@ export const groupsApi = {
   // Remove a member from a group
   removeMember: async (groupId: string, userId: string): Promise<void> => {
     return apiClient.delete<void>(`/v1/events/${groupId}/members/${userId}`);
+  },
+
+  // Image management
+  listImages: async (groupId: string): Promise<EventImages> => {
+    return apiClient.get<EventImages>(`/v1/events/${groupId}/images`);
+  },
+
+  addImage: async (
+    groupId: string,
+    data: { url: string; alt_text?: string; image_type: 'banner' | 'gallery'; sort_order?: number }
+  ): Promise<EventImage> => {
+    return apiClient.post<EventImage>(`/v1/events/${groupId}/images`, data);
+  },
+
+  updateImage: async (
+    groupId: string,
+    imageId: string,
+    data: { alt_text?: string; sort_order?: number }
+  ): Promise<EventImage> => {
+    return apiClient.patch<EventImage>(`/v1/events/${groupId}/images/${imageId}`, data);
+  },
+
+  deleteImage: async (groupId: string, imageId: string): Promise<void> => {
+    return apiClient.delete<void>(`/v1/events/${groupId}/images/${imageId}`);
   },
 };

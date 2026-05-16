@@ -1,20 +1,7 @@
 import { useState } from 'react';
 import { Link as RouterLink } from 'react-router';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  InputAdornment,
-  IconButton,
-  Link,
-} from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Email as EmailIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
+import { Box, TextField, Button, Typography, InputAdornment, IconButton, Link } from '@mui/material';
+import { Visibility, VisibilityOff, Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import type { LoginCredentials } from '../pages/auth/types';
 

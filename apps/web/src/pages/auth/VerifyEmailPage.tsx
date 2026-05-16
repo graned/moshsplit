@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link as RouterLink } from 'react-router';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Alert,
-  Button,
-} from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Email as EmailIcon,
-} from '@mui/icons-material';
+import { Box, Card, CardContent, Typography, Alert, Button } from '@mui/material';
+import { CheckCircle as CheckCircleIcon, Error as ErrorIcon, Email as EmailIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -56,12 +45,11 @@ function VerifyEmailPage() {
         setMode('success');
       } catch (err) {
         const errorMessage = (err as Error).message || t('verifyEmail.errorMessage');
-        
+
         // Check if this error indicates password reset is required
         // This is a workaround - in production, the API should return
         // a specific indicator for mustChangePassword
-        if (errorMessage.toLowerCase().includes('password') || 
-            errorMessage.toLowerCase().includes('change')) {
+        if (errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('change')) {
           setMode('needsPasswordReset');
         } else {
           setError(errorMessage);
@@ -170,13 +158,7 @@ function VerifyEmailPage() {
               {t('verifyEmail.successAlert')}
             </Alert>
 
-            <Button
-              component={RouterLink}
-              to="/login"
-              variant="contained"
-              fullWidth
-              size="large"
-            >
+            <Button component={RouterLink} to="/login" variant="contained" fullWidth size="large">
               {t('verifyEmail.signIn')}
             </Button>
           </CardContent>
@@ -222,22 +204,12 @@ function VerifyEmailPage() {
               {t('verifyEmail.passwordChangeAlert')}
             </Alert>
 
-            <Button
-              onClick={handleRedirectToResetPassword}
-              variant="contained"
-              fullWidth
-              size="large"
-            >
+            <Button onClick={handleRedirectToResetPassword} variant="contained" fullWidth size="large">
               {t('verifyEmail.setNewPassword')}
             </Button>
 
             <Box sx={{ textAlign: 'center', mt: 3 }}>
-              <Button
-                component={RouterLink}
-                to="/login"
-                variant="text"
-                size="small"
-              >
+              <Button component={RouterLink} to="/login" variant="text" size="small">
                 {t('verifyEmail.backToLogin')}
               </Button>
             </Box>
@@ -283,22 +255,12 @@ function VerifyEmailPage() {
             {error || t('verifyEmail.errorMessage')}
           </Alert>
 
-          <Button
-            component={RouterLink}
-            to="/forgot-password"
-            variant="outlined"
-            fullWidth
-          >
+          <Button component={RouterLink} to="/forgot-password" variant="outlined" fullWidth>
             {t('verifyEmail.requestNewLink')}
           </Button>
 
           <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Button
-              component={RouterLink}
-              to="/login"
-              variant="text"
-              size="small"
-            >
+            <Button component={RouterLink} to="/login" variant="text" size="small">
               {t('verifyEmail.backToLogin')}
             </Button>
           </Box>

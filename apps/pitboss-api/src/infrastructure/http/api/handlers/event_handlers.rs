@@ -16,8 +16,10 @@ use crate::infrastructure::http::api::dtos::event_dtos::{
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
 use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::event_image_repo::EventImageRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::services::event_service::EventService;
+use crate::services::event_image_service::EventImageService;
 
 /// GET /v1/events — list events with optional status filter.
 #[utoipa::path(
@@ -102,7 +104,11 @@ pub async fn get_event(
         EventMemberRepository::new(state.db_client.clone()),
     );
 
-    let event = svc.get_event(event_id)?;
+    let mut event = svc.get_event(event_id)?;
+
+    let image_svc = EventImageService::new(EventImageRepository::new(state.db_client.clone()));
+    event.images = image_svc.get_images_for_event(event_id).unwrap_or_default();
+
     Ok(Json(event))
 }
 
@@ -130,7 +136,11 @@ pub async fn patch_event(
         EventMemberRepository::new(state.db_client.clone()),
     );
 
-    let event = svc.patch_event(event_id, req)?;
+    let mut event = svc.patch_event(event_id, req)?;
+
+    let image_svc = EventImageService::new(EventImageRepository::new(state.db_client.clone()));
+    event.images = image_svc.get_images_for_event(event_id).unwrap_or_default();
+
     Ok(Json(event))
 }
 

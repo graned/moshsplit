@@ -70,16 +70,10 @@ export function Stepper({ steps, activeStep }: StepperProps) {
                         ? 'primary.main'
                         : theme.palette.action.disabledBackground,
                     color: isCompleted || isActive ? '#121212' : 'text.secondary',
-                    boxShadow: isActive
-                      ? `0 0 0 4px ${theme.palette.primary.main}33`
-                      : 'none',
+                    boxShadow: isActive ? `0 0 0 4px ${theme.palette.primary.main}33` : 'none',
                   }}
                 >
-                  {isCompleted ? (
-                    <CheckIcon sx={{ fontSize: 18 }} />
-                  ) : (
-                    index + 1
-                  )}
+                  {isCompleted ? <CheckIcon sx={{ fontSize: 18 }} /> : index + 1}
                 </Box>
                 {/* Label */}
                 <Typography
@@ -88,11 +82,7 @@ export function Stepper({ steps, activeStep }: StepperProps) {
                     mt: 0.75,
                     fontSize: '0.65rem',
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive
-                      ? 'primary.main'
-                      : isCompleted
-                        ? 'text.primary'
-                        : 'text.muted',
+                    color: isActive ? 'primary.main' : isCompleted ? 'text.primary' : 'text.muted',
                     textAlign: 'center',
                     maxWidth: 72,
                     lineHeight: 1.2,
@@ -111,9 +101,7 @@ export function Stepper({ steps, activeStep }: StepperProps) {
                     mx: 1,
                     mb: 3.5,
                     borderRadius: 1,
-                    bgcolor: index < activeStep
-                      ? 'primary.main'
-                      : theme.palette.action.disabledBackground,
+                    bgcolor: index < activeStep ? 'primary.main' : theme.palette.action.disabledBackground,
                     transition: 'background-color 0.3s ease',
                   }}
                 />

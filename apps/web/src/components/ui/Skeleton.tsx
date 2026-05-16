@@ -99,12 +99,7 @@ export function TextSkeleton({ lines = 3 }: { lines?: number }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {Array.from({ length: lines }).map((_, i) => (
-        <PulseBox
-          key={i}
-          width={i === lines - 1 ? '60%' : '100%'}
-          height={14}
-          borderRadius={1}
-        />
+        <PulseBox key={i} width={i === lines - 1 ? '60%' : '100%'} height={14} borderRadius={1} />
       ))}
     </Box>
   );
@@ -140,7 +135,13 @@ export default function Skeleton({ variant = 'text', count = 1, width = '100%', 
       return (
         <>
           {Array.from({ length: count }).map((_, i) => (
-            <PulseBox key={i} width={width} height={height} borderRadius={1} sx={i < count - 1 ? { mb: 1 } : undefined} />
+            <PulseBox
+              key={i}
+              width={width}
+              height={height}
+              borderRadius={1}
+              sx={i < count - 1 ? { mb: 1 } : undefined}
+            />
           ))}
         </>
       );

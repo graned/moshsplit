@@ -96,33 +96,70 @@ function UserActionsMenu({
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         {user.status !== 'active' && (
-          <MenuItem onClick={() => { onUpdateStatus(user.id, 'active'); handleClose(); }}>
-            <ListItemIcon><ActivateIcon fontSize="small" color="success" /></ListItemIcon>
+          <MenuItem
+            onClick={() => {
+              onUpdateStatus(user.id, 'active');
+              handleClose();
+            }}
+          >
+            <ListItemIcon>
+              <ActivateIcon fontSize="small" color="success" />
+            </ListItemIcon>
             <ListItemText>Activate</ListItemText>
           </MenuItem>
         )}
         {user.status !== 'suspended' && (
-          <MenuItem onClick={() => { onUpdateStatus(user.id, 'suspended'); handleClose(); }}>
-            <ListItemIcon><BlockIcon fontSize="small" color="error" /></ListItemIcon>
+          <MenuItem
+            onClick={() => {
+              onUpdateStatus(user.id, 'suspended');
+              handleClose();
+            }}
+          >
+            <ListItemIcon>
+              <BlockIcon fontSize="small" color="error" />
+            </ListItemIcon>
             <ListItemText>Suspend</ListItemText>
           </MenuItem>
         )}
         {user.status !== 'inactive' && (
-          <MenuItem onClick={() => { onUpdateStatus(user.id, 'inactive'); handleClose(); }}>
-            <ListItemIcon><BlockIcon fontSize="small" /></ListItemIcon>
+          <MenuItem
+            onClick={() => {
+              onUpdateStatus(user.id, 'inactive');
+              handleClose();
+            }}
+          >
+            <ListItemIcon>
+              <BlockIcon fontSize="small" />
+            </ListItemIcon>
             <ListItemText>Deactivate</ListItemText>
           </MenuItem>
         )}
-        <MenuItem disabled><ListItemText inset>- Role -</ListItemText></MenuItem>
+        <MenuItem disabled>
+          <ListItemText inset>- Role -</ListItemText>
+        </MenuItem>
         {user.role !== 'admin' && user.role !== 'super_admin' && (
-          <MenuItem onClick={() => { onUpdateRole(user.id, 'admin'); handleClose(); }}>
-            <ListItemIcon><AdminIcon fontSize="small" color="primary" /></ListItemIcon>
+          <MenuItem
+            onClick={() => {
+              onUpdateRole(user.id, 'admin');
+              handleClose();
+            }}
+          >
+            <ListItemIcon>
+              <AdminIcon fontSize="small" color="primary" />
+            </ListItemIcon>
             <ListItemText>Make Admin</ListItemText>
           </MenuItem>
         )}
         {user.role !== 'user' && (
-          <MenuItem onClick={() => { onUpdateRole(user.id, 'user'); handleClose(); }}>
-            <ListItemIcon><UserIcon fontSize="small" /></ListItemIcon>
+          <MenuItem
+            onClick={() => {
+              onUpdateRole(user.id, 'user');
+              handleClose();
+            }}
+          >
+            <ListItemIcon>
+              <UserIcon fontSize="small" />
+            </ListItemIcon>
             <ListItemText>Remove Admin</ListItemText>
           </MenuItem>
         )}
@@ -164,8 +201,7 @@ export default function AdminUsers() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
-      adminUsersApi.updateRole(userId, { role }),
+    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) => adminUsersApi.updateRole(userId, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
@@ -257,9 +293,15 @@ export default function AdminUsers() {
 
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>Retry</Button>
-        }>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        >
           Failed to load users
         </Alert>
       )}
@@ -273,7 +315,11 @@ export default function AdminUsers() {
           <EmptyState
             icon={<UserIcon sx={{ fontSize: 40, color: '#f59e0b' }} />}
             title="No survivors found"
-            description={search || statusFilter || roleFilter ? 'Try adjusting your search or filters' : 'No user accounts have been created yet'}
+            description={
+              search || statusFilter || roleFilter
+                ? 'Try adjusting your search or filters'
+                : 'No user accounts have been created yet'
+            }
           />
         </Card>
       )}

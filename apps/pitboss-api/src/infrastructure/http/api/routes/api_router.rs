@@ -25,6 +25,7 @@ use crate::infrastructure::http::api::handlers::activity_handlers;
 use crate::infrastructure::http::api::handlers::auth_handlers;
 use crate::infrastructure::http::api::handlers::balance_handlers;
 use crate::infrastructure::http::api::handlers::event_handlers;
+use crate::infrastructure::http::api::handlers::event_image_handlers;
 use crate::infrastructure::http::api::handlers::expense_handlers;
 use crate::infrastructure::http::api::handlers::member_handlers;
 use crate::infrastructure::http::api::handlers::payment_handlers;
@@ -127,6 +128,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(balance_handlers::simplified_debts),
         )
         .route(
+            "/v1/events/{id}/balances/stats",
+            get(balance_handlers::balance_stats),
+        )
+        .route(
             "/v1/events/{id}/balances/{user_id}",
             get(balance_handlers::user_balance),
         )
@@ -143,6 +148,25 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let stats_routes = Router::new()
         .route("/v1/events/{id}/stats", get(stats_handlers::get_event_stats));
 
+    // ── Event Images ───────────────────────────────────────────────────
+    let event_image_routes = Router::new()
+        .route(
+            "/v1/events/{id}/images",
+            get(event_image_handlers::list_event_images),
+        )
+        .route(
+            "/v1/events/{id}/images",
+            post(event_image_handlers::create_event_image),
+        )
+        .route(
+            "/v1/events/{id}/images/{image_id}",
+            patch(event_image_handlers::update_event_image),
+        )
+        .route(
+            "/v1/events/{id}/images/{image_id}",
+            delete(event_image_handlers::delete_event_image),
+        );
+
     // Merge all protected routes
     let protected_api = event_routes
         .merge(member_routes)
@@ -152,6 +176,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(balance_routes)
         .merge(activity_routes)
         .merge(stats_routes)
+        .merge(event_image_routes)
         .merge(admin_router::build_admin_router());
 
     // Create Sentinel auth middleware using the client from app state

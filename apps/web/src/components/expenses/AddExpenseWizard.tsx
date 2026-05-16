@@ -94,9 +94,7 @@ export function AddExpenseWizard({
   const [category, setCategory] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
-    members.map((m) => m.user_id)
-  );
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(members.map((m) => m.user_id));
 
   // -----------------------------------------------------------------------
   // Helpers
@@ -119,15 +117,9 @@ export function AddExpenseWizard({
     setAmount(cleaned);
   };
 
-  const amountCents = useMemo(
-    () => Math.round(parseFloat(amount || '0') * 100),
-    [amount]
-  );
+  const amountCents = useMemo(() => Math.round(parseFloat(amount || '0') * 100), [amount]);
 
-  const equalShare =
-    selectedMemberIds.length > 0
-      ? amountCents / selectedMemberIds.length
-      : 0;
+  const equalShare = selectedMemberIds.length > 0 ? amountCents / selectedMemberIds.length : 0;
 
   const selectedMembers = useMemo(
     () => members.filter((m) => selectedMemberIds.includes(m.user_id)),
@@ -135,11 +127,7 @@ export function AddExpenseWizard({
   );
 
   const toggleMember = (userId: string) => {
-    setSelectedMemberIds((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
+    setSelectedMemberIds((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
   };
 
   const selectAll = () => {
@@ -286,11 +274,7 @@ export function AddExpenseWizard({
       />
 
       {amount && selectedMemberIds.length > 0 && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 2, textAlign: 'center' }}
-        >
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
           Each survivor owes{' '}
           <Typography component="span" fontWeight={700} color="primary.main">
             {formatCurrency(equalShare / 100)}
@@ -365,9 +349,7 @@ export function AddExpenseWizard({
               >
                 {cat.label}
               </Typography>
-              {isSelected && (
-                <CheckIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-              )}
+              {isSelected && <CheckIcon sx={{ fontSize: 16, color: 'primary.main' }} />}
             </Box>
           );
         })}
@@ -457,30 +439,16 @@ export function AddExpenseWizard({
         Select Survivors
       </Typography>
 
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: 'block', textAlign: 'center', mb: 2 }}
-      >
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 2 }}>
         Who shares this expense? ({selectedMemberIds.length} of {members.length})
       </Typography>
 
       {/* Select all / none */}
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 3 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={selectAll}
-          sx={{ fontSize: '0.75rem' }}
-        >
+        <Button size="small" variant="outlined" onClick={selectAll} sx={{ fontSize: '0.75rem' }}>
           All
         </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={deselectAll}
-          sx={{ fontSize: '0.75rem' }}
-        >
+        <Button size="small" variant="outlined" onClick={deselectAll} sx={{ fontSize: '0.75rem' }}>
           None
         </Button>
       </Box>
@@ -542,12 +510,7 @@ export function AddExpenseWizard({
                 >
                   {displayName}
                   {isCurrentUser && (
-                    <Typography
-                      component="span"
-                      variant="caption"
-                      color="primary.main"
-                      sx={{ ml: 1, fontWeight: 600 }}
-                    >
+                    <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 1, fontWeight: 600 }}>
                       (You)
                     </Typography>
                   )}
@@ -558,9 +521,7 @@ export function AddExpenseWizard({
                   </Typography>
                 )}
               </Box>
-              {isSelected && (
-                <CheckIcon sx={{ color: 'primary.main', fontSize: 20 }} />
-              )}
+              {isSelected && <CheckIcon sx={{ color: 'primary.main', fontSize: 20 }} />}
             </Box>
           );
         })}
@@ -614,12 +575,7 @@ export function AddExpenseWizard({
         >
           {/* Amount */}
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography
-              variant="h3"
-              fontWeight={800}
-              color="primary.main"
-              sx={{ fontSize: '2.5rem' }}
-            >
+            <Typography variant="h3" fontWeight={800} color="primary.main" sx={{ fontSize: '2.5rem' }}>
               {formatCurrency(amountCents / 100)}
             </Typography>
           </Box>
@@ -637,11 +593,7 @@ export function AddExpenseWizard({
               label="Split"
               value={`Equal among ${selectedMemberIds.length} survivor${selectedMemberIds.length > 1 ? 's' : ''}`}
             />
-            <SummaryRow
-              label="Each owes"
-              value={formatCurrency(equalShare / 100)}
-              highlight
-            />
+            <SummaryRow label="Each owes" value={formatCurrency(equalShare / 100)} highlight />
           </Box>
 
           {/* Survivors */}
@@ -702,17 +654,11 @@ export function AddExpenseWizard({
       <Stepper steps={STEPS} activeStep={step} />
 
       {/* Step content */}
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 1 }}>
-        {renderStep()}
-      </Box>
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 1 }}>{renderStep()}</Box>
 
       {/* Error */}
       {error && (
-        <Typography
-          variant="body2"
-          color="error"
-          sx={{ textAlign: 'center', mt: 1, px: 2 }}
-        >
+        <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1, px: 2 }}>
           {error}
         </Typography>
       )}
@@ -738,11 +684,7 @@ export function AddExpenseWizard({
             Back
           </Button>
         ) : (
-          <Button
-            onClick={onCancel}
-            variant="outlined"
-            sx={{ flex: 1 }}
-          >
+          <Button onClick={onCancel} variant="outlined" sx={{ flex: 1 }}>
             Cancel
           </Button>
         )}
@@ -777,15 +719,7 @@ export function AddExpenseWizard({
 // Summary row helper
 // ---------------------------------------------------------------------------
 
-function SummaryRow({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
+function SummaryRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
     <Box
       sx={{

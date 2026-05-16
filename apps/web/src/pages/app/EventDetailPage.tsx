@@ -1,17 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Alert,
-  alpha,
-} from '@mui/material';
+import { Box, Typography, IconButton, Button, Tabs, Tab, CircularProgress, Alert, alpha } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   LocationOn as LocationIcon,
@@ -24,7 +14,15 @@ import { expensesApi, ExpenseListItem } from '../../api/expenses.api';
 import { ExpensesTable } from '../../components/groups/ExpensesTable';
 import { mockEvent, mockExpenses, mockMembers, mockUserId } from '../../api/mock-data';
 
-function PageNav({ page, totalPages, setPage }: { page: number; totalPages: number; setPage: (fn: (p: number) => number) => void }) {
+function PageNav({
+  page,
+  totalPages,
+  setPage,
+}: {
+  page: number;
+  totalPages: number;
+  setPage: (fn: (p: number) => number) => void;
+}) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
       <Button size="small" variant="outlined" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
@@ -71,10 +69,7 @@ function EventDetailPage() {
     enabled: !!eventId,
   });
 
-  const {
-    data: expensesData,
-    isLoading: expensesLoading,
-  } = useQuery({
+  const { data: expensesData, isLoading: expensesLoading } = useQuery({
     queryKey: ['expenses', eventId],
     queryFn: async () => {
       if (!eventId || !userId) return { data: [] as ExpenseListItem[], hasMore: false };
@@ -83,10 +78,7 @@ function EventDetailPage() {
     enabled: !!eventId && !!userId,
   });
 
-  const {
-    data: members,
-    isLoading: membersLoading,
-  } = useQuery({
+  const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ['event-members', eventId],
     queryFn: async () => {
       if (!eventId) return [];
@@ -99,18 +91,24 @@ function EventDetailPage() {
 
   const expenses = expensesData?.data || [];
   const resolvedEvent = event || (eventId === mockEvent.id ? mockEvent : undefined);
-  const resolvedMembers = (!isLoading && (!members || members.length === 0)) ? mockMembers : (members || []);
+  const resolvedMembers = !isLoading && (!members || members.length === 0) ? mockMembers : members || [];
   const resolvedUserId = userId || mockUserId;
-  const resolvedExpenses = (!isLoading && expenses.length === 0 && eventId === mockEvent.id) ? mockExpenses : expenses;
+  const resolvedExpenses = !isLoading && expenses.length === 0 && eventId === mockEvent.id ? mockExpenses : expenses;
   const totalPages = Math.max(1, Math.ceil(resolvedExpenses.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages - 1);
   const pageExpenses = resolvedExpenses.slice(clampedPage * PAGE_SIZE, (clampedPage + 1) * PAGE_SIZE);
 
   const totalCents = resolvedExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
-  const totalStr = totalCents === 0 ? '—' : `€${(totalCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const totalStr =
+    totalCents === 0
+      ? '—'
+      : `€${(totalCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const userShareCents = Math.round(totalCents / (resolvedMembers?.length || 1));
-  const userOwesStr = userShareCents === 0 ? '€0' : `€${(userShareCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const userOwesStr =
+    userShareCents === 0
+      ? '€0'
+      : `€${(userShareCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const settled = resolvedExpenses.filter((e) => e.deleted_at).length;
   const totalExpenses = resolvedExpenses.length;
@@ -127,9 +125,12 @@ function EventDetailPage() {
     while (parent) {
       const style = window.getComputedStyle(parent);
       if (
-        style.overflowY === 'auto' || style.overflowY === 'scroll' ||
-        style.overflow === 'auto' || style.overflow === 'scroll'
-      ) break;
+        style.overflowY === 'auto' ||
+        style.overflowY === 'scroll' ||
+        style.overflow === 'auto' ||
+        style.overflow === 'scroll'
+      )
+        break;
       parent = parent.parentElement;
     }
     const container = parent || document.documentElement;
@@ -153,6 +154,9 @@ function EventDetailPage() {
   const heroHeight = heroMaxHeight - (heroMaxHeight - heroMinHeight) * progress;
   const compact = progress > 0.5;
 
+  // Banner image from event data
+  const bannerUrl = resolvedEvent?.images?.banner?.url;
+
   return (
     <Box ref={rootRef}>
       {/* === Sticky header === */}
@@ -163,7 +167,16 @@ function EventDetailPage() {
             height: heroHeight,
             position: 'relative',
             overflow: 'hidden',
-            background: `linear-gradient(135deg, #4A2F0A 0%, #3D2208 50%, #1A1A1A 100%)`,
+            ...(bannerUrl
+              ? {
+                  backgroundImage: `url(${bannerUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                }
+              : {
+                  background: `linear-gradient(135deg, #4A2F0A 0%, #3D2208 50%, #1A1A1A 100%)`,
+                }),
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
@@ -171,20 +184,29 @@ function EventDetailPage() {
             pb: compact ? 1 : 3,
           }}
         >
-          <Box sx={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to bottom, transparent 40%, #121212 100%)`,
-          }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: bannerUrl
+                ? `linear-gradient(to bottom, rgba(19,19,19,0.3) 0%, rgba(19,19,19,0.7) 60%, #121212 100%)`
+                : `linear-gradient(to bottom, transparent 40%, #121212 100%)`,
+            }}
+          />
 
           {/* Back button */}
           <IconButton
             onClick={() => navigate('/app/events')}
             sx={{
-              position: 'absolute', top: 12, left: compact ? 8 : 16,
-              zIndex: 2, color: '#fff',
+              position: 'absolute',
+              top: 12,
+              left: compact ? 8 : 16,
+              zIndex: 2,
+              color: '#fff',
               bgcolor: alpha('#000', 0.35),
               '&:hover': { bgcolor: alpha('#000', 0.55) },
-              width: 32, height: 32,
+              width: 32,
+              height: 32,
             }}
           >
             <ArrowBackIcon sx={{ fontSize: 20 }} />
@@ -215,7 +237,9 @@ function EventDetailPage() {
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: compact ? '0.75rem' : '0.875rem' }}>
                   {resolvedEvent.description || 'Location TBD'}
                 </Typography>
-                <Typography variant="body2" color="primary.main" sx={{ fontWeight: 700 }}>·</Typography>
+                <Typography variant="body2" color="primary.main" sx={{ fontWeight: 700 }}>
+                  ·
+                </Typography>
                 <CalendarIcon sx={{ fontSize: compact ? 13 : 15, color: 'primary.main' }} />
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: compact ? '0.75rem' : '0.875rem' }}>
                   {formatDate(resolvedEvent.created_at)}
@@ -227,14 +251,16 @@ function EventDetailPage() {
 
         {/* Summary bar */}
         {!isLoading && resolvedEvent && (
-          <Box sx={{
-            display: 'flex',
-            gap: compact ? 1 : 2,
-            px: compact ? 1.5 : 3,
-            py: compact ? 1.5 : 2.5,
-            bgcolor: 'background.default',
-            transition: 'padding 0.25s, gap 0.25s',
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: compact ? 1 : 2,
+              px: compact ? 1.5 : 3,
+              py: compact ? 1.5 : 2.5,
+              bgcolor: 'background.default',
+              transition: 'padding 0.25s, gap 0.25s',
+            }}
+          >
             {[
               { value: totalStr, label: 'Total', color: 'primary.main' },
               { value: userOwesStr, label: 'You Owe', color: userShareCents > 0 ? 'error.light' : 'success.light' },

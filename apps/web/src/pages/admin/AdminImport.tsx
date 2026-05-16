@@ -1,14 +1,5 @@
 import { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  Button,
-  Alert,
-  LinearProgress,
-  alpha,
-  Chip,
-} from '@mui/material';
+import { Box, Typography, Card, Button, Alert, LinearProgress, alpha, Chip } from '@mui/material';
 import {
   UploadFile as UploadIcon,
   CheckCircle as SuccessIcon,
@@ -97,16 +88,26 @@ export default function AdminImport() {
       ) : stats ? (
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <Card sx={{ p: 2, flex: 1, minWidth: 150 }}>
-            <Typography variant="caption" color="text.secondary">Total Imports</Typography>
-            <Typography variant="h5" fontWeight={700}>{stats.total_imports}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Total Imports
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>
+              {stats.total_imports}
+            </Typography>
           </Card>
           <Card sx={{ p: 2, flex: 1, minWidth: 150 }}>
-            <Typography variant="caption" color="text.secondary">Survivors Summoned</Typography>
-            <Typography variant="h5" fontWeight={700}>{stats.total_survivors_summoned}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Survivors Summoned
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>
+              {stats.total_survivors_summoned}
+            </Typography>
           </Card>
           {stats.last_import_at && (
             <Card sx={{ p: 2, flex: 1, minWidth: 150 }}>
-              <Typography variant="caption" color="text.secondary">Last Import</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Last Import
+              </Typography>
               <Typography variant="body2" fontWeight={500}>
                 {new Date(stats.last_import_at).toLocaleString()}
               </Typography>
@@ -159,11 +160,7 @@ export default function AdminImport() {
             id="csv-upload"
           />
           <label htmlFor="csv-upload">
-            <Button
-              variant="outlined"
-              component="span"
-              sx={{ borderColor: '#f59e0b', color: '#f59e0b' }}
-            >
+            <Button variant="outlined" component="span" sx={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
               Select File
             </Button>
           </label>
@@ -188,12 +185,16 @@ export default function AdminImport() {
               <DownloadIcon sx={{ color: '#f59e0b' }} />
             </Box>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" fontWeight={500}>{selectedFile.name}</Typography>
+              <Typography variant="body2" fontWeight={500}>
+                {selectedFile.name}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
                 {(selectedFile.size / 1024).toFixed(1)} KB
               </Typography>
             </Box>
-            <Button size="small" onClick={handleReset}>Remove</Button>
+            <Button size="small" onClick={handleReset}>
+              Remove
+            </Button>
           </Box>
           <Button
             variant="contained"
@@ -221,26 +222,20 @@ export default function AdminImport() {
           </Typography>
 
           {importResult.success ? (
-            <Alert
-              severity="success"
-              icon={<SuccessIcon />}
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="success" icon={<SuccessIcon />} sx={{ mb: 2 }}>
               Honor Restored! {importResult.imported_count} survivor(s) summoned successfully.
             </Alert>
           ) : (
-            <Alert
-              severity="error"
-              icon={<ErrorIcon />}
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="error" icon={<ErrorIcon />} sx={{ mb: 2 }}>
               Import completed with errors. {importResult.imported_count} succeeded, {importResult.failed_count} failed.
             </Alert>
           )}
 
           {importResult.errors.length > 0 && (
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" fontWeight={600} gutterBottom>Errors:</Typography>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                Errors:
+              </Typography>
               {importResult.errors.map((err, i) => (
                 <Typography key={i} variant="caption" color="error" sx={{ display: 'block' }}>
                   • {err}
@@ -251,7 +246,9 @@ export default function AdminImport() {
 
           {importResult.survivors.length > 0 && (
             <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-              <Typography variant="body2" fontWeight={600} gutterBottom>Survivors:</Typography>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                Survivors:
+              </Typography>
               {importResult.survivors.map((s) => (
                 <Typography key={s.id} variant="body2" sx={{ mb: 0.5 }}>
                   <Chip
@@ -266,7 +263,9 @@ export default function AdminImport() {
             </Box>
           )}
 
-          <Button onClick={handleReset} sx={{ mt: 2 }}>Import Another</Button>
+          <Button onClick={handleReset} sx={{ mt: 2 }}>
+            Import Another
+          </Button>
         </Card>
       )}
 

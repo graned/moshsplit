@@ -42,7 +42,7 @@ async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<R
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       ...options?.headers,
     },
   });

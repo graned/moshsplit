@@ -86,11 +86,7 @@ function UserActionsMenu({ user, onUpdateStatus, onUpdateRole }: UserActionsMenu
 
   return (
     <>
-      <IconButton
-        size="small"
-        onClick={handleClick}
-        aria-label="user actions"
-      >
+      <IconButton size="small" onClick={handleClick} aria-label="user actions">
         <MoreIcon />
       </IconButton>
       <Menu
@@ -182,8 +178,7 @@ function UsersTable({ users }: { users: AdminUser[] }) {
   });
 
   const roleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
-      adminUsersApi.updateRole(userId, { role }),
+    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) => adminUsersApi.updateRole(userId, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
@@ -264,11 +259,7 @@ function UsersTable({ users }: { users: AdminUser[] }) {
                 </Typography>
               </TableCell>
               <TableCell align="right">
-                <UserActionsMenu
-                  user={user}
-                  onUpdateStatus={handleUpdateStatus}
-                  onUpdateRole={handleUpdateRole}
-                />
+                <UserActionsMenu user={user} onUpdateStatus={handleUpdateStatus} onUpdateRole={handleUpdateRole} />
               </TableCell>
             </TableRow>
           ))}
@@ -287,13 +278,16 @@ export default function UsersPage() {
   const [pageSize, setPageSize] = useState(20);
 
   // Build query params
-  const queryParams = useMemo(() => ({
-    page: page + 1, // API uses 1-based indexing
-    pageSize,
-    ...(search && { search }),
-    ...(statusFilter && { status: statusFilter }),
-    ...(roleFilter && { role: roleFilter }),
-  }), [page, pageSize, search, statusFilter, roleFilter]);
+  const queryParams = useMemo(
+    () => ({
+      page: page + 1, // API uses 1-based indexing
+      pageSize,
+      ...(search && { search }),
+      ...(statusFilter && { status: statusFilter }),
+      ...(roleFilter && { role: roleFilter }),
+    }),
+    [page, pageSize, search, statusFilter, roleFilter]
+  );
 
   // Fetch users
   const { data, isLoading, error, refetch } = useQuery({
@@ -359,11 +353,7 @@ export default function UsersPage() {
           />
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={handleStatusChange}
-              label="Status"
-            >
+            <Select value={statusFilter} onChange={handleStatusChange} label="Status">
               <MenuItem value="">All</MenuItem>
               <MenuItem value="active">Active</MenuItem>
               <MenuItem value="inactive">Inactive</MenuItem>
@@ -372,11 +362,7 @@ export default function UsersPage() {
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>Role</InputLabel>
-            <Select
-              value={roleFilter}
-              onChange={handleRoleChange}
-              label="Role"
-            >
+            <Select value={roleFilter} onChange={handleRoleChange} label="Role">
               <MenuItem value="">All</MenuItem>
               <MenuItem value="admin">Admin</MenuItem>
               <MenuItem value="super_admin">Super Admin</MenuItem>
@@ -388,9 +374,9 @@ export default function UsersPage() {
 
       {/* Error state */}
       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 2 }} 
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
           action={
             <Button color="inherit" size="small" onClick={() => refetch()}>
               Retry

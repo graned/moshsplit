@@ -1,14 +1,5 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Avatar,
-} from '@mui/material';
-import {
-  TrendingUp as OwesIcon,
-  TrendingDown as OwedIcon,
-} from '@mui/icons-material';
+import { Card, CardContent, Typography, Box, Avatar } from '@mui/material';
+import { TrendingUp as OwesIcon, TrendingDown as OwedIcon } from '@mui/icons-material';
 import { UserBalanceItem } from '../../api/balances.api';
 
 interface BalanceCardProps {
@@ -50,9 +41,7 @@ export function BalanceCard({ balance, userName, onClick }: BalanceCardProps) {
     >
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            {getDisplayName().charAt(0).toUpperCase()}
-          </Avatar>
+          <Avatar sx={{ bgcolor: 'primary.main' }}>{getDisplayName().charAt(0).toUpperCase()}</Avatar>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle1" fontWeight={600}>
               {getDisplayName()}
