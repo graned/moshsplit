@@ -202,6 +202,7 @@ export default function ExpenseReportPage() {
                 userId={userId!}
                 currency={currency}
                 userMap={userMap}
+                members={members}
                 expenseType={selectedType}
                 emptyState={
                   <Box

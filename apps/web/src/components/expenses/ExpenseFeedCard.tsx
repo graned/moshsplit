@@ -106,7 +106,7 @@ export function ExpenseFeedCard({
                 <Typography variant="h6" fontWeight={600} sx={{ fontSize: '1.1rem', mb: 0.5 }}>
                   {expense.title}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                <Typography component="span" variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
                   Paid by{' '}
                   <Tooltip
                     title={

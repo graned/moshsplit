@@ -1,17 +1,20 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useInfiniteExpenses } from '../../hooks/useInfiniteExpenses';
 import { ExpenseFeedCard } from './ExpenseFeedCard';
+import { IntelLog } from './IntelLog';
 import { UserInfo } from '../../api/users.api';
+import { ExpenseListItem } from '../../api/expenses.api';
+import { GroupMember } from '../../api/groups.api';
 
 interface ExpenseFeedProps {
   eventId: string;
   userId: string;
   currency?: string;
   userMap: Record<string, UserInfo>;
+  members?: GroupMember[];
   pageSize?: number;
   expenseType?: string;
-  onExpenseClick?: (expenseId: string) => void;
   emptyState?: React.ReactNode;
   className?: string;
 }
@@ -21,9 +24,9 @@ export function ExpenseFeed({
   userId,
   currency = 'EUR',
   userMap,
+  members = [],
   pageSize = 20,
   expenseType,
-  onExpenseClick,
   emptyState,
   className,
 }: ExpenseFeedProps) {
@@ -35,6 +38,8 @@ export function ExpenseFeed({
   });
 
   const expenses = data?.pages.flatMap((p) => p.data) ?? [];
+
+  const [selectedExpense, setSelectedExpense] = useState<ExpenseListItem | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +61,10 @@ export function ExpenseFeed({
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
+
+  const handleExpenseClick = (expense: ExpenseListItem) => {
+    setSelectedExpense(expense);
+  };
 
   if (isLoading) {
     return (
@@ -99,7 +108,7 @@ export function ExpenseFeed({
             participants={participantUsers}
             currentUserId={userId}
             currency={currency}
-            onClick={() => onExpenseClick?.(expense.id)}
+            onClick={() => handleExpenseClick(expense)}
           />
         );
       })}
@@ -111,6 +120,17 @@ export function ExpenseFeed({
           <CircularProgress size={24} />
         </Box>
       )}
+
+      {/* Intel Log Modal */}
+      <IntelLog
+        open={!!selectedExpense}
+        onClose={() => setSelectedExpense(null)}
+        expense={selectedExpense}
+        eventId={eventId}
+        members={members}
+        currency={currency}
+        currentUserId={userId}
+      />
     </Box>
   );
 }
