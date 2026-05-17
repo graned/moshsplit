@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, Box, Typography, useMediaQuery, useTheme, IconButton } from '@mui/material';
+import { Dialog, Box, Typography, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 
 import { AddExpenseWizard } from './AddExpenseWizard';
@@ -54,8 +54,11 @@ export function AddExpenseDialog({
           bgcolor: 'background.default',
           borderRadius: isMobile ? 0 : 3,
           m: isMobile ? 0 : undefined,
-          maxHeight: isMobile ? '100%' : '90vh',
+          maxHeight: isMobile ? '100%' : '85vh',
           height: isMobile ? '100%' : 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         },
       }}
     >
@@ -96,14 +99,14 @@ export function AddExpenseDialog({
       </Box>
 
       {/* Wizard */}
-      <DialogContent
+      <Box
         sx={{
-          p: 0,
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          flex: 1,
           minHeight: 0,
           overflow: 'hidden',
+          p: 2,
         }}
       >
         <AddExpenseWizard
@@ -117,7 +120,7 @@ export function AddExpenseDialog({
           }}
           onCancel={onClose}
         />
-      </DialogContent>
+      </Box>
     </Dialog>
   );
 }

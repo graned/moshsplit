@@ -115,7 +115,16 @@ export function ParticipantSearch({
 
       {/* Selected users as chips */}
       {selectedUsers.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 1,
+            mb: 2,
+            maxHeight: 80,
+            overflowY: 'auto',
+          }}
+        >
           {selectedUsers.map((user) => (
             <Box
               key={user.id}
@@ -201,7 +210,7 @@ export function ParticipantSearch({
           display: 'flex',
           flexDirection: 'column',
           gap: 0.5,
-          maxHeight: 280,
+          maxHeight: 200,
           overflowY: 'auto',
         }}
       >
