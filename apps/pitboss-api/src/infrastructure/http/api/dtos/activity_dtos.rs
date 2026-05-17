@@ -49,6 +49,17 @@ pub enum ActivityItem {
         amount_cents: i32,
         created_at: DateTime<Utc>,
     },
+    /// A settlement was approved — honor restored.
+    HonorRestored {
+        id: Uuid,
+        from_user: Uuid,
+        to_user: Uuid,
+        amount_cents: i32,
+        /// User who approved the settlement.
+        approved_by: Uuid,
+        created_at: DateTime<Utc>,
+        reviewed_at: DateTime<Utc>,
+    },
     /// A member joined the event.
     MemberJoin {
         id: Uuid,

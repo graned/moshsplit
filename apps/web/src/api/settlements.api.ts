@@ -10,6 +10,11 @@ export interface Settlement {
   settled_at?: string;
   created_by: string;
   created_at: string;
+  note?: string;
+  proof_url?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_note?: string;
 }
 
 export interface SettlementListItem {
@@ -19,16 +24,29 @@ export interface SettlementListItem {
   amount_cents: number;
   status: string;
   created_at: string;
+  note?: string;
+  proof_url?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_note?: string;
 }
 
 export interface CreateSettlementRequest {
   from_user: string;
   to_user: string;
   amount_cents: number;
+  note?: string;
+  proof_url?: string;
 }
 
 export interface UpdateSettlementStatusRequest {
   status: string;
+}
+
+export interface ApproveSettlementRequest {}
+
+export interface RejectSettlementRequest {
+  rejection_note?: string;
 }
 
 export const settlementsApi = {
@@ -80,6 +98,28 @@ export const settlementsApi = {
     );
     if (!response.success) {
       throw new Error((response.error as string) || 'Failed to update settlement');
+    }
+    return response.data;
+  },
+
+  approve: async (eventId: string, settlementId: string): Promise<Settlement> => {
+    const response = await apiClient.post<{ success: boolean; data: Settlement; error: unknown }>(
+      `/v1/events/${eventId}/settlements/${settlementId}/approve`,
+      {}
+    );
+    if (!response.success) {
+      throw new Error((response.error as string) || 'Failed to approve settlement');
+    }
+    return response.data;
+  },
+
+  reject: async (eventId: string, settlementId: string, rejectionNote?: string): Promise<Settlement> => {
+    const response = await apiClient.post<{ success: boolean; data: Settlement; error: unknown }>(
+      `/v1/events/${eventId}/settlements/${settlementId}/reject`,
+      { rejection_note: rejectionNote }
+    );
+    if (!response.success) {
+      throw new Error((response.error as string) || 'Failed to reject settlement');
     }
     return response.data;
   },

@@ -118,6 +118,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/settlements/{settlement_id}",
             get(settlement_handlers::get_settlement),
+        )
+        .route(
+            "/v1/events/{id}/settlements/{settlement_id}/approve",
+            post(settlement_handlers::approve_settlement),
+        )
+        .route(
+            "/v1/events/{id}/settlements/{settlement_id}/reject",
+            post(settlement_handlers::reject_settlement),
         );
 
     // ── Balances ───────────────────────────────────────────────────────

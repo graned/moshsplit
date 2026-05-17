@@ -122,5 +122,10 @@ pub struct Settlement {
     pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub note: Option<String>,
+    pub proof_url: Option<String>,
+    pub reviewed_by: Option<uuid::Uuid>,
+    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub rejection_note: Option<String>,
 }
 

@@ -1,10 +1,11 @@
-import { Box, Typography, Avatar, alpha, CircularProgress } from '@mui/material';
+import { Box, Typography, alpha, CircularProgress } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '../../hooks/useUserCache';
-import { UserBalanceItem, EventStats } from '../../api/balances.api';
+import { EventStats } from '../../api/balances.api';
 import { activityApi, ActivityItem, isSettlementActivity, isExpenseActivity, isMemberJoinActivity } from '../../api/activity.api';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
@@ -14,7 +15,6 @@ interface LiveIntelPanelProps {
   eventId: string;
   currentUserId: string;
   stats: EventStats | undefined;
-  balances: UserBalanceItem[];
   currency: string;
 }
 
@@ -22,7 +22,6 @@ export function LiveIntelPanel({
   eventId,
   currentUserId,
   stats,
-  balances,
   currency,
 }: LiveIntelPanelProps) {
 
@@ -36,15 +35,15 @@ export function LiveIntelPanel({
 
   const activities = activityResult?.data ?? [];
 
-  // Get the most indebted users (highest absolute balance)
-  const mostIndebted = [...balances]
-    .filter((b) => b.balance_cents !== 0)
-    .sort((a, b) => Math.abs(b.balance_cents) - Math.abs(a.balance_cents))
-    .slice(0, 4);
+  const outstandingCents = stats?.your_outstanding_cents ?? 0;
+  const yourShareCents = stats?.your_share_cents ?? 0;
+  const settledShareCents = yourShareCents - outstandingCents;
+  const settlementPercentage = yourShareCents > 0 ? Math.round((settledShareCents / yourShareCents) * 100) : 0;
 
-  const outstandingCents = stats?.outstanding_cents ?? 0;
-  const totalSpentCents = stats?.total_spent_cents ?? 0;
-  const budgetPercentage = totalSpentCents > 0 ? Math.round(((totalSpentCents - outstandingCents) / totalSpentCents) * 100) : 0;
+  const incomingCents = stats?.your_incoming_cents ?? 0;
+  const incomingSettledCents = stats?.your_incoming_settled_cents ?? 0;
+  const incomingRemainingCents = Math.max(incomingCents - incomingSettledCents, 0);
+  const incomingPercentage = incomingCents > 0 ? Math.round((incomingSettledCents / incomingCents) * 100) : 0;
 
   return (
     <Box
@@ -74,7 +73,7 @@ export function LiveIntelPanel({
             mb: 1.5,
           }}
         >
-          Outstanding Damage
+          Your Outstanding
         </Typography>
         <Typography
           variant="h4"
@@ -86,7 +85,7 @@ export function LiveIntelPanel({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <TrendingUpIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
           <Typography variant="caption" color="text.secondary">
-            {budgetPercentage}% of budget settled
+            {outstandingCents > 0 ? `${formatAmount(outstandingCents, currency)} remaining` : 'Fully settled'}
           </Typography>
         </Box>
         {/* Progress bar */}
@@ -102,7 +101,7 @@ export function LiveIntelPanel({
           <Box
             sx={{
               height: '100%',
-              width: `${budgetPercentage}%`,
+              width: `${settlementPercentage}%`,
               bgcolor: 'primary.main',
               borderRadius: 100,
               transition: 'width 0.3s ease',
@@ -111,42 +110,80 @@ export function LiveIntelPanel({
         </Box>
       </Box>
 
-      {/* Most Indebted Survivors */}
-      {mostIndebted.length > 0 && (
-        <Box
+      {/* Incoming Tributes */}
+      <Box
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'elevated.main',
+          border: `1px solid ${alpha('#fff', 0.1)}`,
+        }}
+      >
+        <Typography
+          variant="caption"
           sx={{
-            p: 2,
-            borderRadius: 2,
-            bgcolor: 'elevated.main',
-            border: `1px solid ${alpha('#fff', 0.1)}`,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'text.secondary',
+            display: 'block',
+            mb: 1.5,
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: 'text.secondary',
-              display: 'block',
-              mb: 1.5,
-            }}
-          >
-            Most Indebted Survivors
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {mostIndebted.map((balance) => (
-              <MostIndebtedRow
-                key={balance.user_id}
-                userId={balance.user_id}
-                balanceCents={balance.balance_cents}
-                currency={currency}
-                isCurrentUser={balance.user_id === currentUserId}
-              />
-            ))}
+          Incoming Tributes
+        </Typography>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Expected
+            </Typography>
+            <Typography variant="h6" fontWeight={700} color={incomingCents > 0 ? 'text.primary' : 'text.disabled'}>
+              {formatAmount(incomingCents, currency)}
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Settled
+            </Typography>
+            <Typography variant="h6" fontWeight={700} color={incomingSettledCents > 0 ? 'success.main' : 'text.disabled'}>
+              {formatAmount(incomingSettledCents, currency)}
+            </Typography>
           </Box>
         </Box>
-      )}
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+          <TrendingDownIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Typography variant="caption" color="text.secondary">
+            {incomingCents === 0
+              ? 'No tributes expected'
+              : incomingRemainingCents > 0
+                ? `${formatAmount(incomingRemainingCents, currency)} pending`
+                : 'All tributes collected'}
+          </Typography>
+        </Box>
+
+        {/* Progress bar */}
+        <Box
+          sx={{
+            mt: 1.5,
+            height: 4,
+            borderRadius: 100,
+            bgcolor: 'elevatedHighest',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              height: '100%',
+              width: `${incomingPercentage}%`,
+              bgcolor: incomingCents > 0 ? 'success.main' : 'text.disabled',
+              borderRadius: 100,
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </Box>
+      </Box>
 
       {/* Recent Diplomacy */}
       <Box
@@ -187,61 +224,6 @@ export function LiveIntelPanel({
           </Box>
         )}
       </Box>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Most Indebted Row
-// ---------------------------------------------------------------------------
-
-function MostIndebtedRow({
-  userId,
-  balanceCents,
-  currency,
-  isCurrentUser,
-}: {
-  userId: string;
-  balanceCents: number;
-  currency: string;
-  isCurrentUser: boolean;
-}) {
-  const user = useUser(userId);
-  const displayName = user
-    ? `${user.firstName} ${user.lastName}`.trim() || user.email
-    : userId.slice(0, 8);
-  const initial = displayName.charAt(0).toUpperCase();
-  const isOwed = balanceCents > 0;
-
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-      <Avatar
-        sx={{
-          width: 32,
-          height: 32,
-          bgcolor: isOwed ? 'primary.main' : 'error.main',
-          color: '#121212',
-          fontWeight: 700,
-          fontSize: '0.75rem',
-        }}
-      >
-        {initial}
-      </Avatar>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-          {isCurrentUser ? 'You' : displayName}
-        </Typography>
-      </Box>
-      <Typography
-        variant="body2"
-        fontWeight={700}
-        sx={{
-          color: isOwed ? 'primary.main' : 'error.main',
-          flexShrink: 0,
-        }}
-      >
-        {isOwed ? '+' : '-'}{formatAmount(balanceCents, currency)}
-      </Typography>
     </Box>
   );
 }

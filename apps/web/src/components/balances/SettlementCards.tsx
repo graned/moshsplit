@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Avatar,
   Button,
+  Avatar,
   alpha,
   Collapse,
   IconButton,
@@ -30,6 +30,8 @@ import { UserInfo } from '../../api/users.api';
 import { ExpenseBreakdown } from '../../api/balances.api';
 import { SettlementListItem } from '../../api/settlements.api';
 import { GroupMember } from '../../api/groups.api';
+import { RestoreHonorModal } from '../settlements/RestoreHonorModal';
+import { SettlementReviewPanel } from '../settlements/SettlementReviewPanel';
 
 const EXPENSE_ICONS: Record<string, React.ReactNode> = {
   beer: <BeerIcon sx={{ fontSize: 14 }} />,
@@ -63,9 +65,9 @@ interface SettlementCardsProps {
   currentUserId: string;
   currency: string;
   members: GroupMember[];
-  onSettle?: (userId: string, amountCents: number) => void;
   settlementRequests: SettlementListItem[];
-  onConfirmRequest?: (settlementId: string) => void;
+  onSettlementSuccess?: () => void;
+  eventId: string;
 }
 
 export function SettlementCards({
@@ -73,9 +75,9 @@ export function SettlementCards({
   currentUserId,
   currency,
   members,
-  onSettle,
   settlementRequests,
-  onConfirmRequest,
+  onSettlementSuccess,
+  eventId,
 }: SettlementCardsProps) {
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing' | 'requests'>('incoming');
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -88,6 +90,14 @@ export function SettlementCards({
     }
     return map;
   }, [allUsers]);
+
+  // Restore Honor Modal state
+  const [restoreHonorOpen, setRestoreHonorOpen] = useState(false);
+  const [restoreHonorTarget, setRestoreHonorTarget] = useState<{ userId: string; amountCents: number } | null>(null);
+
+  // Settlement Review Panel state
+  const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
+  const [reviewSettlement, setReviewSettlement] = useState<SettlementListItem | null>(null);
 
   const incoming = relationships.filter((r) => r.isIncoming);
   const outgoing = relationships.filter((r) => !r.isIncoming);
@@ -115,9 +125,29 @@ export function SettlementCards({
     return name.charAt(0).toUpperCase();
   };
 
-  const handleSettle = (userId: string, amountCents: number) => {
-    onSettle?.(userId, amountCents);
+  const handleOpenRestoreHonor = (userId: string, amountCents: number) => {
+    setRestoreHonorTarget({ userId, amountCents });
+    setRestoreHonorOpen(true);
   };
+
+  const handleOpenReviewPanel = (settlement: SettlementListItem) => {
+    setReviewSettlement(settlement);
+    setReviewPanelOpen(true);
+  };
+
+  const handleRestoreHonorSuccess = () => {
+    setRestoreHonorOpen(false);
+    setRestoreHonorTarget(null);
+    onSettlementSuccess?.();
+  };
+
+  const handleReviewSuccess = () => {
+    setReviewPanelOpen(false);
+    setReviewSettlement(null);
+    onSettlementSuccess?.();
+  };
+
+  const targetUser = restoreHonorTarget ? userMap.get(restoreHonorTarget.userId) : undefined;
 
   return (
     <Box>
@@ -176,7 +206,7 @@ export function SettlementCards({
               {requestsToConfirm.length > 0 && (
                 <Box>
                   <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Awaiting your confirmation
+                    Awaiting your verdict
                   </Typography>
                   {requestsToConfirm.map((req) => (
                     <SettlementRequestCard
@@ -184,7 +214,7 @@ export function SettlementCards({
                       settlement={req}
                       currency={currency}
                       isConfirming
-                      onConfirm={() => onConfirmRequest?.(req.id)}
+                      onReview={() => handleOpenReviewPanel(req)}
                     />
                   ))}
                 </Box>
@@ -193,7 +223,7 @@ export function SettlementCards({
               {requestsISent.length > 0 && (
                 <Box>
                   <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Sent — awaiting confirmation
+                    Sent — awaiting their verdict
                   </Typography>
                   {requestsISent.map((req) => (
                     <SettlementRequestCard
@@ -339,14 +369,14 @@ export function SettlementCards({
                           </Typography>
                         </Box>
 
-                        {/* Settle button (only for outgoing) */}
+                        {/* Restore Honor button (only for outgoing) */}
                         {!rel.isIncoming && rel.totalCents > 0 && (
                           <Button
                             fullWidth
                             variant="contained"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSettle(rel.userId, rel.totalCents);
+                              handleOpenRestoreHonor(rel.userId, rel.totalCents);
                             }}
                             sx={{
                               mt: 2,
@@ -356,7 +386,7 @@ export function SettlementCards({
                               '&:hover': { bgcolor: 'primary.dark' },
                             }}
                           >
-                            Request to Settle {formatAmount(rel.totalCents, currency)}
+                            Restore Honor {formatAmount(rel.totalCents, currency)}
                           </Button>
                         )}
                       </Box>
@@ -367,6 +397,36 @@ export function SettlementCards({
             </Box>
           )}
         </>
+      )}
+
+      {/* Restore Honor Modal */}
+      {restoreHonorTarget && (
+        <RestoreHonorModal
+          open={restoreHonorOpen}
+          onClose={() => setRestoreHonorOpen(false)}
+          onSuccess={handleRestoreHonorSuccess}
+          toUser={restoreHonorTarget.userId}
+          toUserInfo={targetUser}
+          totalOwedCents={restoreHonorTarget.amountCents}
+          currency={currency}
+          eventId={eventId}
+          fromUserId={currentUserId}
+        />
+      )}
+
+      {/* Settlement Review Panel */}
+      {reviewSettlement && (
+        <SettlementReviewPanel
+          open={reviewPanelOpen}
+          onClose={() => setReviewPanelOpen(false)}
+          onSuccess={handleReviewSuccess}
+          settlement={reviewSettlement}
+          fromUserInfo={userMap.get(reviewSettlement.from_user)}
+          toUserInfo={userMap.get(reviewSettlement.to_user)}
+          currency={currency}
+          eventId={eventId}
+          currentUserId={currentUserId}
+        />
       )}
     </Box>
   );
@@ -460,8 +520,6 @@ function ExpenseRow({
     ? EXPENSE_ICONS[expense.expense_type] ?? <DefaultIcon sx={{ fontSize: 14 }} />
     : <DefaultIcon sx={{ fontSize: 14 }} />;
 
-  // For incoming: they owe me their share
-  // For outgoing: I owe my share
   const amountCents = isIncoming ? expense.share_cents : expense.share_cents;
 
   return (
@@ -522,12 +580,12 @@ function SettlementRequestCard({
   settlement,
   currency,
   isConfirming,
-  onConfirm,
+  onReview,
 }: {
   settlement: SettlementListItem;
   currency: string;
   isConfirming: boolean;
-  onConfirm?: () => void;
+  onReview?: () => void;
 }) {
   const otherUserId = isConfirming ? settlement.from_user : settlement.to_user;
   const user = useUser(otherUserId);
@@ -552,7 +610,10 @@ function SettlementRequestCard({
         border: `1px solid ${alpha('#fff', 0.1)}`,
         bgcolor: 'elevated.main',
         mb: 1.5,
+        cursor: isConfirming ? 'pointer' : 'default',
+        '&:hover': isConfirming ? { bgcolor: alpha('#fff', 0.03) } : {},
       }}
+      onClick={isConfirming ? onReview : undefined}
     >
       <Avatar
         sx={{
@@ -569,7 +630,7 @@ function SettlementRequestCard({
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-          {isConfirming ? `${displayName} requests settlement` : `Waiting for ${displayName}`}
+          {isConfirming ? `${displayName} claims to have paid` : `Waiting for ${displayName}`}
         </Typography>
         <Typography variant="caption" color="text.secondary">
           {time}
@@ -593,20 +654,23 @@ function SettlementRequestCard({
         />
       </Box>
 
-      {isConfirming && onConfirm && (
+      {isConfirming && onReview && (
         <Button
           size="small"
           variant="contained"
           startIcon={<ConfirmIcon sx={{ fontSize: 16 }} />}
-          onClick={onConfirm}
+          onClick={(e) => {
+            e.stopPropagation();
+            onReview();
+          }}
           sx={{
-            bgcolor: 'success.main',
+            bgcolor: 'primary.main',
             color: '#121212',
             fontWeight: 700,
-            '&:hover': { bgcolor: 'success.dark' },
+            '&:hover': { bgcolor: 'primary.dark' },
           }}
         >
-          Confirm
+          Review
         </Button>
       )}
     </Box>

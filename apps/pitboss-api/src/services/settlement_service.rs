@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    CreateSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
+    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
 };
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
@@ -70,24 +70,93 @@ impl SettlementService {
             settled_at: None,
             created_by,
             created_at: now,
+            note: req.note,
+            proof_url: req.proof_url,
+            reviewed_by: None,
+            reviewed_at: None,
+            rejection_note: None,
         };
 
         self.settlement_repo.create(&settlement)?;
 
-        Ok(SettlementResponse {
-            id: settlement.id,
-            event_id: settlement.event_id,
-            from_user: settlement.from_user,
-            to_user: settlement.to_user,
-            amount_cents: settlement.amount_cents,
-            status: settlement.status.to_string(),
-            settled_at: None,
-            created_by: settlement.created_by,
-            created_at: settlement.created_at,
-        })
+        Ok(settlement_to_response(&settlement))
     }
 
-    /// Update settlement status (confirm, dispute, etc.).
+    /// Approve a settlement request. Only the recipient (to_user) can approve.
+    pub fn approve_settlement(
+        &self,
+        event_id: Uuid,
+        settlement_id: Uuid,
+        reviewer_id: Uuid,
+        _req: ApproveSettlementRequest,
+    ) -> Result<SettlementResponse, ServiceError> {
+        let settlement = self
+            .settlement_repo
+            .find_by_id(settlement_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+
+        if settlement.event_id != event_id {
+            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+        }
+
+        if settlement.status != SettlementStatus::Pending {
+            return Err(ServiceError::Validation(format!(
+                "Settlement is already {}",
+                settlement.status.to_string()
+            )));
+        }
+
+        // Only the recipient (to_user) can approve
+        if settlement.to_user != reviewer_id {
+            return Err(ServiceError::Forbidden(
+                "Only the recipient can approve this settlement".into(),
+            ));
+        }
+
+        self.settlement_repo.approve_settlement(settlement_id, reviewer_id)?;
+
+        // Fetch updated settlement
+        self.get_settlement(event_id, settlement_id)
+    }
+
+    /// Reject a settlement request. Only the recipient (to_user) can reject.
+    pub fn reject_settlement(
+        &self,
+        event_id: Uuid,
+        settlement_id: Uuid,
+        reviewer_id: Uuid,
+        req: RejectSettlementRequest,
+    ) -> Result<SettlementResponse, ServiceError> {
+        let settlement = self
+            .settlement_repo
+            .find_by_id(settlement_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+
+        if settlement.event_id != event_id {
+            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+        }
+
+        if settlement.status != SettlementStatus::Pending {
+            return Err(ServiceError::Validation(format!(
+                "Settlement is already {}",
+                settlement.status.to_string()
+            )));
+        }
+
+        // Only the recipient (to_user) can reject
+        if settlement.to_user != reviewer_id {
+            return Err(ServiceError::Forbidden(
+                "Only the recipient can reject this settlement".into(),
+            ));
+        }
+
+        self.settlement_repo.reject_settlement(settlement_id, reviewer_id, req.rejection_note)?;
+
+        // Fetch updated settlement
+        self.get_settlement(event_id, settlement_id)
+    }
+
+    /// Update settlement status (legacy).
     pub fn update_settlement_status(
         &self,
         event_id: Uuid,
@@ -104,10 +173,10 @@ impl SettlementService {
         }
 
         let now = Utc::now();
-        let valid_statuses = ["pending", "confirmed", "disputed"];
+        let valid_statuses = ["pending", "confirmed", "disputed", "rejected"];
         if !valid_statuses.contains(&req.status.as_str()) {
             return Err(ServiceError::Validation(format!(
-                "Invalid status '{}'. Must be one of: pending, confirmed, disputed",
+                "Invalid status '{}'. Must be one of: pending, confirmed, disputed, rejected",
                 req.status
             )));
         }
@@ -145,14 +214,7 @@ impl SettlementService {
 
         let items: Vec<SettlementListItem> = rows
             .into_iter()
-            .map(|s| SettlementListItem {
-                id: s.id,
-                from_user: s.from_user,
-                to_user: s.to_user,
-                amount_cents: s.amount_cents,
-                status: s.status.to_string(),
-                created_at: s.created_at,
-            })
+            .map(settlement_to_list_item)
             .collect();
 
         let next_cursor = if has_more {
@@ -175,16 +237,41 @@ impl SettlementService {
             return Err(ServiceError::NotFound("Settlement not found in this event".into()));
         }
 
-        Ok(SettlementResponse {
-            id: settlement.id,
-            event_id: settlement.event_id,
-            from_user: settlement.from_user,
-            to_user: settlement.to_user,
-            amount_cents: settlement.amount_cents,
-            status: settlement.status.to_string(),
-            settled_at: settlement.settled_at,
-            created_by: settlement.created_by,
-            created_at: settlement.created_at,
-        })
+        Ok(settlement_to_response(&settlement))
+    }
+}
+
+fn settlement_to_response(s: &Settlement) -> SettlementResponse {
+    SettlementResponse {
+        id: s.id,
+        event_id: s.event_id,
+        from_user: s.from_user,
+        to_user: s.to_user,
+        amount_cents: s.amount_cents,
+        status: s.status.to_string(),
+        settled_at: s.settled_at,
+        created_by: s.created_by,
+        created_at: s.created_at,
+        note: s.note.clone(),
+        proof_url: s.proof_url.clone(),
+        reviewed_by: s.reviewed_by,
+        reviewed_at: s.reviewed_at,
+        rejection_note: s.rejection_note.clone(),
+    }
+}
+
+fn settlement_to_list_item(s: Settlement) -> SettlementListItem {
+    SettlementListItem {
+        id: s.id,
+        from_user: s.from_user,
+        to_user: s.to_user,
+        amount_cents: s.amount_cents,
+        status: s.status.to_string(),
+        created_at: s.created_at,
+        note: s.note,
+        proof_url: s.proof_url,
+        reviewed_by: s.reviewed_by,
+        reviewed_at: s.reviewed_at,
+        rejection_note: s.rejection_note,
     }
 }

@@ -157,6 +157,11 @@ pub mod app {
             settled_at -> Nullable<Timestamptz>,
             created_by -> Uuid,
             created_at -> Timestamptz,
+            note -> Nullable<Text>,
+            proof_url -> Nullable<Text>,
+            reviewed_by -> Nullable<Uuid>,
+            reviewed_at -> Nullable<Timestamptz>,
+            rejection_note -> Nullable<Text>,
         }
     }
 

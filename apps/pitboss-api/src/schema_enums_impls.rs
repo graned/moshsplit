@@ -74,6 +74,7 @@ impl std::fmt::Display for SettlementStatus {
             Self::Pending => write!(f, "pending"),
             Self::Confirmed => write!(f, "confirmed"),
             Self::Disputed => write!(f, "disputed"),
+            Self::Rejected => write!(f, "rejected"),
         }
     }
 }
@@ -85,6 +86,7 @@ impl std::str::FromStr for SettlementStatus {
             "pending" => Ok(Self::Pending),
             "confirmed" => Ok(Self::Confirmed),
             "disputed" => Ok(Self::Disputed),
+            "rejected" => Ok(Self::Rejected),
             _ => Err(format!("invalid settlement status: {s}")),
         }
     }

@@ -2,10 +2,11 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Box, CircularProgress, Typography, Card, CardContent } from '@mui/material';
 import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
-import { ActivityItem, isExpenseActivity, isSettlementActivity, isMemberJoinActivity } from '../../api/activity.api';
+import { ActivityItem, isExpenseActivity, isSettlementActivity, isHonorRestoredActivity, isMemberJoinActivity } from '../../api/activity.api';
 import { UserInfo } from '../../api/users.api';
 import { ExpenseFeedCard } from './ExpenseFeedCard';
 import { SettlementFeedCard } from './SettlementFeedCard';
+import { HonorRestoredFeedCard } from './HonorRestoredFeedCard';
 import { MemberJoinCard } from './MemberJoinCard';
 
 interface FeedListProps {
@@ -93,6 +94,24 @@ export function FeedList({
             currentUserId={userId}
             currency={currency}
             onClick={() => onSettlementClick?.(item.id)}
+          />
+        );
+      }
+
+      if (isHonorRestoredActivity(item)) {
+        const fromUser = getUser(item.from_user);
+        const toUser = getUser(item.to_user);
+        const approvedByUser = getUser(item.approved_by);
+
+        return (
+          <HonorRestoredFeedCard
+            key={item.id}
+            activity={item}
+            fromUser={fromUser}
+            toUser={toUser}
+            approvedByUser={approvedByUser}
+            currentUserId={userId}
+            currency={currency}
           />
         );
       }

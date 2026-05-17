@@ -21,6 +21,12 @@ pub struct EventStatsRow {
     pub total_settled_cents: i64,
     #[diesel(sql_type = BigInt)]
     pub your_share_cents: i64,
+    #[diesel(sql_type = BigInt)]
+    pub your_outstanding_cents: i64,
+    #[diesel(sql_type = BigInt)]
+    pub your_incoming_cents: i64,
+    #[diesel(sql_type = BigInt)]
+    pub your_incoming_settled_cents: i64,
     #[diesel(sql_type = Nullable<DUuid>)]
     pub top_spender_id: Option<Uuid>,
     #[diesel(sql_type = Nullable<BigInt>)]
@@ -74,6 +80,37 @@ impl StatsRepository {
                 JOIN app.expense_version_share sh ON sh.expense_version_id = lv.id
                 WHERE sh.user_id = $2
             ),
+            user_paid_directly AS (
+                SELECT COALESCE(SUM(amount_cents), 0) AS amount
+                FROM latest_versions
+                WHERE paid_by = $2
+            ),
+            user_settled_out AS (
+                SELECT COALESCE(SUM(amount_cents), 0) AS amount
+                FROM app.settlement
+                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed'
+            ),
+            user_outstanding AS (
+                SELECT GREATEST(
+                    us.amount - upd.amount - uso.amount,
+                    0
+                ) AS amount
+                FROM user_share us
+                CROSS JOIN user_paid_directly upd
+                CROSS JOIN user_settled_out uso
+            ),
+            user_incoming_expected AS (
+                SELECT COALESCE(SUM(sh.share_cents), 0) AS amount
+                FROM latest_versions lv
+                JOIN app.expense_version_share sh ON sh.expense_version_id = lv.id
+                WHERE lv.paid_by = $2
+                  AND sh.user_id != $2
+            ),
+            user_incoming_settled AS (
+                SELECT COALESCE(SUM(amount_cents), 0) AS amount
+                FROM app.settlement
+                WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
+            ),
             top_spender AS (
                 SELECT paid_by AS user_id, SUM(amount_cents) AS total_paid
                 FROM latest_versions
@@ -85,11 +122,17 @@ impl StatsRepository {
                 ts.amount AS total_spent_cents,
                 tset.amount AS total_settled_cents,
                 us.amount AS your_share_cents,
+                uo.amount AS your_outstanding_cents,
+                uie.amount AS your_incoming_cents,
+                uis.amount AS your_incoming_settled_cents,
                 tsp.user_id AS top_spender_id,
                 tsp.total_paid AS top_spender_amount_cents
             FROM total_spent ts
             CROSS JOIN total_settled tset
             CROSS JOIN user_share us
+            CROSS JOIN user_outstanding uo
+            CROSS JOIN user_incoming_expected uie
+            CROSS JOIN user_incoming_settled uis
             LEFT JOIN top_spender tsp ON 1=1
         "#;
 

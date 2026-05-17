@@ -65,7 +65,10 @@ export interface EventStats {
   total_settled_cents: number;
   outstanding_cents: number;
   your_share_cents: number;
-  settlement_progress: SettlementProgress | null;
+  your_outstanding_cents: number;
+  your_incoming_cents: number;
+  your_incoming_settled_cents: number;
+  settlement_progress: number;
   top_spender_id: string | null;
   top_spender_amount_cents: number | null;
 }

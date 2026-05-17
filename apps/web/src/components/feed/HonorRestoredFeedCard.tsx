@@ -1,6 +1,6 @@
 import { Typography, Box, Avatar, Tooltip, alpha, useTheme } from '@mui/material';
-import { Gavel as GavelIcon } from '@mui/icons-material';
-import { SettlementActivity } from '../../api/activity.api';
+import { Shield as ShieldIcon } from '@mui/icons-material';
+import { HonorRestoredActivity } from '../../api/activity.api';
 import { UserInfo } from '../../api/users.api';
 import { FeedCard } from './FeedCard';
 
@@ -11,24 +11,26 @@ const formatAmount = (cents: number, currency = 'EUR') => {
   }).format(cents / 100);
 };
 
-interface SettlementFeedCardProps {
-  activity: SettlementActivity;
+interface HonorRestoredFeedCardProps {
+  activity: HonorRestoredActivity;
   fromUser?: UserInfo;
   toUser?: UserInfo;
+  approvedByUser?: UserInfo;
   currentUserId?: string;
   currency?: string;
   onClick?: () => void;
 }
 
-export function SettlementFeedCard({
+export function HonorRestoredFeedCard({
   activity,
   fromUser,
   toUser,
   currentUserId,
   currency = 'EUR',
   onClick,
-}: SettlementFeedCardProps) {
+}: HonorRestoredFeedCardProps) {
   const theme = useTheme();
+
   const fromName = fromUser
     ? `${fromUser.firstName} ${fromUser.lastName}`.trim() || fromUser.email
     : activity.from_user.slice(0, 8);
@@ -47,13 +49,13 @@ export function SettlementFeedCard({
   const isValidDate = !isNaN(createdDate.getTime());
 
   return (
-    <FeedCard onClick={onClick} accentColor={theme.palette.warning.main}>
+    <FeedCard onClick={onClick} accentColor={theme.palette.primary.main}>
       <Box
         sx={{
           width: 40,
           height: 40,
           borderRadius: 2,
-          backgroundColor: alpha(theme.palette.warning.main, 0.1),
+          backgroundColor: alpha(theme.palette.primary.main, 0.1),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -61,15 +63,15 @@ export function SettlementFeedCard({
           mt: 0.25,
         }}
       >
-        <GavelIcon sx={{ color: 'warning.main', fontSize: 20 }} />
+        <ShieldIcon sx={{ color: 'primary.main', fontSize: 20 }} />
       </Box>
 
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
           <Typography variant="body1" fontWeight={500} sx={{ fontSize: '0.9rem' }}>
-            <Tooltip title="Honor Settlement Requested" arrow>
+            <Tooltip title="Honor Restored" arrow>
               <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                <Box component="span" color="warning.main">Honor requested:</Box>
+                <Box component="span" color="primary.main">Honor restored:</Box>
               </Box>
             </Tooltip>{' '}
             <Tooltip title={fromName} arrow>
@@ -93,7 +95,7 @@ export function SettlementFeedCard({
               </Box>
             </Tooltip>{' '}
             <Typography component="span" color="text.secondary" sx={{ mx: 0.5 }}>
-              →
+              settled
             </Typography>{' '}
             <Tooltip title={toName} arrow>
               <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
@@ -119,7 +121,7 @@ export function SettlementFeedCard({
         </Box>
 
         <Typography variant="caption" color="text.secondary">
-          Awaiting the council's verdict.
+          The pit is balanced once more.
         </Typography>
       </Box>
 
@@ -127,7 +129,7 @@ export function SettlementFeedCard({
         <Typography
           variant="h6"
           fontWeight={700}
-          color="warning.main"
+          color="primary.main"
           sx={{ fontSize: '1rem' }}
         >
           {formatAmount(activity.amount_cents, currency)}

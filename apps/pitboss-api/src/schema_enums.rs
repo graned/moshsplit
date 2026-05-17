@@ -181,6 +181,7 @@ pub enum SettlementStatus {
     Pending,
     Confirmed,
     Disputed,
+    Rejected,
 }
 
 impl ToSql<SettlementStatusType, Pg> for SettlementStatus {
@@ -189,6 +190,7 @@ impl ToSql<SettlementStatusType, Pg> for SettlementStatus {
             Self::Pending => out.write_all(b"pending")?,
             Self::Confirmed => out.write_all(b"confirmed")?,
             Self::Disputed => out.write_all(b"disputed")?,
+            Self::Rejected => out.write_all(b"rejected")?,
         }
         Ok(IsNull::No)
     }
@@ -200,6 +202,7 @@ impl FromSql<SettlementStatusType, Pg> for SettlementStatus {
             b"pending" => Ok(Self::Pending),
             b"confirmed" => Ok(Self::Confirmed),
             b"disputed" => Ok(Self::Disputed),
+            b"rejected" => Ok(Self::Rejected),
             _ => Err("Unrecognized SettlementStatus variant".into()),
         }
     }
@@ -211,6 +214,7 @@ impl ToSql<Text, Pg> for SettlementStatus {
             Self::Pending => out.write_all(b"pending")?,
             Self::Confirmed => out.write_all(b"confirmed")?,
             Self::Disputed => out.write_all(b"disputed")?,
+            Self::Rejected => out.write_all(b"rejected")?,
         }
         Ok(IsNull::No)
     }
@@ -222,6 +226,7 @@ impl FromSql<Text, Pg> for SettlementStatus {
             b"pending" => Ok(Self::Pending),
             b"confirmed" => Ok(Self::Confirmed),
             b"disputed" => Ok(Self::Disputed),
+            b"rejected" => Ok(Self::Rejected),
             _ => Err("Unrecognized SettlementStatus variant".into()),
         }
     }

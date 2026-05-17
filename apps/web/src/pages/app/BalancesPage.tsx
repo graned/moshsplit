@@ -1,19 +1,17 @@
-import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useParams } from 'react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Typography,
   CircularProgress,
   Alert,
-  Button,
   alpha,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import {
-  ArrowBack as ArrowBackIcon,
   Scale as ScalesIcon,
   CheckCircle as SettledIcon,
 } from '@mui/icons-material';
@@ -21,27 +19,19 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { settlementsApi, CreateSettlementRequest } from '../../api/settlements.api';
+import { settlementsApi } from '../../api/settlements.api';
 import { useUsers } from '../../hooks/useUserCache';
 import { SettlementCards, RelationshipSummary } from '../../components/balances/SettlementCards';
 import { LiveIntelPanel } from '../../components/balances/LiveIntelPanel';
-import { SettleDialog } from '../../components/balances/SettleDialog';
 
 export default function BalancesPage() {
   const { eventId: routeEventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
 
   const userId = useAuthStore((state) => state.userId);
   const eventId = routeEventId;
-
-  // Settle dialog state
-  const [settleDialogOpen, setSettleDialogOpen] = useState(false);
-  const [settleFromUser, setSettleFromUser] = useState('');
-  const [settleToUser, setSettleToUser] = useState('');
-  const [settleAmountCents, setSettleAmountCents] = useState(0);
 
   // Fetch event details
   const { data: event, isLoading: eventLoading } = useQuery({
@@ -58,7 +48,7 @@ export default function BalancesPage() {
   });
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
-  const userMap = useUsers(memberUserIds);
+  useUsers(memberUserIds);
 
   // Fetch balances
   const {
@@ -93,29 +83,6 @@ export default function BalancesPage() {
     queryFn: () => balancesApi.getStats(eventId!, userId!),
     enabled: !!eventId && !!userId,
     staleTime: 1000 * 60 * 5,
-  });
-
-  // Create settlement mutation
-  const createSettlementMutation = useMutation({
-    mutationFn: (data: CreateSettlementRequest) => settlementsApi.create(eventId!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
-      queryClient.invalidateQueries({ queryKey: ['settlements', eventId, userId] });
-      setSettleDialogOpen(false);
-    },
-  });
-
-  // Confirm settlement mutation
-  const confirmSettlementMutation = useMutation({
-    mutationFn: (settlementId: string) => settlementsApi.updateStatus(eventId!, settlementId, 'confirmed'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
-      queryClient.invalidateQueries({ queryKey: ['settlements', eventId, userId] });
-    },
   });
 
   const balances = balancesData?.balances || [];
@@ -208,34 +175,11 @@ export default function BalancesPage() {
   // Check if all settled
   const allSettled = balances.length > 0 && balances.every((b) => b.balance_cents === 0);
 
-  // Handle settle button click
-  const handleOpenSettleDialog = (targetUserId: string, amountCents: number) => {
-    const targetBalance = balances.find((b) => b.user_id === targetUserId);
-    const targetOwes = targetBalance && targetBalance.balance_cents > 0;
-
-    if (targetOwes) {
-      // They owe me — they pay
-      setSettleFromUser(targetUserId);
-      setSettleToUser(userId!);
-    } else {
-      // I owe them — I pay
-      setSettleFromUser(userId!);
-      setSettleToUser(targetUserId);
-    }
-    setSettleAmountCents(amountCents);
-    setSettleDialogOpen(true);
-  };
-
-  const handleConfirmSettlement = async (amountCents: number) => {
-    await createSettlementMutation.mutateAsync({
-      from_user: settleFromUser,
-      to_user: settleToUser,
-      amount_cents: amountCents,
-    });
-  };
-
-  const handleConfirmRequest = async (settlementId: string) => {
-    await confirmSettlementMutation.mutateAsync(settlementId);
+  const handleSettlementSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
+    queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
+    queryClient.invalidateQueries({ queryKey: ['settlements', eventId, userId] });
   };
 
   // Loading state
@@ -321,25 +265,10 @@ export default function BalancesPage() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography
-              sx={{
-                fontSize: { xs: '1.5rem', md: '2rem' },
-                fontWeight: 700,
-                color: 'primary.main',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-              }}
-            >
-              Scales of War
-            </Typography>
-          </Box><Typography
-            sx={{
-              fontSize: '0.875rem',
-              color: 'text.secondary',
-              mt: 0.25,
-            }}
-          >
+          <Typography variant="h4" fontWeight={700}>
+            Scales of War
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             {eventName ? `${eventName} — Balance the scales of justice` : 'The scales demand balance.'}
           </Typography>
         </Box>
@@ -354,9 +283,9 @@ export default function BalancesPage() {
             currentUserId={userId!}
             currency={currency}
             members={members}
-            onSettle={handleOpenSettleDialog}
             settlementRequests={settlementsData?.data || []}
-            onConfirmRequest={handleConfirmRequest}
+            onSettlementSuccess={handleSettlementSuccess}
+            eventId={eventId!}
           />
         </Grid>
 
@@ -368,35 +297,12 @@ export default function BalancesPage() {
                 eventId={eventId!}
                 currentUserId={userId!}
                 stats={stats}
-                balances={balances}
                 currency={currency}
               />
             </Box>
           </Grid>
         )}
       </Grid>
-
-      {/* Settle Dialog */}
-      <SettleDialog
-        open={settleDialogOpen}
-        onClose={() => setSettleDialogOpen(false)}
-        onConfirm={handleConfirmSettlement}
-        fromUserId={settleFromUser}
-        toUserId={settleToUser}
-        fromUserName={
-          userMap[settleFromUser]
-            ? `${userMap[settleFromUser].firstName} ${userMap[settleFromUser].lastName}`.trim() || userMap[settleFromUser].email
-            : settleFromUser.slice(0, 8)
-        }
-        toUserName={
-          userMap[settleToUser]
-            ? `${userMap[settleToUser].firstName} ${userMap[settleToUser].lastName}`.trim() || userMap[settleToUser].email
-            : settleToUser.slice(0, 8)
-        }
-        defaultAmountCents={settleAmountCents}
-        currency={currency}
-        isPending={createSettlementMutation.isPending}
-      />
     </Box>
   );
 }

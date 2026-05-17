@@ -44,6 +44,11 @@ struct ActivityRawRow {
     // MemberJoin fields
     #[diesel(sql_type = Nullable<DUuid>)]
     user_id: Option<Uuid>,
+    // HonorRestored fields
+    #[diesel(sql_type = Nullable<DUuid>)]
+    approved_by: Option<Uuid>,
+    #[diesel(sql_type = Nullable<Timestamptz>)]
+    reviewed_at: Option<DateTime<Utc>>,
 }
 
 /// Encodes `(created_at, id)` into a URL-safe base64 cursor string.
@@ -101,7 +106,7 @@ impl ActivityService {
             None => (None, None),
         };
 
-        // Union query across expense, settlement, and event_member tables.
+        // Union query across expense, settlement, event_member, and confirmed settlements (honor restored).
         // Each branch projects to a common shape.
         let sql = r#"
             SELECT
@@ -119,14 +124,16 @@ impl ActivityService {
                 ev.expense_type::TEXT,
                 NULL::UUID      AS from_user,
                 NULL::UUID      AS to_user,
-                NULL::UUID      AS user_id
+                NULL::UUID      AS user_id,
+                NULL::UUID      AS approved_by,
+                NULL::timestamptz AS reviewed_at
             FROM app.expense e
             LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
             WHERE e.event_id = $1
               AND e.deleted_at IS NULL
               AND ($2::timestamptz IS NULL
                    OR e.created_at < $2
-                   OR (e.created_at = $2 AND e.id < $4::uuid))
+                   OR (e.created_at = $2 AND e.id < $5::uuid))
 
             UNION ALL
 
@@ -141,12 +148,38 @@ impl ActivityService {
                 NULL::TEXT      AS expense_type,
                 s.from_user,
                 s.to_user,
-                NULL::UUID      AS user_id
+                NULL::UUID      AS user_id,
+                NULL::UUID      AS approved_by,
+                NULL::timestamptz AS reviewed_at
             FROM app.settlement s
             WHERE s.event_id = $1
+              AND s.status = 'pending'
               AND ($2::timestamptz IS NULL
                    OR s.created_at < $2
-                   OR (s.created_at = $2 AND s.id < $4::uuid))
+                   OR (s.created_at = $2 AND s.id < $5::uuid))
+
+            UNION ALL
+
+            SELECT
+                'honor_restored' AS item_type,
+                s.id,
+                s.settled_at    AS created_at,
+                NULL::TEXT      AS title,
+                s.amount_cents,
+                NULL::UUID      AS paid_by,
+                NULL::INTEGER   AS participant_count,
+                NULL::TEXT      AS expense_type,
+                s.from_user,
+                s.to_user,
+                NULL::UUID      AS user_id,
+                s.reviewed_by   AS approved_by,
+                s.reviewed_at
+            FROM app.settlement s
+            WHERE s.event_id = $1
+              AND s.status = 'confirmed'
+              AND ($2::timestamptz IS NULL
+                   OR s.settled_at < $2
+                   OR (s.settled_at = $2 AND s.id < $5::uuid))
 
             UNION ALL
 
@@ -161,12 +194,14 @@ impl ActivityService {
                 NULL::TEXT      AS expense_type,
                 NULL::UUID      AS from_user,
                 NULL::UUID      AS to_user,
-                em.user_id
+                em.user_id,
+                NULL::UUID      AS approved_by,
+                NULL::timestamptz AS reviewed_at
             FROM app.event_member em
             WHERE em.event_id = $1
               AND ($2::timestamptz IS NULL
                    OR em.joined_at < $2
-                   OR (em.joined_at = $2 AND em.id < $4::uuid))
+                   OR (em.joined_at = $2 AND em.id < $5::uuid))
 
             ORDER BY created_at DESC, id DESC
             LIMIT $3
@@ -176,6 +211,7 @@ impl ActivityService {
             .bind::<DUuid, _>(event_id)
             .bind::<Nullable<Timestamptz>, _>(cursor_ts)
             .bind::<Integer, _>(fetch_limit as i32)
+            .bind::<Nullable<DUuid>, _>(cursor_id)
             .bind::<Nullable<DUuid>, _>(cursor_id)
             .load(&mut conn)
             .map_err(RepositoryError::from)?;
@@ -206,6 +242,15 @@ impl ActivityService {
                     amount_cents: row.amount_cents.unwrap_or(0),
                     created_at: row.created_at,
                 },
+                "honor_restored" => ActivityItem::HonorRestored {
+                    id: row.id,
+                    from_user: row.from_user.unwrap_or_default(),
+                    to_user: row.to_user.unwrap_or_default(),
+                    amount_cents: row.amount_cents.unwrap_or(0),
+                    approved_by: row.approved_by.unwrap_or_default(),
+                    created_at: row.created_at,
+                    reviewed_at: row.reviewed_at.unwrap_or(row.created_at),
+                },
                 "member_join" => ActivityItem::MemberJoin {
                     id: row.id,
                     user_id: row.user_id.unwrap_or_default(),
@@ -225,6 +270,7 @@ impl ActivityService {
             items.last().map(|item| match item {
                 ActivityItem::Expense { id, created_at, .. }
                 | ActivityItem::Settlement { id, created_at, .. }
+                | ActivityItem::HonorRestored { id, created_at, .. }
                 | ActivityItem::MemberJoin { id, created_at, .. } => {
                     encode_cursor(*created_at, *id)
                 }

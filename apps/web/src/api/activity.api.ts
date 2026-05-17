@@ -18,12 +18,22 @@ export interface ExpenseActivity extends ActivityItemBase {
   expense_type?: string;
 }
 
-/** Settlement activity – a payment between users */
+/** Settlement activity – a payment between users (pending) */
 export interface SettlementActivity extends ActivityItemBase {
   type: 'settlement';
   amount_cents: number;
   from_user: string;
   to_user: string;
+}
+
+/** Honor Restored activity – a settlement was approved */
+export interface HonorRestoredActivity extends ActivityItemBase {
+  type: 'honor_restored';
+  amount_cents: number;
+  from_user: string;
+  to_user: string;
+  approved_by: string;
+  reviewed_at: string;
 }
 
 /** Member join activity – a user joined the event */
@@ -33,7 +43,7 @@ export interface MemberJoinActivity extends ActivityItemBase {
 }
 
 /** Discriminated union of all activity item types */
-export type ActivityItem = ExpenseActivity | SettlementActivity | MemberJoinActivity;
+export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity;
 
 /** Helper type-guards */
 export function isExpenseActivity(item: ActivityItem): item is ExpenseActivity {
@@ -42,6 +52,10 @@ export function isExpenseActivity(item: ActivityItem): item is ExpenseActivity {
 
 export function isSettlementActivity(item: ActivityItem): item is SettlementActivity {
   return item.type === 'settlement';
+}
+
+export function isHonorRestoredActivity(item: ActivityItem): item is HonorRestoredActivity {
+  return item.type === 'honor_restored';
 }
 
 export function isMemberJoinActivity(item: ActivityItem): item is MemberJoinActivity {

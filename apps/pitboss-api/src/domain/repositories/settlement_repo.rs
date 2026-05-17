@@ -24,6 +24,28 @@ pub struct SettlementStatusUpdate {
     pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+/// Changeset for approving a settlement (includes reviewer info).
+#[derive(Debug, Clone, AsChangeset)]
+#[diesel(table_name = settlement)]
+#[diesel(treat_none_as_null = false)]
+pub struct SettlementApproveUpdate {
+    pub status: Option<SettlementStatus>,
+    pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub reviewed_by: Option<Uuid>,
+    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// Changeset for rejecting a settlement.
+#[derive(Debug, Clone, AsChangeset)]
+#[diesel(table_name = settlement)]
+#[diesel(treat_none_as_null = false)]
+pub struct SettlementRejectUpdate {
+    pub status: Option<SettlementStatus>,
+    pub reviewed_by: Option<Uuid>,
+    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub rejection_note: Option<String>,
+}
+
 impl SettlementRepository {
     /// List settlements for an event with optional status filter + cursor.
     /// Returns `(rows, has_more)`.
@@ -80,6 +102,55 @@ impl SettlementRepository {
         let mut conn = self.db_client.get_conn()?;
         let affected = diesel::update(settlement::table.filter(settlement::id.eq(settlement_id)))
             .set(changes)
+            .execute(&mut conn)
+            .map_err(RepositoryError::from)?;
+        Ok(affected)
+    }
+
+    /// Approve a settlement (sets status to confirmed, records reviewer).
+    pub fn approve_settlement(
+        &self,
+        settlement_id: Uuid,
+        reviewer_id: Uuid,
+    ) -> Result<usize, RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        let now = chrono::Utc::now();
+        let changes = SettlementApproveUpdate {
+            status: Some(SettlementStatus::Confirmed),
+            settled_at: Some(now),
+            reviewed_by: Some(reviewer_id),
+            reviewed_at: Some(now),
+        };
+
+        let affected = diesel::update(settlement::table.filter(settlement::id.eq(settlement_id)))
+            .set(&changes)
+            .execute(&mut conn)
+            .map_err(RepositoryError::from)?;
+        Ok(affected)
+    }
+
+    /// Reject a settlement (sets status to rejected, records reviewer and optional note).
+    pub fn reject_settlement(
+        &self,
+        settlement_id: Uuid,
+        reviewer_id: Uuid,
+        rejection_note: Option<String>,
+    ) -> Result<usize, RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        let now = chrono::Utc::now();
+        let changes = SettlementRejectUpdate {
+            status: Some(SettlementStatus::Rejected),
+            reviewed_by: Some(reviewer_id),
+            reviewed_at: Some(now),
+            rejection_note,
+        };
+
+        let affected = diesel::update(settlement::table.filter(settlement::id.eq(settlement_id)))
+            .set(&changes)
             .execute(&mut conn)
             .map_err(RepositoryError::from)?;
         Ok(affected)

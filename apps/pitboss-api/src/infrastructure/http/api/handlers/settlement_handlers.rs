@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::common::{ListSettlementsParams, PaginatedResponse, PaginationMeta};
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    CreateSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
+    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
 };
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
@@ -62,7 +62,7 @@ pub async fn list_settlements(
     }))
 }
 
-/// POST /v1/events/:id/settlements — propose a new settlement.
+/// POST /v1/events/:id/settlements — propose a new settlement (honor request).
 #[utoipa::path(
     post,
     path = "/v1/events/{id}/settlements",
@@ -92,7 +92,73 @@ pub async fn propose_settlement(
     Ok((StatusCode::CREATED, Json(settlement)))
 }
 
-/// PATCH /v1/events/:id/settlements/:settlement_id — update settlement status.
+/// POST /v1/events/:id/settlements/:settlement_id/approve — approve a settlement request.
+#[utoipa::path(
+    post,
+    path = "/v1/events/{id}/settlements/{settlement_id}/approve",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("settlement_id" = Uuid, Path, description = "Settlement ID"),
+    ),
+    request_body = ApproveSettlementRequest,
+    responses(
+        (status = 200, description = "Settlement approved — honor restored", body = SettlementResponse),
+        (status = 400, description = "Validation error"),
+        (status = 403, description = "Forbidden — only recipient can approve"),
+        (status = 404, description = "Settlement not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn approve_settlement(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, settlement_id)): Path<(Uuid, Uuid)>,
+    CurrentUser(user_id): CurrentUser,
+    Json(req): Json<ApproveSettlementRequest>,
+) -> Result<Json<SettlementResponse>, ServiceError> {
+    let svc = SettlementService::new(
+        EventRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
+        EventMemberRepository::new(state.db_client.clone()),
+    );
+
+    let settlement = svc.approve_settlement(event_id, settlement_id, user_id, req)?;
+    Ok(Json(settlement))
+}
+
+/// POST /v1/events/:id/settlements/:settlement_id/reject — reject a settlement request.
+#[utoipa::path(
+    post,
+    path = "/v1/events/{id}/settlements/{settlement_id}/reject",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("settlement_id" = Uuid, Path, description = "Settlement ID"),
+    ),
+    request_body = RejectSettlementRequest,
+    responses(
+        (status = 200, description = "Settlement rejected", body = SettlementResponse),
+        (status = 400, description = "Validation error"),
+        (status = 403, description = "Forbidden — only recipient can reject"),
+        (status = 404, description = "Settlement not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn reject_settlement(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, settlement_id)): Path<(Uuid, Uuid)>,
+    CurrentUser(user_id): CurrentUser,
+    Json(req): Json<RejectSettlementRequest>,
+) -> Result<Json<SettlementResponse>, ServiceError> {
+    let svc = SettlementService::new(
+        EventRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
+        EventMemberRepository::new(state.db_client.clone()),
+    );
+
+    let settlement = svc.reject_settlement(event_id, settlement_id, user_id, req)?;
+    Ok(Json(settlement))
+}
+
+/// PATCH /v1/events/:id/settlements/:settlement_id — update settlement status (legacy).
 #[utoipa::path(
     patch,
     path = "/v1/events/{id}/settlements/{settlement_id}",
