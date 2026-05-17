@@ -40,13 +40,13 @@ interface CategoryDef {
 }
 
 const CATEGORIES: CategoryDef[] = [
-  { value: 'beer', label: 'Beer', icon: <img src={beerIcon} alt="" style={{ width: 24, height: 24 }} /> },
-  { value: 'food', label: 'Food', icon: <img src={foodIcon} alt="" style={{ width: 24, height: 24 }} /> },
-  { value: 'gas', label: 'Fuel', icon: <img src={tankIcon} alt="" style={{ width: 24, height: 24 }} /> },
-  { value: 'transport', label: 'Transport', icon: <img src={transportIcon} alt="" style={{ width: 24, height: 24 }} /> },
-  { value: 'camping', label: 'Camping', icon: <img src={campingIcon} alt="" style={{ width: 24, height: 24 }} /> },
-  { value: 'merch', label: 'Merch', icon: <img src={merchIcon} alt="" style={{ width: 24, height: 24 }} /> },
-  { value: 'other', label: 'Other', icon: <OtherIcon sx={{ fontSize: 24 }} /> },
+  { value: 'beer', label: 'Beer', icon: <img src={beerIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'food', label: 'Food', icon: <img src={foodIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'gas', label: 'Fuel', icon: <img src={tankIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'transport', label: 'Transport', icon: <img src={transportIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'camping', label: 'Camping', icon: <img src={campingIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'merch', label: 'Merch', icon: <img src={merchIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'other', label: 'Other', icon: <OtherIcon sx={{ fontSize: 32 }} /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -298,7 +298,18 @@ export function AddExpenseWizard({
       >
         What kind of damage?
       </Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'center' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1.5,
+          overflowX: 'auto',
+          pb: 1,
+          px: 0.5,
+          '&::-webkit-scrollbar': { height: 4 },
+          '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+          '&::-webkit-scrollbar-thumb': { bgcolor: alpha('#fff', 0.1), borderRadius: 100 },
+        }}
+      >
         {CATEGORIES.map((cat) => {
           const isSelected = category === cat.value;
           return (
@@ -311,13 +322,14 @@ export function AddExpenseWizard({
                 alignItems: 'center',
                 gap: 0.75,
                 p: 1.5,
-                minWidth: 80,
+                minWidth: 96,
                 borderRadius: 2,
                 cursor: 'pointer',
                 border: 2,
                 borderColor: isSelected ? 'primary.main' : 'divider',
                 bgcolor: isSelected ? alpha('#F59E0B', 0.12) : 'background.paper',
                 transition: 'all 0.2s ease',
+                flexShrink: 0,
                 '&:hover': {
                   borderColor: 'primary.main',
                   bgcolor: alpha('#F59E0B', 0.06),
@@ -326,8 +338,8 @@ export function AddExpenseWizard({
             >
               <Box
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
