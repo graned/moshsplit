@@ -499,6 +499,47 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
               </Box>
             </Box>
 
+            {/* Notes from the Scene */}
+            {expense.notes && (
+              <Box sx={{ px: { xs: 2, md: 4 }, mb: 3 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: 'text.secondary',
+                    mb: 1.5,
+                  }}
+                >
+                  Notes from the Scene
+                </Typography>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: 'elevated.main',
+                    border: '1px solid',
+                    borderColor: alpha('#fff', 0.05),
+                    borderLeft: '3px solid',
+                    borderLeftColor: alpha(theme.palette.primary.main, 0.4),
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: '0.875rem',
+                      fontStyle: 'italic',
+                      color: 'text.secondary',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    "{expense.notes}"
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+
             {/* The Mosh Pit */}
             <Box sx={{ px: { xs: 2, md: 4 }, mb: 3 }}>
               <Box
