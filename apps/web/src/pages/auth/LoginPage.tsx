@@ -1,20 +1,37 @@
 import { useState, useCallback } from 'react';
 import { Box, Typography, Container } from '@mui/material';
 import { LoginCard } from '../../components/LoginCard';
-import { useLogin } from './hooks';
+import { useAuthStore } from '@moshsplit/auth-react';
+import { authApi } from '../../api/auth.api';
 import type { LoginCredentials } from './types';
 
 function LoginPage() {
-  const { login, isLoading } = useLogin();
+  const setSession = useAuthStore((state) => state.setSession);
+  const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      setIsLoading(true);
+      setLocalError(null);
+      try {
+        const result = await authApi.login(credentials);
+        setSession(result.user.id, result.token, '', true, false);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Login failed';
+        setLocalError(message);
+        return { success: false, error: message };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [setSession]
+  );
 
   const handleSubmit = useCallback(
     async (credentials: LoginCredentials) => {
-      setLocalError(null);
-      const result = await login(credentials);
-      if (!result.success && result.error) {
-        setLocalError(result.error);
-      }
+      await login(credentials);
     },
     [login]
   );
@@ -30,7 +47,7 @@ function LoginPage() {
         p: 2,
         background: `
           linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
-          url('/assets/background.svg')
+          url('/assets/background-moshsplit.webp')
         `,
         backgroundSize: 'cover',
         backgroundPosition: 'center',

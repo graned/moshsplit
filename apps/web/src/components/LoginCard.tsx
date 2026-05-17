@@ -64,11 +64,9 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         const eventsResult = await groupsApi.list(exchangeResult.user_id, undefined, 1);
         if (eventsResult.data.length > 0) {
           window.location.href = `/app/events/${eventsResult.data[0].id}/feed`;
-        } else {
-          window.location.href = '/app/events';
         }
-      } catch {
-        window.location.href = '/app/events';
+      } catch (error) {
+        console.error('[ExernalLogin] Failed to fetch event', error);
       }
     } catch (err) {
       setExternalError(err instanceof Error ? err.message : 'External login failed');
@@ -85,7 +83,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         maxWidth: 420,
         background: `
           linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
-          url('/assets/bg-texture-1.svg')
+          url('/assets/background-moshsplit.webp')
         `,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
