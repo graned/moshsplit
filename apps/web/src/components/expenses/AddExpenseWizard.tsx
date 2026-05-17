@@ -41,9 +41,9 @@ interface CategoryDef {
 
 const CATEGORIES: CategoryDef[] = [
   { value: 'beer', label: 'Beer', icon: <img src={beerIcon} alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'food', label: 'Food', icon: <img src={foodIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'food', label: 'Food', icon: <img src={foodIcon} alt="" style={{ width: 36, height: 32 }} /> },
   { value: 'gas', label: 'Fuel', icon: <img src={tankIcon} alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'transport', label: 'Transport', icon: <img src={transportIcon} alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'transport', label: 'Transport', icon: <img src={transportIcon} alt="" style={{ width: 36, height: 32 }} /> },
   { value: 'camping', label: 'Camping', icon: <img src={campingIcon} alt="" style={{ width: 32, height: 32 }} /> },
   { value: 'merch', label: 'Merch', icon: <img src={merchIcon} alt="" style={{ width: 32, height: 32 }} /> },
   { value: 'other', label: 'Other', icon: <OtherIcon sx={{ fontSize: 32 }} /> },
@@ -616,7 +616,7 @@ export function AddExpenseWizard({
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Stepper */}
       <Stepper steps={STEPS} activeStep={step} />
 

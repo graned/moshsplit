@@ -59,6 +59,7 @@ export function AddExpenseDialog({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          minHeight: 0,
         },
       }}
     >
