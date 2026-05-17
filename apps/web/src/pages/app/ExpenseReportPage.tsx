@@ -8,11 +8,11 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { usersApi } from '../../api/users.api';
 import { ExpenseFeed } from '../../components/expenses/ExpenseFeed';
 import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
 import { FilterChips } from '../../components/expenses/FilterChips';
 import { LiveIntelSidebar } from '../../components/expenses/LiveIntelSidebar';
+import { useUsers } from '../../hooks/useUserCache';
 
 export default function ExpenseReportPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -57,11 +57,7 @@ export default function ExpenseReportPage() {
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
 
-  const { data: userMap = {} } = useQuery({
-    queryKey: ['expense-users', ...memberUserIds],
-    queryFn: () => usersApi.getMany(memberUserIds),
-    enabled: memberUserIds.length > 0,
-  });
+  const userMap = useUsers(memberUserIds);
 
   const isLoading = eventLoading || membersLoading || explainLoading;
   const currency = event?.currency || 'EUR';

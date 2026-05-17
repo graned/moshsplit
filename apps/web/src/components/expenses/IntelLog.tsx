@@ -27,7 +27,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { ExpenseListItem, expensesApi, ExpenseVersionDetail } from '../../api/expenses.api';
 import { activityApi } from '../../api/activity.api';
-import { usersApi, UserInfo } from '../../api/users.api';
+import { UserInfo } from '../../api/users.api';
+import { useUsers } from '../../hooks/useUserCache';
 import { GroupMember } from '../../api/groups.api';
 
 const EXPENSE_TYPE_CONFIG: Record<string, { icon: React.ReactElement; label: string }> = {
@@ -114,11 +115,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
 
   console.log('[IntelLog] allUserIds:', allUserIds, 'latestVersion:', latestVersion, 'members:', members);
 
-  const { data: userMap = {} } = useQuery({
-    queryKey: ['intel-log-users', ...allUserIds],
-    queryFn: () => usersApi.getMany(allUserIds),
-    enabled: allUserIds.length > 0,
-  });
+  const userMap = useUsers(allUserIds);
 
   const { data: activityResult } = useQuery({
     queryKey: ['expense-activity', eventId],

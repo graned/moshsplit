@@ -3,7 +3,7 @@ import Grid from '@mui/material/Grid2';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@moshsplit/auth-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { EventBanner } from '../../components/feed/EventBanner';
 import { FeedSectionHeader } from '../../components/feed/FeedSectionHeader';
@@ -13,7 +13,7 @@ import { FestivalMetricsCard } from '../../components/feed/FestivalMetricsCard';
 import { PitCrewList } from '../../components/feed/PitCrewList';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { usersApi, UserInfo } from '../../api/users.api';
+import { useUsers } from '../../hooks/useUserCache';
 
 export default function FeedPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -51,16 +51,8 @@ export default function FeedPage() {
   });
 
   // Enrich members with sentinel user info
-  const [sentinelUsers, setSentinelUsers] = useState<Record<string, UserInfo>>({});
-
-  useEffect(() => {
-    const userIds = members.map((m) => m.user_id);
-    if (userIds.length === 0) return;
-
-    usersApi.getMany(userIds).then((users) => {
-      setSentinelUsers(users);
-    });
-  }, [members]);
+  const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
+  const sentinelUsers = useUsers(memberUserIds);
 
   const enrichedMembers = useMemo(() => {
     return members.map((m: GroupMember) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Box, Typography, Avatar, Skeleton, alpha, useTheme, Button } from '@mui/material';
 import {
   Assessment as MonitoringIcon,
@@ -9,8 +9,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { EventStats } from '../../api/balances.api';
 import { activityApi } from '../../api/activity.api';
-import { usersApi, UserInfo } from '../../api/users.api';
 import { GroupMember } from '../../api/groups.api';
+import { useUsers } from '../../hooks/useUserCache';
 
 const formatAmount = (cents: number, currency = 'EUR') => {
   return new Intl.NumberFormat('en-US', {
@@ -52,12 +52,7 @@ function useActivityEntries(eventId: string, members: GroupMember[], userId: str
     return ids;
   }, [members, topSpenderId]);
 
-  const [userMap, setUserMap] = useState<Record<string, UserInfo>>({});
-
-  useEffect(() => {
-    if (allUserIds.length === 0) return;
-    usersApi.getMany(allUserIds).then(setUserMap);
-  }, [allUserIds]);
+  const userMap = useUsers(allUserIds);
 
   const entries: ActivityEntry[] = activities.slice(0, 5).map((item) => {
     const time = new Date(item.created_at).toLocaleDateString('en-US', {
