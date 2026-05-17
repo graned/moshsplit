@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useUserCacheStore } from '../stores/userCacheStore';
 import type { UserInfo } from '../api/users.api';
 
@@ -24,14 +25,16 @@ export function useUser(userId: string | undefined): UserInfo | undefined {
 
 /**
  * Selector hook for multiple users, returned as a Record<id, UserInfo>.
+ * Uses useMemo to maintain a stable reference and prevent infinite re-render loops.
  */
 export function useUsers(userIds: string[]): Record<string, UserInfo> {
-  return useUserCacheStore((state) => {
+  const users = useUserCacheStore((state) => state.users);
+  return useMemo(() => {
     const result: Record<string, UserInfo> = {};
     for (const id of userIds) {
-      const user = state.users.get(id);
+      const user = users.get(id);
       if (user) result[id] = user;
     }
     return result;
-  });
+  }, [users, userIds]);
 }
