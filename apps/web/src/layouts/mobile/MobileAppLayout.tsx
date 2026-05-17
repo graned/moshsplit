@@ -1,16 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Outlet, useParams } from 'react-router';
-import { Box, Fab, alpha, useTheme } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
+import { Box } from '@mui/material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import MobileBottomNav from './MobileBottomNav';
-import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
-import { groupsApi } from '../../api/groups.api';
 
 function MobileAppLayout() {
-  const theme = useTheme();
   const params = useParams();
 
   const userId = useAuthStore((state) => state.userId);
@@ -18,24 +13,7 @@ function MobileAppLayout() {
   const lastName = useAuthStore((state) => state.lastName);
   const userEmail = useAuthStore((state) => state.userEmail);
 
-  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
-
   const eventId = params.eventId;
-
-  const { data: event } = useQuery({
-    queryKey: ['event', eventId],
-    queryFn: () => {
-      if (!eventId) throw new Error('No event ID');
-      return groupsApi.get(eventId);
-    },
-    enabled: !!eventId && expenseDialogOpen,
-  });
-
-  const { data: members = [] } = useQuery({
-    queryKey: ['event-members', eventId],
-    queryFn: () => groupsApi.listMembers(eventId!),
-    enabled: !!eventId && expenseDialogOpen,
-  });
 
   const currentUser = useMemo(
     () => ({
@@ -46,14 +24,6 @@ function MobileAppLayout() {
     }),
     [userId, firstName, lastName, userEmail]
   );
-
-  const handleAddExpense = () => {
-    setExpenseDialogOpen(true);
-  };
-
-  const handleExpenseSuccess = () => {
-    setExpenseDialogOpen(false);
-  };
 
   const hasEvent = !!eventId;
 
@@ -75,45 +45,10 @@ function MobileAppLayout() {
           backgroundRepeat: 'no-repeat',
         }}
       >
-        <Outlet />
+        <Outlet context={{ eventId, currentUser }} />
       </Box>
 
-      {hasEvent && (
-        <>
-          <Fab
-            color="primary"
-            onClick={handleAddExpense}
-            sx={{
-              position: 'fixed',
-              bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)',
-              right: 16,
-              zIndex: (t) => t.zIndex.appBar + 1,
-              bgcolor: 'primary.main',
-              color: '#121212',
-              boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
-              '&:hover': {
-                bgcolor: 'primary.dark',
-                boxShadow: `0 6px 24px ${alpha(theme.palette.primary.main, 0.5)}`,
-              },
-            }}
-          >
-            <AddIcon />
-          </Fab>
-          <MobileBottomNav />
-        </>
-      )}
-
-      {eventId && (
-        <AddExpenseDialog
-          open={expenseDialogOpen}
-          onClose={() => setExpenseDialogOpen(false)}
-          eventId={eventId}
-          members={members}
-          currentUser={currentUser}
-          groupCurrency={event?.currency}
-          onSuccess={handleExpenseSuccess}
-        />
-      )}
+      {hasEvent && <MobileBottomNav />}
     </Box>
   );
 }
