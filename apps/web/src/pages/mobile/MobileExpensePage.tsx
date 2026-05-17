@@ -8,7 +8,7 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { ExpenseFeed } from '../../components/expenses/ExpenseFeed';
 import { FilterChips } from '../../components/expenses/FilterChips';
-import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
+import { AddExpenseDrawer } from '../../components/expenses/AddExpenseDrawer';
 import { useUsers } from '../../hooks/useUserCache';
 import { UserInfo } from '../../api/users.api';
 
@@ -201,9 +201,9 @@ export default function MobileExpensePage() {
         />
       </Box>
 
-      {/* Expense Dialog */}
+      {/* Expense Drawer */}
       {eventId && (
-        <AddExpenseDialog
+        <AddExpenseDrawer
           open={expenseDialogOpen}
           onClose={() => setExpenseDialogOpen(false)}
           eventId={eventId}
