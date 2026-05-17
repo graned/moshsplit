@@ -20,10 +20,10 @@ import {
 
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
-import { balancesApi, UserBalanceItem } from '../../api/balances.api';
+import { balancesApi } from '../../api/balances.api';
 import { settlementsApi, CreateSettlementRequest } from '../../api/settlements.api';
 import { useUsers } from '../../hooks/useUserCache';
-import { BalanceRelationshipCard } from '../../components/balances/BalanceRelationshipCard';
+import { SettlementCards, RelationshipSummary } from '../../components/balances/SettlementCards';
 import { LiveIntelPanel } from '../../components/balances/LiveIntelPanel';
 import { SettleDialog } from '../../components/balances/SettleDialog';
 
@@ -71,6 +71,14 @@ export default function BalancesPage() {
     enabled: !!eventId && !!userId,
   });
 
+  // Fetch balance explanation for pairwise breakdown
+  const { data: explainData } = useQuery({
+    queryKey: ['balance-explain', eventId, userId],
+    queryFn: () => balancesApi.explainUserBalance(eventId!, userId!),
+    enabled: !!eventId && !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
+
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['balances', eventId, 'stats', userId],
@@ -85,6 +93,7 @@ export default function BalancesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
       queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
       setSettleDialogOpen(false);
     },
   });
@@ -93,27 +102,107 @@ export default function BalancesPage() {
   const currency = event?.currency || 'EUR';
   const eventName = event?.name || '';
 
-  // Sort balances: highest debt first (most negative balance_cents first)
-  const sortedBalances = useMemo(() => {
-    return [...balances].sort((a, b) => a.balance_cents - b.balance_cents);
-  }, [balances]);
+  // Compute pairwise relationships from explain data
+  const relationships = useMemo((): RelationshipSummary[] => {
+    if (!explainData) return [];
+
+    const expenseMap = new Map<string, RelationshipSummary>();
+
+    // Process expenses: who owes whom
+    for (const exp of explainData.expenses) {
+      if (!exp.participants || exp.participants.length === 0) continue;
+
+      if (exp.paid_by === userId) {
+        // I paid — others owe me their share
+        for (const participantId of exp.participants) {
+          if (participantId === userId) continue; // skip myself
+
+          if (!expenseMap.has(participantId)) {
+            expenseMap.set(participantId, {
+              userId: participantId,
+              totalCents: 0,
+              expenses: [],
+              isIncoming: true,
+            });
+          }
+          const rel = expenseMap.get(participantId)!;
+          rel.totalCents += exp.share_cents;
+          rel.expenses.push(exp);
+        }
+      } else {
+        // Someone else paid — I owe them my share
+        if (!expenseMap.has(exp.paid_by)) {
+          expenseMap.set(exp.paid_by, {
+            userId: exp.paid_by,
+            totalCents: 0,
+            expenses: [],
+            isIncoming: false,
+          });
+        }
+        const rel = expenseMap.get(exp.paid_by)!;
+        rel.totalCents += exp.share_cents;
+        rel.expenses.push(exp);
+      }
+    }
+
+    // Process settlements: reduce amounts
+    for (const settlement of explainData.settlements) {
+      if (settlement.status !== 'confirmed') continue;
+
+      if (settlement.from_user === userId) {
+        // I paid a settlement — reduces what I owe
+        const rel = expenseMap.get(settlement.to_user);
+        if (rel && !rel.isIncoming) {
+          rel.totalCents -= settlement.amount_cents;
+        }
+      } else if (settlement.to_user === userId) {
+        // Someone paid me a settlement — reduces what they owe
+        const rel = expenseMap.get(settlement.from_user);
+        if (rel && rel.isIncoming) {
+          rel.totalCents -= settlement.amount_cents;
+        }
+      }
+    }
+
+    // Process payments: reduce amounts
+    for (const payment of explainData.payments) {
+      if (payment.from_user === userId) {
+        const rel = expenseMap.get(payment.to_user);
+        if (rel && !rel.isIncoming) {
+          rel.totalCents -= payment.amount_cents;
+        }
+      } else if (payment.to_user === userId) {
+        const rel = expenseMap.get(payment.from_user);
+        if (rel && rel.isIncoming) {
+          rel.totalCents -= payment.amount_cents;
+        }
+      }
+    }
+
+    // Filter out zero/negative relationships and convert to array
+    return Array.from(expenseMap.values())
+      .filter((r) => r.totalCents > 0)
+      .sort((a, b) => b.totalCents - a.totalCents);
+  }, [explainData, userId]);
 
   // Check if all settled
   const allSettled = balances.length > 0 && balances.every((b) => b.balance_cents === 0);
 
   // Handle settle button click
-  const handleOpenSettleDialog = (balance: UserBalanceItem) => {
-    if (balance.balance_cents < 0) {
-      setSettleFromUser(balance.user_id);
-      const owedUser = balances.find((b) => b.balance_cents > 0);
-      setSettleToUser(owedUser?.user_id || '');
-      setSettleAmountCents(Math.abs(balance.balance_cents));
+  const handleOpenSettleDialog = (targetUserId: string, amountCents: number) => {
+    const targetBalance = balances.find((b) => b.user_id === targetUserId);
+    const targetOwes = targetBalance && targetBalance.balance_cents > 0;
+
+    if (targetOwes) {
+      // They owe me — they pay
+      setSettleFromUser(targetUserId);
+      setSettleToUser(userId!);
     } else {
-      setSettleToUser(balance.user_id);
-      const owingUser = balances.find((b) => b.balance_cents < 0);
-      setSettleFromUser(owingUser?.user_id || '');
-      setSettleAmountCents(balance.balance_cents);
+      // I owe them — I pay
+      setSettleFromUser(userId!);
+      setSettleToUser(targetUserId);
     }
+    setSettleAmountCents(amountCents);
     setSettleDialogOpen(true);
   };
 
@@ -235,23 +324,17 @@ export default function BalancesPage() {
         </Typography>
       </Box>
 
-      {/* Main Layout: Ledger + Intel Panel */}
+      {/* Main Layout: Settlement Cards + Intel Panel */}
       <Grid container spacing={3}>
-        {/* Left: Settlement Ledger */}
+        {/* Left: Settlement Cards */}
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {sortedBalances.map((balance) => (
-              <BalanceRelationshipCard
-                key={balance.user_id}
-                userId={balance.user_id}
-                currentUserId={userId!}
-                balanceCents={balance.balance_cents}
-                currency={currency}
-                eventId={eventId!}
-                onSettle={balance.balance_cents !== 0 ? () => handleOpenSettleDialog(balance) : undefined}
-              />
-            ))}
-          </Box>
+          <SettlementCards
+            relationships={relationships}
+            currentUserId={userId!}
+            currency={currency}
+            members={members}
+            onSettle={handleOpenSettleDialog}
+          />
         </Grid>
 
         {/* Right: Live Intel Panel */}
