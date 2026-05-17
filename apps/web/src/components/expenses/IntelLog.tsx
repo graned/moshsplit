@@ -99,13 +99,39 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
 
   const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
 
+  // Build synthetic version from expense data when versions API returns empty
+  const syntheticVersion = useMemo((): ExpenseVersionDetail | null => {
+    if (latestVersion) return latestVersion;
+    if (!expense?.participant_ids || expense.participant_ids.length === 0) return null;
+
+    const perPerson = Math.round(expense.amount_cents / expense.participant_ids.length);
+    return {
+      id: expense.current_version_id || expense.id,
+      expense_id: expense.id,
+      version_number: expense.version_number || 1,
+      title: expense.title,
+      description: expense.description,
+      amount_cents: expense.amount_cents,
+      paid_by: expense.paid_by,
+      split_type: expense.split_type || 'equal',
+      split_data: {},
+      notes: expense.notes,
+      created_by: expense.created_by,
+      created_at: expense.created_at,
+      shares: expense.participant_ids.map((userId) => ({
+        user_id: userId,
+        share_cents: perPerson,
+      })),
+    };
+  }, [latestVersion, expense]);
+
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   const shareUserIds = useMemo(() => {
-    if (!latestVersion?.shares) return [];
-    return latestVersion.shares.map((s) => s.user_id);
-  }, [latestVersion]);
+    if (!syntheticVersion?.shares) return [];
+    return syntheticVersion.shares.map((s) => s.user_id);
+  }, [syntheticVersion]);
 
-  const payerId = latestVersion?.paid_by ?? expense?.paid_by;
+  const payerId = syntheticVersion?.paid_by ?? expense?.paid_by;
 
   const allUserIds = useMemo(() => {
     const ids = new Set<string>([...memberUserIds, ...shareUserIds]);
@@ -113,7 +139,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
     return Array.from(ids);
   }, [memberUserIds, shareUserIds, payerId]);
 
-  console.log('[IntelLog] allUserIds:', allUserIds, 'latestVersion:', latestVersion, 'members:', members);
+  console.log('[IntelLog] allUserIds:', allUserIds, 'syntheticVersion:', syntheticVersion, 'members:', members);
 
   const userMap = useUsers(allUserIds);
 
@@ -138,13 +164,24 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
     return member?.user_name || member?.user_email || userId.slice(0, 8);
   };
 
-  const payerName = latestVersion ? getMemberName(latestVersion.paid_by) : expense?.paid_by || '';
+  const payerName = useMemo(() => {
+    const payerUserId = syntheticVersion?.paid_by ?? expense?.paid_by;
+    if (!payerUserId) return '';
+    const user = userMap[payerUserId];
+    if (user) {
+      const fullName = `${user.firstName} ${user.lastName}`.trim();
+      return fullName || user.email || payerUserId.slice(0, 8);
+    }
+    const member = members.find((m) => m.user_id === payerUserId);
+    return member?.user_name || member?.user_email || payerUserId.slice(0, 8);
+  }, [syntheticVersion, expense?.paid_by, userMap, members]);
+
   const payerInitial = payerName.charAt(0).toUpperCase();
 
   const survivors: SurvivorStatus[] = useMemo(() => {
-    if (!latestVersion?.shares) return [];
+    if (!syntheticVersion?.shares) return [];
     const settledMap: Record<string, number> = {};
-    return latestVersion.shares.map((share) => {
+    return syntheticVersion.shares.map((share) => {
       const name = getMemberName(share.user_id);
       const user = getUser(share.user_id);
       const settled = settledMap[share.user_id] || 0;
@@ -158,10 +195,10 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
         isDisputed: false,
       };
     });
-  }, [latestVersion, userMap, members]);
+  }, [syntheticVersion, userMap, members]);
 
-  const perPersonCents = latestVersion && survivors.length > 0
-    ? Math.round(latestVersion.amount_cents / survivors.length)
+  const perPersonCents = syntheticVersion && survivors.length > 0
+    ? Math.round(syntheticVersion.amount_cents / survivors.length)
     : 0;
 
   const myShareCents = useMemo(() => {
@@ -177,11 +214,11 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
       }
     }
 
-    // Fallback: compute from survivors count if latestVersion exists
-    if (latestVersion && survivors.length > 0) return perPersonCents;
+    // Fallback: compute from survivors count if syntheticVersion exists
+    if (syntheticVersion && survivors.length > 0) return perPersonCents;
 
     return null;
-  }, [survivors, currentUserId, latestVersion, perPersonCents, expense]);
+  }, [survivors, currentUserId, syntheticVersion, perPersonCents, expense]);
 
   const settledCount = survivors.filter((s) => s.isSettled).length;
 
@@ -189,15 +226,15 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
     if (open) {
       console.log('[IntelLog Debug]', {
         currentUserId,
-        hasLatestVersion: !!latestVersion,
-        latestVersionSharesCount: latestVersion?.shares?.length ?? 0,
+        hasLatestVersion: !!syntheticVersion,
+        syntheticVersionSharesCount: syntheticVersion?.shares?.length ?? 0,
         survivorsCount: survivors.length,
         myShareCents,
         perPersonCents,
         versionsCount: versions.length,
       });
     }
-  }, [open, currentUserId, survivors, myShareCents, latestVersion, perPersonCents, versions]);
+  }, [open, currentUserId, survivors, myShareCents, syntheticVersion, perPersonCents, versions]);
 
   const typeConfig = expense?.expense_type ? EXPENSE_TYPE_CONFIG[expense.expense_type] : null;
   const typeIcon = typeConfig?.icon ?? <DefaultIcon />;
