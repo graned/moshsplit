@@ -86,42 +86,53 @@ export function ParticipantSearch({
   }
 
   return (
-    <Box sx={{ py: 2 }}>
+    <Box
+      sx={{
+        py: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 320,
+        overflow: 'hidden',
+      }}
+    >
       {/* Search Input */}
-      <TextField
-        inputRef={inputRef}
-        fullWidth
-        size="small"
-        placeholder={placeholder}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        sx={{
-          mb: 2,
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            bgcolor: alpha('#fff', 0.03),
-          },
-        }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
-            </InputAdornment>
-          ),
-        }}
-      />
+      <Box sx={{ flexShrink: 0 }}>
+        <TextField
+          inputRef={inputRef}
+          fullWidth
+          size="small"
+          placeholder={placeholder}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          sx={{
+            mb: 2,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              bgcolor: alpha('#fff', 0.03),
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
 
       {/* Selected users as chips */}
       {selectedUsers.length > 0 && (
         <Box
           sx={{
+            flexShrink: 0,
             display: 'flex',
             flexWrap: 'wrap',
             gap: 1,
             mb: 2,
-            maxHeight: 80,
+            maxHeight: 64,
             overflowY: 'auto',
           }}
         >
@@ -167,7 +178,7 @@ export function ParticipantSearch({
       )}
 
       {/* Select all / none */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexShrink: 0 }}>
         <Box
           onClick={selectAll}
           sx={{
@@ -207,10 +218,11 @@ export function ParticipantSearch({
       {/* User list */}
       <Box
         sx={{
+          flex: 1,
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: 0.5,
-          maxHeight: 200,
           overflowY: 'auto',
         }}
       >
