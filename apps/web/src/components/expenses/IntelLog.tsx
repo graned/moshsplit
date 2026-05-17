@@ -14,30 +14,26 @@ import {
 import {
   Close as CloseIcon,
   SportsBar as SportsBarIcon,
-  LocalGasStation as GasIcon,
-  Restaurant as FoodIcon,
-  DirectionsBus as TransportIcon,
-  ShoppingBag as MerchIcon,
-  Receipt as DefaultIcon,
-  EventAvailable as DateIcon,
+  LocalGasStation as LocalGasStationIcon,
+  Restaurant as RestaurantIcon,
+  DirectionsBus as DirectionsBusIcon,
+  ShoppingBag as ShoppingBagIcon,
+  Receipt as ReceiptIcon,
+  EventAvailable as EventAvailableIcon,
   Check as CheckIcon,
-  Add as AddIcon,
-  Payments as PaymentsIcon,
 } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
 import { ExpenseListItem, expensesApi, ExpenseVersionDetail } from '../../api/expenses.api';
-import { activityApi } from '../../api/activity.api';
 import { UserInfo } from '../../api/users.api';
 import { useUsers } from '../../hooks/useUserCache';
 import { GroupMember } from '../../api/groups.api';
 
 const EXPENSE_TYPE_CONFIG: Record<string, { icon: React.ReactElement; label: string }> = {
   beer: { icon: <SportsBarIcon />, label: 'Beer Supply Run' },
-  gas: { icon: <GasIcon />, label: 'Fuel Run' },
-  food: { icon: <FoodIcon />, label: 'Food Run' },
-  transport: { icon: <TransportIcon />, label: 'Transport' },
-  merch: { icon: <MerchIcon />, label: 'Merch Haul' },
-  camping: { icon: <DefaultIcon />, label: 'Camping Gear' },
+  gas: { icon: <LocalGasStationIcon />, label: 'Fuel Run' },
+  food: { icon: <RestaurantIcon />, label: 'Food Run' },
+  transport: { icon: <DirectionsBusIcon />, label: 'Transport' },
+  merch: { icon: <ShoppingBagIcon />, label: 'Merch Haul' },
+  camping: { icon: <ReceiptIcon />, label: 'Camping Gear' },
 };
 
 const formatAmount = (cents: number, currency = 'EUR') =>
@@ -143,15 +139,6 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
 
   const userMap = useUsers(allUserIds);
 
-  const { data: activityResult } = useQuery({
-    queryKey: ['expense-activity', eventId],
-    queryFn: () => activityApi.list(eventId, currentUserId, undefined, 50),
-    enabled: !!eventId,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const activityItems = activityResult?.data ?? [];
-
   const getUser = (id: string): UserInfo | undefined => userMap[id];
 
   const getMemberName = (userId: string): string => {
@@ -237,34 +224,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
   }, [open, currentUserId, survivors, myShareCents, syntheticVersion, perPersonCents, versions]);
 
   const typeConfig = expense?.expense_type ? EXPENSE_TYPE_CONFIG[expense.expense_type] : null;
-  const typeIcon = typeConfig?.icon ?? <DefaultIcon />;
-
-  const timelineItems = useMemo(() => {
-    const items: { icon: React.ReactElement; iconColor: string; text: string; subtext?: string; time: string }[] = [];
-
-    if (expense) {
-      items.push({
-        icon: <AddIcon sx={{ fontSize: 14 }} />,
-        iconColor: theme.palette.primary.main,
-        text: `${payerName} added ${expense.title}`,
-        time: formatRelativeTime(expense.created_at),
-      });
-    }
-
-    activityItems.forEach((a) => {
-      if (a.type === 'settlement') {
-        const fromName = getMemberName(a.from_user);
-        items.push({
-          icon: <PaymentsIcon sx={{ fontSize: 14 }} />,
-          iconColor: theme.palette.success.main,
-          text: `${fromName} settled ${formatAmount(a.amount_cents, currency)}`,
-          time: formatRelativeTime(a.created_at),
-        });
-      }
-    });
-
-    return items;
-  }, [expense, activityItems, payerName, currency, theme]);
+  const typeIcon = typeConfig?.icon ?? <ReceiptIcon />;
 
   if (!expense) return null;
 
@@ -392,7 +352,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                   gap: 0.5,
                 }}
               >
-                <DateIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+                <EventAvailableIcon sx={{ fontSize: 16, color: 'primary.main' }} />
                 <Typography
                   sx={{
                     fontSize: '0.75rem',
@@ -408,7 +368,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
             </Box>
 
             {/* Stats Grid */}
-            <Box sx={{ px: { xs: 2, md: 4 }, mt: -2, mb: 3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Box sx={{ px: { xs: 2, md: 4 }, mb: 3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
               <Box
                 sx={{
                   bgcolor: 'background.paper',
@@ -552,7 +512,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
               </Box>
             </Box>
 
-            {/* Survivors */}
+            {/* The Mosh Pit */}
             <Box sx={{ px: { xs: 2, md: 4 }, mb: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 2 }}>
                 <Typography
@@ -564,7 +524,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                     color: 'text.secondary',
                   }}
                 >
-                  {survivors.length} Survivors
+                  {survivors.length} in the Pit
                 </Typography>
                 <Typography sx={{ fontSize: '0.875rem', color: 'primary.main', fontWeight: 600 }}>
                   {formatAmount(perPersonCents, currency)} each
@@ -638,7 +598,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                               color: 'text.secondary',
                             }}
                           >
-                            Owes {formatAmount(survivor.shareCents - survivor.settledCents, currency)}
+                            Split Share {formatAmount(survivor.shareCents - survivor.settledCents, currency)}
                           </Typography>
                         )}
                       </Box>
@@ -680,81 +640,6 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                     + View {survivors.length - 5} Others
                   </Button>
                 )}
-              </Box>
-            </Box>
-
-            {/* Battle Log */}
-            <Box sx={{ px: { xs: 2, md: 4 }, mb: 4 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.625rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'text.secondary',
-                  mb: 2,
-                }}
-              >
-                Battle Log
-              </Typography>
-
-              <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: '11px',
-                    top: 8,
-                    bottom: 8,
-                    width: '1px',
-                    bgcolor: alpha('#534434', 0.2),
-                  }}
-                />
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pl: 4 }}>
-                  {timelineItems.length > 0 ? timelineItems.map((item, i) => (
-                    <Box key={i} sx={{ position: 'relative', display: 'flex', gap: 2, alignItems: 'start' }}>
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          left: '-4px',
-                          top: 2,
-                          width: 24,
-                          height: 24,
-                          borderRadius: '50%',
-                          bgcolor: item.iconColor === theme.palette.primary.main ? 'primary.main' : item.iconColor === theme.palette.success.main ? 'success.main' : 'elevated.main',
-                          border: '4px solid',
-                          borderColor: '#131313',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          zIndex: 1,
-                          color: item.iconColor === theme.palette.primary.main || item.iconColor === theme.palette.success.main ? '#121212' : item.iconColor,
-                        }}
-                      >
-                        {item.icon}
-                      </Box>
-
-                      <Box sx={{ pl: 1 }}>
-                        <Typography sx={{ fontSize: '0.875rem', color: 'text.primary', lineHeight: 1.4 }}>
-                          {item.text}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: 'text.secondary',
-                            mt: 0.25,
-                          }}
-                        >
-                          {item.time}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  )) : (
-                    <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', pl: 1 }}>
-                      No activity recorded yet.
-                    </Typography>
-                  )}
-                </Box>
               </Box>
             </Box>
           </>
