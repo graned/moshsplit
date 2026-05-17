@@ -8,6 +8,8 @@ import {
   alpha,
   InputAdornment,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -89,6 +91,8 @@ export function AddExpenseWizard({
   onSuccess,
   onCancel,
 }: AddExpenseWizardProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -200,12 +204,12 @@ export function AddExpenseWizard({
   // -----------------------------------------------------------------------
 
   const renderBasicInfoStep = () => (
-    <Box sx={{ py: 3 }}>
+    <Box sx={{ py: isMobile ? 2 : 3 }}>
       {/* Title */}
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
+        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
         Name the Damage
       </Typography>
@@ -217,9 +221,9 @@ export function AddExpenseWizard({
         autoFocus
         placeholder="e.g. Round of beers, Dinner at the pub..."
         sx={{
-          mb: 3,
+          mb: isMobile ? 2 : 3,
           '& .MuiInputBase-input': {
-            fontSize: '1.125rem',
+            fontSize: isMobile ? '1rem' : '1.125rem',
             fontWeight: 600,
           },
         }}
@@ -229,73 +233,150 @@ export function AddExpenseWizard({
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
+        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
         How badly did the wallet suffer?
       </Typography>
-      <Box
-        sx={{
-          position: 'relative',
-          mb: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography
-          variant="h2"
+
+      {isMobile ? (
+        <Box sx={{ mb: 2 }}>
+          {/* Amount input */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: alpha('#fff', 0.03),
+              borderRadius: 2,
+              border: 1,
+              borderColor: 'divider',
+              px: 2,
+              py: 1.5,
+              mb: 1.5,
+            }}
+          >
+            <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ fontSize: '1.75rem', lineHeight: 1 }}>
+              {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+            </Typography>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => handleAmountChange(e.target.value)}
+              placeholder="0.00"
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: '1.75rem',
+                fontWeight: 800,
+                color: amount ? theme.palette.primary.main : theme.palette.text.disabled,
+                textAlign: 'center',
+                letterSpacing: '-0.02em',
+                fontFamily: 'inherit',
+                width: '100%',
+              }}
+            />
+          </Box>
+
+          {/* Quick amount buttons */}
+          <Box sx={{ display: 'flex', gap: 0.75 }}>
+            {[5, 10, 20, 50].map((val) => (
+              <Box
+                key={val}
+                onClick={() => handleAmountChange(String(val))}
+                sx={{
+                  flex: 1,
+                  py: 0.75,
+                  borderRadius: 1.5,
+                  bgcolor: amount === String(val) ? alpha('#F59E0B', 0.15) : alpha('#fff', 0.04),
+                  border: 1,
+                  borderColor: amount === String(val) ? 'primary.main' : 'divider',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: amount === String(val) ? 'primary.main' : 'text.secondary',
+                  }}
+                >
+                  {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                  {val}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      ) : (
+        <Box
           sx={{
-            fontSize: { xs: '2.5rem', sm: '3rem' },
-            fontWeight: 800,
-            color: amount ? 'primary.main' : 'text.muted',
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
-            mb: 2,
+            position: 'relative',
+            mb: 3,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
-        </Typography>
-        <TextField
-          label="Amount"
-          value={amount}
-          onChange={(e) => handleAmountChange(e.target.value)}
-          fullWidth
-          type="text"
-          inputMode="decimal"
-          placeholder="0.00"
-          sx={{
-            maxWidth: 280,
-            '& .MuiInputBase-input': {
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              textAlign: 'center',
-              py: 1.5,
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Typography variant="h6" fontWeight={700} color="primary.main">
-                  {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-                </Typography>
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+          <Typography
+            variant="h2"
+            sx={{
+              fontSize: '2.5rem',
+              fontWeight: 800,
+              color: amount ? 'primary.main' : 'text.muted',
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              mb: 2,
+            }}
+          >
+            {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
+          </Typography>
+          <TextField
+            label="Amount"
+            value={amount}
+            onChange={(e) => handleAmountChange(e.target.value)}
+            fullWidth
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            sx={{
+              maxWidth: 280,
+              '& .MuiInputBase-input': {
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                py: 1.5,
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Typography variant="h6" fontWeight={700} color="primary.main">
+                    {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                  </Typography>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+      )}
 
       {/* Category */}
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
+        sx={{ mb: isMobile ? 1.5 : 2, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
         What kind of damage?
       </Typography>
       <Box
         sx={{
           display: 'flex',
-          gap: 1.5,
+          gap: isMobile ? 1 : 1.5,
           overflowX: 'auto',
           pb: 1,
           px: 0.5,
@@ -314,9 +395,9 @@ export function AddExpenseWizard({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 0.75,
-                p: 1.5,
-                minWidth: 96,
+                gap: isMobile ? 0.5 : 0.75,
+                p: isMobile ? 1 : 1.5,
+                minWidth: isMobile ? 80 : 96,
                 borderRadius: 2,
                 cursor: 'pointer',
                 border: 2,
@@ -332,8 +413,8 @@ export function AddExpenseWizard({
             >
               <Box
                 sx={{
-                  width: 48,
-                  height: 48,
+                  width: isMobile ? 40 : 48,
+                  height: isMobile ? 40 : 48,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -349,7 +430,7 @@ export function AddExpenseWizard({
                 variant="body2"
                 fontWeight={isSelected ? 700 : 500}
                 color={isSelected ? 'primary.main' : 'text.primary'}
-                sx={{ fontSize: '0.75rem' }}
+                sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}
               >
                 {cat.label}
               </Typography>
@@ -362,8 +443,8 @@ export function AddExpenseWizard({
       {/* Paid by */}
       <Box
         sx={{
-          mt: 3,
-          p: 2,
+          mt: isMobile ? 2 : 3,
+          p: isMobile ? 1.5 : 2,
           borderRadius: 2,
           bgcolor: alpha('#F59E0B', 0.08),
           border: 1,
@@ -375,23 +456,24 @@ export function AddExpenseWizard({
       >
         <Avatar
           sx={{
-            width: 36,
-            height: 36,
+            width: isMobile ? 32 : 36,
+            height: isMobile ? 32 : 36,
             bgcolor: 'primary.main',
             color: '#121212',
             fontWeight: 700,
+            fontSize: isMobile ? '0.875rem' : '1rem',
           }}
         >
           {currentUser.firstName.charAt(0)}
         </Avatar>
         <Box>
-          <Typography variant="body2" fontWeight={600} color="text.primary">
+          <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
             Paid by{' '}
             <Typography component="span" color="primary.main">
               {currentUser.firstName} {currentUser.lastName}
             </Typography>
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
             {currentUser.email}
           </Typography>
         </Box>
@@ -400,15 +482,15 @@ export function AddExpenseWizard({
   );
 
   const renderSurvivorsStep = () => (
-    <Box sx={{ py: 2 }}>
+    <Box sx={{ py: isMobile ? 1 : 2 }}>
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
+        sx={{ mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
         Who survived this expense?
       </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 2 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: isMobile ? 1.5 : 2, fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
         Add the financially responsible victims. ({selectedMemberIds.length} selected)
       </Typography>
 
@@ -422,8 +504,8 @@ export function AddExpenseWizard({
       {amount && selectedMemberIds.length > 0 && (
         <Box
           sx={{
-            mt: 2,
-            p: 2,
+            mt: isMobile ? 1.5 : 2,
+            p: isMobile ? 1.5 : 2,
             borderRadius: 2,
             bgcolor: alpha('#F59E0B', 0.08),
             border: 1,
@@ -431,10 +513,10 @@ export function AddExpenseWizard({
             textAlign: 'center',
           }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
             Each owes
           </Typography>
-          <Typography variant="h6" fontWeight={800} color="primary.main">
+          <Typography variant="h6" fontWeight={800} color="primary.main" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem' }}>
             {formatCurrency(equalShare / 100)}
           </Typography>
         </Box>
@@ -443,16 +525,16 @@ export function AddExpenseWizard({
   );
 
   const renderNotesStep = () => (
-    <Box sx={{ py: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ py: isMobile ? 2 : 4, display: 'flex', flexDirection: 'column', gap: isMobile ? 1.5 : 2 }}>
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
+        sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
         Notes from the crime scene
       </Typography>
 
-      <Typography variant="caption" color="text.muted" sx={{ textAlign: 'center' }}>
+      <Typography variant="caption" color="text.muted" sx={{ textAlign: 'center', fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
         Optional evidence for the beer tribunal.
       </Typography>
 
@@ -462,7 +544,7 @@ export function AddExpenseWizard({
         onChange={(e) => setNotes(e.target.value)}
         fullWidth
         multiline
-        rows={5}
+        rows={isMobile ? 3 : 5}
         placeholder="e.g. 'Dave spilled half his beer on the floor' or 'Emergency tacos after the show'..."
         sx={{
           '& .MuiInputBase-root': {
@@ -474,17 +556,17 @@ export function AddExpenseWizard({
       {notes && (
         <Box
           sx={{
-            p: 2,
+            p: isMobile ? 1.5 : 2,
             borderRadius: 2,
             bgcolor: alpha('#F59E0B', 0.08),
             border: 1,
             borderColor: alpha('#F59E0B', 0.2),
           }}
         >
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
             Preview:
           </Typography>
-          <Typography variant="body1" sx={{ mt: 0.5, fontStyle: 'italic', color: 'text.primary' }}>
+          <Typography variant="body1" sx={{ mt: 0.5, fontStyle: 'italic', color: 'text.primary', fontSize: isMobile ? '0.8rem' : '1rem' }}>
             "{notes}"
           </Typography>
         </Box>
@@ -496,11 +578,11 @@ export function AddExpenseWizard({
     const categoryName = CATEGORIES.find((c) => c.value === category)?.label;
 
     return (
-      <Box sx={{ py: 3 }}>
+      <Box sx={{ py: isMobile ? 2 : 3 }}>
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
+          sx={{ mb: isMobile ? 2 : 3, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
         >
           Deploy Financial Damage
         </Typography>
@@ -508,22 +590,22 @@ export function AddExpenseWizard({
         {/* Summary card */}
         <Box
           sx={{
-            p: 3,
-            borderRadius: 3,
+            p: isMobile ? 2 : 3,
+            borderRadius: isMobile ? 2 : 3,
             bgcolor: 'background.paper',
             border: 1,
             borderColor: 'divider',
           }}
         >
           {/* Amount */}
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography variant="h3" fontWeight={800} color="primary.main" sx={{ fontSize: '2.5rem' }}>
+          <Box sx={{ textAlign: 'center', mb: isMobile ? 2 : 3 }}>
+            <Typography variant="h3" fontWeight={800} color="primary.main" sx={{ fontSize: isMobile ? '2rem' : '2.5rem' }}>
               {formatCurrency(amountCents / 100)}
             </Typography>
           </Box>
 
           {/* Details */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 1 : 1.5 }}>
             <SummaryRow label="Title" value={title} />
             {categoryName && <SummaryRow label="Category" value={categoryName} />}
             <SummaryRow
@@ -539,7 +621,7 @@ export function AddExpenseWizard({
 
           {/* Notes */}
           {notes && (
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: isMobile ? 1.5 : 2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600}>
                 Notes:
               </Typography>
@@ -547,11 +629,12 @@ export function AddExpenseWizard({
                 variant="body2"
                 sx={{
                   mt: 0.5,
-                  p: 1.5,
+                  p: isMobile ? 1 : 1.5,
                   borderRadius: 1,
                   bgcolor: alpha('#F59E0B', 0.06),
                   fontStyle: 'italic',
                   color: 'text.secondary',
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
                 }}
               >
                 "{notes}"
@@ -588,11 +671,11 @@ export function AddExpenseWizard({
       <Stepper steps={STEPS} activeStep={step} />
 
       {/* Step content */}
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 1 }}>{renderStep()}</Box>
+      <Box sx={{ flex: 1, overflowY: 'auto' }}>{renderStep()}</Box>
 
       {/* Error */}
       {error && (
-        <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1, px: 2 }}>
+        <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1, px: 2, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
           {error}
         </Typography>
       )}
@@ -601,10 +684,11 @@ export function AddExpenseWizard({
       <Box
         sx={{
           display: 'flex',
-          gap: 2,
-          p: 2,
+          gap: isMobile ? 1.5 : 2,
+          p: isMobile ? 1.5 : 2,
           borderTop: 1,
           borderColor: 'divider',
+          flexShrink: 0,
         }}
       >
         {step > 0 ? (
@@ -613,12 +697,12 @@ export function AddExpenseWizard({
             onClick={back}
             disabled={submitting}
             variant="outlined"
-            sx={{ flex: 1 }}
+            sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
           >
             Back
           </Button>
         ) : (
-          <Button onClick={onCancel} variant="outlined" sx={{ flex: 1 }}>
+          <Button onClick={onCancel} variant="outlined" sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
             Cancel
           </Button>
         )}
@@ -629,7 +713,7 @@ export function AddExpenseWizard({
             onClick={next}
             disabled={!canProceed()}
             variant="contained"
-            sx={{ flex: 1 }}
+            sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
           >
             Next
           </Button>
@@ -638,7 +722,7 @@ export function AddExpenseWizard({
             onClick={submit}
             disabled={!canProceed() || submitting}
             variant="contained"
-            sx={{ flex: 1 }}
+            sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : undefined}
           >
             {submitting ? 'Deploying...' : 'Deploy Damage'}

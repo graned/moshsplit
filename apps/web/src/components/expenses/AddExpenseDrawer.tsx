@@ -1,4 +1,4 @@
-import { Drawer, Box, Typography, IconButton, alpha, useTheme } from '@mui/material';
+import { Drawer, Box, Typography, IconButton, alpha, useTheme, useMediaQuery } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 
 import { AddExpenseWizard } from './AddExpenseWizard';
@@ -30,6 +30,7 @@ export function AddExpenseDrawer({
   onSuccess,
 }: AddExpenseDrawerProps) {
   const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleSubmit = async (data: CreateExpenseRequest) => {
     await expensesApi.create(eventId, data);
@@ -40,36 +41,69 @@ export function AddExpenseDrawer({
       anchor="bottom"
       open={open}
       onClose={onClose}
-      sx={{
-        '& .MuiDrawer-paper': {
-          bgcolor: '#1A1A1A',
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          maxHeight: '90dvh',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 10,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            bgcolor: alpha('#534434', 0.4),
+      slotProps={{
+        backdrop: {
+          sx: {
+            bgcolor: 'rgba(0, 0, 0, 0.6)',
           },
         },
       }}
+      sx={{
+        '& .MuiDrawer-paper': {
+          bgcolor: '#1A1A1A',
+          borderTopLeftRadius: isSmall ? 20 : 24,
+          borderTopRightRadius: isSmall ? 20 : 24,
+          maxHeight: isSmall ? '92dvh' : '85vh',
+          height: isSmall ? 'auto' : 'auto',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+      }}
     >
+      {/* Grab handle */}
       <Box
         sx={{
+          position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           px: 2,
-          pt: 3,
+          pt: 1.5,
+          pb: 0.5,
+          flexShrink: 0,
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 36,
+            height: 4,
+            borderRadius: 2,
+            bgcolor: alpha('#fff', 0.15),
+          }}
+        />
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: 'text.secondary',
+            width: 32,
+            height: 32,
+            '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
+          }}
+        >
+          <CloseIcon sx={{ fontSize: 20 }} />
+        </IconButton>
+      </Box>
+
+      {/* Title */}
+      <Box
+        sx={{
+          px: 2,
           pb: 1.5,
           borderBottom: 1,
           borderColor: 'divider',
@@ -80,6 +114,7 @@ export function AddExpenseDrawer({
           variant="h6"
           fontWeight={700}
           sx={{
+            fontSize: isSmall ? '1.1rem' : '1.25rem',
             background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -87,18 +122,9 @@ export function AddExpenseDrawer({
         >
           Deploy Financial Damage
         </Typography>
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{
-            color: 'text.secondary',
-            '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
       </Box>
 
+      {/* Wizard content */}
       <Box
         sx={{
           flex: 1,
@@ -106,7 +132,8 @@ export function AddExpenseDrawer({
           flexDirection: 'column',
           minHeight: 0,
           overflow: 'hidden',
-          p: 2,
+          px: 2,
+          pb: 0,
         }}
       >
         <AddExpenseWizard

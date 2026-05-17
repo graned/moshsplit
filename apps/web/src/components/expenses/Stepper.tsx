@@ -1,4 +1,4 @@
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { Check as CheckIcon } from '@mui/icons-material';
 
 export interface StepDefinition {
@@ -11,17 +11,39 @@ interface StepperProps {
   activeStep: number;
 }
 
-/**
- * Stepper: Progress indicator for multi-step wizards.
- * Shows numbered circles with connecting lines.
- * Completed steps show a checkmark.
- */
 export function Stepper({ steps, activeStep }: StepperProps) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  if (isMobile) {
+    return (
+      <Box sx={{ width: '100%', py: 1.5, px: 2 }}>
+        {/* Compact progress bar */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+          <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Step {activeStep + 1} of {steps.length}
+          </Typography>
+          <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>
+            {steps[activeStep]?.label}
+          </Typography>
+        </Box>
+        <Box sx={{ width: '100%', height: 3, borderRadius: 2, bgcolor: 'action.disabledBackground', overflow: 'hidden' }}>
+          <Box
+            sx={{
+              height: '100%',
+              width: `${((activeStep + 1) / steps.length) * 100}%`,
+              bgcolor: 'primary.main',
+              borderRadius: 2,
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: '100%', py: 2 }}>
-      {/* Steps row */}
       <Box
         sx={{
           display: 'flex',
@@ -43,7 +65,6 @@ export function Stepper({ steps, activeStep }: StepperProps) {
                 flex: index < steps.length - 1 ? 1 : 'none',
               }}
             >
-              {/* Step circle */}
               <Box
                 sx={{
                   display: 'flex',
@@ -75,7 +96,6 @@ export function Stepper({ steps, activeStep }: StepperProps) {
                 >
                   {isCompleted ? <CheckIcon sx={{ fontSize: 18 }} /> : index + 1}
                 </Box>
-                {/* Label */}
                 <Typography
                   variant="caption"
                   sx={{
@@ -92,7 +112,6 @@ export function Stepper({ steps, activeStep }: StepperProps) {
                 </Typography>
               </Box>
 
-              {/* Connector line */}
               {index < steps.length - 1 && (
                 <Box
                   sx={{

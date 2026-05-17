@@ -6,6 +6,7 @@ import {
   Avatar,
   alpha,
   useTheme,
+  useMediaQuery,
   InputAdornment,
   CircularProgress,
 } from '@mui/material';
@@ -30,6 +31,7 @@ export function ParticipantSearch({
   placeholder = 'Search survivors by name...',
 }: ParticipantSearchProps) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,10 +86,10 @@ export function ParticipantSearch({
   return (
     <Box
       sx={{
-        py: 2,
+        py: isMobile ? 1 : 2,
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: 260,
+        maxHeight: isMobile ? 200 : 260,
         overflow: 'hidden',
       }}
     >
@@ -103,8 +105,8 @@ export function ParticipantSearch({
           onFocus={handleFocus}
           onBlur={handleBlur}
           sx={{
-            mb: 2,
-            '& .MuiOutlinedInput-root': {
+            mb: isMobile ? 1.5 : 2,
+            '& .MuiInputBase-root': {
               borderRadius: 2,
               bgcolor: alpha('#fff', 0.03),
             },
@@ -112,7 +114,7 @@ export function ParticipantSearch({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                <SearchIcon sx={{ fontSize: isMobile ? 18 : 20, color: 'text.secondary' }} />
               </InputAdornment>
             ),
           }}
@@ -120,12 +122,12 @@ export function ParticipantSearch({
       </Box>
 
       {/* Select all / none */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isMobile ? 1 : 1.5, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', gap: isMobile ? 0.5 : 1 }}>
           <Box
             onClick={selectAll}
             sx={{
-              px: 1.5,
+              px: isMobile ? 1 : 1.5,
               py: 0.5,
               borderRadius: 1,
               cursor: 'pointer',
@@ -135,14 +137,14 @@ export function ParticipantSearch({
               '&:hover': { bgcolor: alpha('#fff', 0.08) },
             }}
           >
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
               Select All
             </Typography>
           </Box>
           <Box
             onClick={deselectAll}
             sx={{
-              px: 1.5,
+              px: isMobile ? 1 : 1.5,
               py: 0.5,
               borderRadius: 1,
               cursor: 'pointer',
@@ -152,12 +154,12 @@ export function ParticipantSearch({
               '&:hover': { bgcolor: alpha('#fff', 0.08) },
             }}
           >
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
               Clear All
             </Typography>
           </Box>
         </Box>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>
+        <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'primary.main' }}>
           {value.length} selected
         </Typography>
       </Box>
@@ -169,7 +171,7 @@ export function ParticipantSearch({
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.5,
+          gap: isMobile ? 0.25 : 0.5,
           overflowY: 'auto',
         }}
       >
@@ -192,8 +194,8 @@ export function ParticipantSearch({
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 1.5,
-                  p: 1.5,
+                  gap: isMobile ? 1 : 1.5,
+                  p: isMobile ? 1 : 1.5,
                   borderRadius: 2,
                   cursor: 'pointer',
                   border: `1px solid ${isSelected ? alpha(theme.palette.primary.main, 0.4) : 'transparent'}`,
@@ -206,12 +208,12 @@ export function ParticipantSearch({
               >
                 <Avatar
                   sx={{
-                    width: 40,
-                    height: 40,
+                    width: isMobile ? 36 : 40,
+                    height: isMobile ? 36 : 40,
                     bgcolor: isSelected ? 'primary.main' : 'action.disabledBackground',
                     color: isSelected ? '#121212' : 'text.secondary',
                     fontWeight: 700,
-                    fontSize: '1rem',
+                    fontSize: isMobile ? '0.875rem' : '1rem',
                   }}
                 >
                   {user.firstName.charAt(0)}
@@ -222,6 +224,7 @@ export function ParticipantSearch({
                     fontWeight={600}
                     noWrap
                     color={isSelected ? 'text.primary' : 'text.secondary'}
+                    sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}
                   >
                     {user.firstName} {user.lastName}
                     {isCurrentUser && (
@@ -235,11 +238,11 @@ export function ParticipantSearch({
                       </Typography>
                     )}
                   </Typography>
-                  <Typography variant="caption" color="text.muted" noWrap>
+                  <Typography variant="caption" color="text.muted" noWrap sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
                     {user.email}
                   </Typography>
                 </Box>
-                {isSelected && <CheckIcon sx={{ color: 'primary.main', fontSize: 20 }} />}
+                {isSelected && <CheckIcon sx={{ color: 'primary.main', fontSize: isMobile ? 18 : 20 }} />}
               </Box>
             );
           })
