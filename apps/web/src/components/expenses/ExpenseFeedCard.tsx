@@ -91,7 +91,14 @@ export function ExpenseFeedCard({
               }}
             >
               {iconSrc ? (
-                <img src={iconSrc} alt="" style={{ width: 28, height: 28 }} />
+                <img
+                  src={iconSrc}
+                  alt=""
+                  style={{
+                    width: expense.expense_type === 'food' ? 36 : 28,
+                    height: 28,
+                  }}
+                />
               ) : (
                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700 }}>{payerInitial}</Typography>
               )}

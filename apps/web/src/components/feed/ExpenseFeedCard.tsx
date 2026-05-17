@@ -71,7 +71,14 @@ export function ExpenseFeedCard({
         }}
       >
         {iconSrc ? (
-          <img src={iconSrc} alt="" style={{ width: 22, height: 22 }} />
+          <img
+            src={iconSrc}
+            alt=""
+            style={{
+              width: activity.expense_type === 'food' ? 30 : 22,
+              height: 22,
+            }}
+          />
         ) : (
           <ReceiptIcon sx={{ color: 'primary.main', fontSize: 20 }} />
         )}
