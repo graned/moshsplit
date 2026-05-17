@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 
 import { Stepper, StepDefinition } from './Stepper';
+import { ParticipantSearch } from './ParticipantSearch';
 import { CreateExpenseRequest } from '../../api/expenses.api';
 import { GroupMember } from '../../api/groups.api';
 
@@ -48,10 +49,9 @@ const CATEGORIES: CategoryDef[] = [
 // ---------------------------------------------------------------------------
 
 const STEPS: StepDefinition[] = [
-  { label: 'Amount' },
-  { label: 'Category' },
-  { label: 'What For' },
+  { label: 'Basic Info' },
   { label: 'Survivors' },
+  { label: 'Notes' },
   { label: 'Confirm' },
 ];
 
@@ -90,11 +90,11 @@ export function AddExpenseWizard({
   const [error, setError] = useState<string | null>(null);
 
   // Form state
+  const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(members.map((m) => m.user_id));
+  const [notes, setNotes] = useState('');
 
   // -----------------------------------------------------------------------
   // Helpers
@@ -126,18 +126,6 @@ export function AddExpenseWizard({
     [members, selectedMemberIds]
   );
 
-  const toggleMember = (userId: string) => {
-    setSelectedMemberIds((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
-  };
-
-  const selectAll = () => {
-    setSelectedMemberIds(members.map((m) => m.user_id));
-  };
-
-  const deselectAll = () => {
-    setSelectedMemberIds([]);
-  };
-
   // -----------------------------------------------------------------------
   // Validation per step
   // -----------------------------------------------------------------------
@@ -145,14 +133,12 @@ export function AddExpenseWizard({
   const canProceed = (): boolean => {
     switch (step) {
       case 0:
-        return amountCents > 0;
+        return title.trim().length > 0 && amountCents > 0;
       case 1:
-        return true; // category is optional
-      case 2:
-        return title.trim().length > 0;
-      case 3:
         return selectedMemberIds.length > 0;
-      case 4:
+      case 2:
+        return true; // notes are optional
+      case 3:
         return true;
       default:
         return false;
@@ -194,12 +180,13 @@ export function AddExpenseWizard({
       await onSubmit({
         user_id: currentUser.id,
         title: title.trim(),
-        description: description.trim() || undefined,
+        description: title.trim(),
         amount_cents: amountCents,
         paid_by: currentUser.id,
         split_type: 'equal',
         split_data: { shares: selectedMemberIds },
         expense_type: category || undefined,
+        notes: notes.trim() || undefined,
       });
       onSuccess?.();
     } catch (err) {
@@ -213,95 +200,100 @@ export function AddExpenseWizard({
   // Step renderers
   // -----------------------------------------------------------------------
 
-  const renderAmountStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+  const renderBasicInfoStep = () => (
+    <Box sx={{ py: 3 }}>
+      {/* Title */}
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
+        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
       >
-        How Much Damage?
+        Name the Damage
       </Typography>
+      <TextField
+        label="What was it?"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        fullWidth
+        autoFocus
+        placeholder="e.g. Round of beers, Dinner at the pub..."
+        sx={{
+          mb: 3,
+          '& .MuiInputBase-input': {
+            fontSize: '1.125rem',
+            fontWeight: 600,
+          },
+        }}
+      />
 
-      {/* Large amount display */}
+      {/* Amount */}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
+      >
+        How badly did the wallet suffer?
+      </Typography>
       <Box
         sx={{
           position: 'relative',
           mb: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
         <Typography
           variant="h2"
           sx={{
-            fontSize: { xs: '3rem', sm: '4rem' },
+            fontSize: { xs: '2.5rem', sm: '3rem' },
             fontWeight: 800,
             color: amount ? 'primary.main' : 'text.muted',
             letterSpacing: '-0.03em',
             lineHeight: 1,
+            mb: 2,
           }}
         >
           {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
         </Typography>
+        <TextField
+          label="Amount"
+          value={amount}
+          onChange={(e) => handleAmountChange(e.target.value)}
+          fullWidth
+          type="text"
+          inputMode="decimal"
+          placeholder="0.00"
+          sx={{
+            maxWidth: 280,
+            '& .MuiInputBase-input': {
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              textAlign: 'center',
+              py: 1.5,
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Typography variant="h6" fontWeight={700} color="primary.main">
+                  {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                </Typography>
+              </InputAdornment>
+            ),
+          }}
+        />
       </Box>
 
-      <TextField
-        label="Amount"
-        value={amount}
-        onChange={(e) => handleAmountChange(e.target.value)}
-        fullWidth
-        type="text"
-        inputMode="decimal"
-        placeholder="0.00"
-        autoFocus
-        sx={{
-          maxWidth: 320,
-          '& .MuiInputBase-input': {
-            fontSize: '1.5rem',
-            fontWeight: 700,
-            textAlign: 'center',
-            py: 1.5,
-          },
-        }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Typography variant="h6" fontWeight={700} color="primary.main">
-                {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-              </Typography>
-            </InputAdornment>
-          ),
-        }}
-      />
-
-      {amount && selectedMemberIds.length > 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-          Each survivor owes{' '}
-          <Typography component="span" fontWeight={700} color="primary.main">
-            {formatCurrency(equalShare / 100)}
-          </Typography>
-        </Typography>
-      )}
-    </Box>
-  );
-
-  const renderCategoryStep = () => (
-    <Box sx={{ py: 4 }}>
+      {/* Category */}
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
+        sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
       >
-        What Kind of Damage?
+        What kind of damage?
       </Typography>
-
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 2,
-          justifyContent: 'center',
-        }}
-      >
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'center' }}>
         {CATEGORIES.map((cat) => {
           const isSelected = category === cat.value;
           return (
@@ -312,10 +304,10 @@ export function AddExpenseWizard({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 1,
-                p: 2,
-                minWidth: 96,
-                borderRadius: 3,
+                gap: 0.75,
+                p: 1.5,
+                minWidth: 80,
+                borderRadius: 2,
                 cursor: 'pointer',
                 border: 2,
                 borderColor: isSelected ? 'primary.main' : 'divider',
@@ -329,8 +321,8 @@ export function AddExpenseWizard({
             >
               <Box
                 sx={{
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -346,186 +338,75 @@ export function AddExpenseWizard({
                 variant="body2"
                 fontWeight={isSelected ? 700 : 500}
                 color={isSelected ? 'primary.main' : 'text.primary'}
+                sx={{ fontSize: '0.75rem' }}
               >
                 {cat.label}
               </Typography>
-              {isSelected && <CheckIcon sx={{ fontSize: 16, color: 'primary.main' }} />}
+              {isSelected && <CheckIcon sx={{ fontSize: 14, color: 'primary.main' }} />}
             </Box>
           );
         })}
       </Box>
 
-      {category && (
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Chip
-            label={`${CATEGORIES.find((c) => c.value === category)?.label} selected`}
-            color="primary"
-            variant="outlined"
-            onDelete={() => setCategory('')}
-          />
-        </Box>
-      )}
-    </Box>
-  );
-
-  const renderTitleStep = () => (
-    <Box sx={{ py: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
-      >
-        What For?
-      </Typography>
-
-      <TextField
-        label="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        fullWidth
-        autoFocus
-        placeholder="e.g. Round of beers, Dinner at the pub..."
+      {/* Paid by */}
+      <Box
         sx={{
-          '& .MuiInputBase-input': {
-            fontSize: '1.25rem',
-            fontWeight: 600,
-          },
+          mt: 3,
+          p: 2,
+          borderRadius: 2,
+          bgcolor: alpha('#F59E0B', 0.08),
+          border: 1,
+          borderColor: alpha('#F59E0B', 0.2),
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
         }}
-      />
-
-      <TextField
-        label="Description (optional)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        fullWidth
-        multiline
-        rows={3}
-        placeholder="Any extra details..."
-      />
-
-      {title && (
-        <Box
+      >
+        <Avatar
           sx={{
-            p: 2,
-            borderRadius: 2,
-            bgcolor: alpha('#F59E0B', 0.08),
-            border: 1,
-            borderColor: alpha('#F59E0B', 0.2),
+            width: 36,
+            height: 36,
+            bgcolor: 'primary.main',
+            color: '#121212',
+            fontWeight: 700,
           }}
         >
-          <Typography variant="body2" color="text.secondary">
-            Preview:
-          </Typography>
-          <Typography variant="body1" fontWeight={600} sx={{ mt: 0.5 }}>
-            {title}
-          </Typography>
-          {description && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {description}
+          {currentUser.firstName.charAt(0)}
+        </Avatar>
+        <Box>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            Paid by{' '}
+            <Typography component="span" color="primary.main">
+              {currentUser.firstName} {currentUser.lastName}
             </Typography>
-          )}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {currentUser.email}
+          </Typography>
         </Box>
-      )}
+      </Box>
     </Box>
   );
 
   const renderSurvivorsStep = () => (
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: 2 }}>
       <Typography
         variant="body2"
         color="text.secondary"
         sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
       >
-        Select Survivors
+        Who survived this expense?
       </Typography>
-
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 2 }}>
-        Who shares this expense? ({selectedMemberIds.length} of {members.length})
+        Add the financially responsible victims. ({selectedMemberIds.length} selected)
       </Typography>
 
-      {/* Select all / none */}
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 3 }}>
-        <Button size="small" variant="outlined" onClick={selectAll} sx={{ fontSize: '0.75rem' }}>
-          All
-        </Button>
-        <Button size="small" variant="outlined" onClick={deselectAll} sx={{ fontSize: '0.75rem' }}>
-          None
-        </Button>
-      </Box>
-
-      {/* Member list */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          maxHeight: 320,
-          overflowY: 'auto',
-        }}
-      >
-        {members.map((member) => {
-          const isSelected = selectedMemberIds.includes(member.user_id);
-          const isCurrentUser = member.user_id === currentUser.id;
-          const displayName = member.user_name || member.user_email || 'Unknown';
-          const initials = displayName.charAt(0).toUpperCase();
-
-          return (
-            <Box
-              key={member.user_id}
-              onClick={() => toggleMember(member.user_id)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 1.5,
-                borderRadius: 2,
-                cursor: 'pointer',
-                border: 1,
-                borderColor: isSelected ? 'primary.main' : 'divider',
-                bgcolor: isSelected ? alpha('#F59E0B', 0.08) : 'transparent',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: isSelected ? alpha('#F59E0B', 0.12) : alpha('#fff', 0.03),
-                },
-              }}
-            >
-              <Avatar
-                sx={{
-                  width: 40,
-                  height: 40,
-                  bgcolor: isSelected ? 'primary.main' : 'action.disabledBackground',
-                  color: isSelected ? '#121212' : 'text.secondary',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                }}
-              >
-                {initials}
-              </Avatar>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  variant="body2"
-                  fontWeight={600}
-                  noWrap
-                  color={isSelected ? 'text.primary' : 'text.secondary'}
-                >
-                  {displayName}
-                  {isCurrentUser && (
-                    <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 1, fontWeight: 600 }}>
-                      (You)
-                    </Typography>
-                  )}
-                </Typography>
-                {!member.user_name && member.user_email && (
-                  <Typography variant="caption" color="text.muted" noWrap>
-                    {member.user_email}
-                  </Typography>
-                )}
-              </Box>
-              {isSelected && <CheckIcon sx={{ color: 'primary.main', fontSize: 20 }} />}
-            </Box>
-          );
-        })}
-      </Box>
+      <ParticipantSearch
+        value={selectedMemberIds}
+        onChange={setSelectedMemberIds}
+        currentUserId={currentUser.id}
+        placeholder="Search survivors by name..."
+      />
 
       {amount && selectedMemberIds.length > 0 && (
         <Box
@@ -550,11 +431,61 @@ export function AddExpenseWizard({
     </Box>
   );
 
+  const renderNotesStep = () => (
+    <Box sx={{ py: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center' }}
+      >
+        Notes from the crime scene
+      </Typography>
+
+      <Typography variant="caption" color="text.muted" sx={{ textAlign: 'center' }}>
+        Optional evidence for the beer tribunal.
+      </Typography>
+
+      <TextField
+        label="Add context, excuses, or questionable financial decisions"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        fullWidth
+        multiline
+        rows={5}
+        placeholder="e.g. 'Dave spilled half his beer on the floor' or 'Emergency tacos after the show'..."
+        sx={{
+          '& .MuiInputBase-root': {
+            borderRadius: 2,
+          },
+        }}
+      />
+
+      {notes && (
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            bgcolor: alpha('#F59E0B', 0.08),
+            border: 1,
+            borderColor: alpha('#F59E0B', 0.2),
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Preview:
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 0.5, fontStyle: 'italic', color: 'text.primary' }}>
+            "{notes}"
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
+
   const renderConfirmStep = () => {
     const categoryName = CATEGORIES.find((c) => c.value === category)?.label;
 
     return (
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ py: 3 }}>
         <Typography
           variant="body2"
           color="text.secondary"
@@ -581,9 +512,8 @@ export function AddExpenseWizard({
           </Box>
 
           {/* Details */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <SummaryRow label="Title" value={title} />
-            {description && <SummaryRow label="Description" value={description} />}
             {categoryName && <SummaryRow label="Category" value={categoryName} />}
             <SummaryRow
               label="Paid by"
@@ -622,6 +552,28 @@ export function AddExpenseWizard({
               })}
             </Box>
           </Box>
+
+          {/* Notes */}
+          {notes && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                Notes:
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 0.5,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: alpha('#F59E0B', 0.06),
+                  fontStyle: 'italic',
+                  color: 'text.secondary',
+                }}
+              >
+                "{notes}"
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
     );
@@ -634,14 +586,12 @@ export function AddExpenseWizard({
   const renderStep = () => {
     switch (step) {
       case 0:
-        return renderAmountStep();
+        return renderBasicInfoStep();
       case 1:
-        return renderCategoryStep();
-      case 2:
-        return renderTitleStep();
-      case 3:
         return renderSurvivorsStep();
-      case 4:
+      case 2:
+        return renderNotesStep();
+      case 3:
         return renderConfirmStep();
       default:
         return null;
