@@ -62,14 +62,26 @@ export function EventBanner({ event, stats, isLoading, currency }: EventBannerPr
         ...bgStyle,
       }}
     >
-      {/* Gradient overlay — stronger when banner image is present */}
+      {/* Gradient overlay — fade from top (opaque) to bottom (transparent) */}
       <Box
         sx={{
           position: 'absolute',
           inset: 0,
           background: bannerUrl
-            ? 'linear-gradient(to top, rgba(19, 19, 19, 0.95) 0%, rgba(19, 19, 19, 0.6) 40%, rgba(19, 19, 19, 0.3) 100%)'
-            : 'linear-gradient(to top, #131313 0%, rgba(19, 19, 19, 0.4) 40%, transparent 100%)',
+            ? 'linear-gradient(to bottom, rgba(18, 18, 18, 0.8) 0%, rgba(18, 18, 18, 0.4) 50%, rgba(18, 18, 18, 0) 100%)'
+            : 'linear-gradient(to bottom, rgba(18, 18, 18, 0.7) 0%, rgba(18, 18, 18, 0.3) 50%, rgba(18, 18, 18, 0) 100%)',
+        }}
+      />
+
+      {/* Bottom fade-out edge */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 100,
+          background: 'linear-gradient(to bottom, transparent, rgba(18, 18, 18, 1))',
         }}
       />
 

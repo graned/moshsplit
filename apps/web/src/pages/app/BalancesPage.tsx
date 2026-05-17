@@ -261,48 +261,74 @@ export default function BalancesPage() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
+    <Box sx={{ minHeight: '100vh' }}>
+      {/* Sticky Header */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          bgcolor: alpha('#131313', 0.85),
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid',
+          borderColor: alpha('#534434', 0.1),
+        }}
+      >
+        <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 3 }, py: 2 }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '1.5rem', md: '2rem' },
+              fontWeight: 700,
+              color: 'primary.main',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}
+          >
             Scales of War
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            sx={{
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              mt: 0.25,
+            }}
+          >
             {eventName ? `${eventName} — Balance the scales of justice` : 'The scales demand balance.'}
           </Typography>
         </Box>
       </Box>
 
       {/* Main Layout: Settlement Cards + Intel Panel */}
-      <Grid container spacing={3}>
-        {/* Left: Settlement Cards */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <SettlementCards
-            relationships={relationships}
-            currentUserId={userId!}
-            currency={currency}
-            members={members}
-            settlementRequests={settlementsData?.data || []}
-            onSettlementSuccess={handleSettlementSuccess}
-            eventId={eventId!}
-          />
-        </Grid>
-
-        {/* Right: Live Intel Panel */}
-        {isDesktop && (
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Box sx={{ position: 'sticky', top: 24 }}>
-              <LiveIntelPanel
-                eventId={eventId!}
-                currentUserId={userId!}
-                stats={stats}
-                currency={currency}
-              />
-            </Box>
+      <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
+        <Grid container spacing={3}>
+          {/* Left: Settlement Cards */}
+          <Grid size={{ xs: 12, lg: 8 }}>
+            <SettlementCards
+              relationships={relationships}
+              currentUserId={userId!}
+              currency={currency}
+              members={members}
+              settlementRequests={settlementsData?.data || []}
+              onSettlementSuccess={handleSettlementSuccess}
+              eventId={eventId!}
+            />
           </Grid>
-        )}
-      </Grid>
+
+          {/* Right: Live Intel Panel */}
+          {isDesktop && (
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Box sx={{ position: 'sticky', top: 24 }}>
+                <LiveIntelPanel
+                  eventId={eventId!}
+                  currentUserId={userId!}
+                  stats={stats}
+                  currency={currency}
+                />
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
     </Box>
   );
 }

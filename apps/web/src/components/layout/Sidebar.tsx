@@ -8,7 +8,6 @@ import {
   ListItemText,
   Avatar,
   Divider,
-  Button,
   Tooltip,
   alpha,
   useTheme,
@@ -17,8 +16,6 @@ import {
   RssFeed as FeedIcon,
   ReceiptLong as ExpensesIcon,
   AccountBalanceWallet as BalancesIcon,
-  People as ParticipantsIcon,
-  Add as AddIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -33,10 +30,9 @@ interface NavItem {
 interface SidebarProps {
   eventId?: string;
   collapsed?: boolean;
-  onAddExpense?: () => void;
 }
 
-function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
+function Sidebar({ eventId, collapsed = false }: SidebarProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,7 +47,6 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
       label: 'Scales of War',
       icon: <BalancesIcon />,
     },
-    { path: `/app/events/${eventId}/crew`, fallbackPath: '/app/crew', label: 'The Crew', icon: <ParticipantsIcon /> },
   ];
 
   const handleNavigation = (item: NavItem) => {
@@ -200,56 +195,6 @@ function Sidebar({ eventId, collapsed = false, onAddExpense }: SidebarProps) {
           );
         })}
       </List>
-
-      {/* Add Expense Button */}
-      <Box sx={{ px: collapsed ? 2 : 3, pb: 3, flexShrink: 0, position: 'relative' }}>
-        <Tooltip title={collapsed ? 'Deploy Damage' : undefined} placement="right" disableHoverListener={!collapsed}>
-          <Button
-            variant="contained"
-            onClick={onAddExpense}
-            fullWidth={!collapsed}
-            startIcon={<AddIcon />}
-            sx={{
-              py: collapsed ? 0 : 1.75,
-              px: collapsed ? 0 : 2,
-              minWidth: collapsed ? 40 : 'auto',
-              width: collapsed ? 40 : '100%',
-              height: collapsed ? 40 : 'auto',
-              p: collapsed ? 0 : undefined,
-              borderRadius: 3,
-              bgcolor: 'primary.main',
-              color: '#121212',
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              transition: theme.transitions.create(['padding', 'width', 'min-width', 'height', 'justify-content'], {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.standard,
-              }),
-              '&:hover': {
-                bgcolor: 'primary.dark',
-              },
-              mx: collapsed ? 'auto' : undefined,
-              display: collapsed ? 'flex' : undefined,
-            }}
-          >
-            <Box
-              component="span"
-              sx={{
-                opacity: collapsed ? 0 : 1,
-                width: collapsed ? 0 : 'auto',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                transform: collapsed ? 'translateX(-8px)' : 'translateX(0)',
-                transition: theme.transitions.create(['opacity', 'transform', 'width'], {
-                  easing: theme.transitions.easing.easeInOut,
-                  duration: 400,
-                }),
-              }}
-            >
-              Deploy Damage
-            </Box>
-          </Button>
-        </Tooltip>
-      </Box>
 
       {/* User Section */}
       <Box

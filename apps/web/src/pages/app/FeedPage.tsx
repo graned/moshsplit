@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, alpha } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -102,8 +102,18 @@ export default function FeedPage() {
 
   return (
     <Box sx={{ ml: '0px', minHeight: '100vh' }}>
-      {/* Event Banner */}
-      <EventBanner event={event} stats={stats} isLoading={isLoading} currency={currency} />
+      {/* Sticky Event Banner */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          bgcolor: alpha('#131313', 0.85),
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <EventBanner event={event} stats={stats} isLoading={isLoading} currency={currency} />
+      </Box>
 
       {/* Main Content */}
       <Box

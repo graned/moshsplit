@@ -115,7 +115,7 @@ function AppShell() {
             },
           }}
         >
-          <Sidebar eventId={eventId} collapsed={!sidebarOpen} onAddExpense={handleAddExpense} />
+          <Sidebar eventId={eventId} collapsed={!sidebarOpen} />
         </Drawer>
 
         {/* Toggle Button */}
@@ -156,6 +156,14 @@ function AppShell() {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
+            background: `
+              linear-gradient(180deg, rgba(18, 18, 18, 0.75) 0%, rgba(26, 26, 26, 0.75) 50%, rgba(18, 18, 18, 0.75) 100%),
+              url('/assets/background-moshsplit.webp')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
           }}
         >
           <Outlet />
@@ -230,13 +238,7 @@ function AppShell() {
           },
         }}
       >
-        <Sidebar
-          eventId={eventId}
-          onAddExpense={() => {
-            setMobileDrawerOpen(false);
-            handleAddExpense();
-          }}
-        />
+        <Sidebar eventId={eventId} />
       </Drawer>
 
       {/* Main Content */}
@@ -247,6 +249,14 @@ function AppShell() {
           p: 2,
           pb: 10, // Space for bottom nav
           overflow: 'auto',
+          background: `
+            linear-gradient(180deg, rgba(18, 18, 18, 0.75) 0%, rgba(26, 26, 26, 0.75) 50%, rgba(18, 18, 18, 0.75) 100%),
+            url('/assets/background-moshsplit.webp')
+          `,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
         }}
       >
         <Outlet />
