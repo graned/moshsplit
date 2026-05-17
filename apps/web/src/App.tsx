@@ -13,6 +13,7 @@ import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import { UserCacheProvider } from './providers/UserCacheProvider';
 import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppShell from './components/layout/AppShell';
 import HomePage from './pages/app/HomePage';
@@ -60,31 +61,33 @@ function AppContent() {
       <Route path="/invitation/accept" element={<InvitationAcceptPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/app" element={<AppShell />}>
-          <Route index element={<Navigate to="/app/events" replace />} />
-          <Route path="home" element={<HomePage />} />
-          <Route path="events" element={<EventsPage />} />
-          <Route path="events/:eventId" element={<EventDetailPage />} />
-          <Route path="expenses" element={<ExpensesPage />} />
-          <Route path="expenses/:eventId" element={<ExpenseReportPage />} />
-          <Route path="balances" element={<BalancesPage />} />
-          <Route path="events/:eventId/balances" element={<BalancesPage />} />
-          <Route path="settlements" element={<SettlementsPage />} />
-          <Route path="feed" element={<FeedPage />} />
-          <Route path="events/:eventId/feed" element={<FeedPage />} />
-          <Route path="settings/profile" element={<SettingsProfilePage />} />
-          <Route path="settings/security" element={<SettingsSecurityPage />} />
-          <Route path="admin/users" element={<UsersPage />} />
-        </Route>
+        <Route element={<UserCacheProvider />}>
+          <Route path="/app" element={<AppShell />}>
+            <Route index element={<Navigate to="/app/events" replace />} />
+            <Route path="home" element={<HomePage />} />
+            <Route path="events" element={<EventsPage />} />
+            <Route path="events/:eventId" element={<EventDetailPage />} />
+            <Route path="expenses" element={<ExpensesPage />} />
+            <Route path="expenses/:eventId" element={<ExpenseReportPage />} />
+            <Route path="balances" element={<BalancesPage />} />
+            <Route path="events/:eventId/balances" element={<BalancesPage />} />
+            <Route path="settlements" element={<SettlementsPage />} />
+            <Route path="feed" element={<FeedPage />} />
+            <Route path="events/:eventId/feed" element={<FeedPage />} />
+            <Route path="settings/profile" element={<SettingsProfilePage />} />
+            <Route path="settings/security" element={<SettingsSecurityPage />} />
+            <Route path="admin/users" element={<UsersPage />} />
+          </Route>
 
-        {/* Admin Routes - protected by admin role check */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminShell />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="events" element={<AdminEvents />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="import" element={<AdminImport />} />
-            <Route path="audit" element={<AdminAudit />} />
+          {/* Admin Routes - protected by admin role check */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminShell />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="events" element={<AdminEvents />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="import" element={<AdminImport />} />
+              <Route path="audit" element={<AdminAudit />} />
+            </Route>
           </Route>
         </Route>
       </Route>

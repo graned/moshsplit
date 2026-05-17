@@ -104,6 +104,11 @@ export const usersApi = {
     throw new Error('Not implemented');
   },
 
+  listAll: async (): Promise<UserInfo[]> => {
+    await ensureAllUsersFetched();
+    return Array.from(userCache.values());
+  },
+
   list: async (): Promise<UserListItem[]> => {
     await ensureAllUsersFetched();
     return Array.from(userCache.values()).map((u) => ({
