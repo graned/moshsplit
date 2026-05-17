@@ -193,7 +193,8 @@ impl ExpenseRepository {
                     SELECT array_agg(sh.user_id)
                     FROM app.expense_version_share sh
                     WHERE sh.expense_version_id = e.current_version_id
-                ) AS participant_ids
+                ) AS participant_ids,
+                ev.notes
             FROM app.expense e
             LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
             WHERE e.id = $1
