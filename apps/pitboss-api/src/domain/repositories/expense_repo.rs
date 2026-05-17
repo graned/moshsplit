@@ -36,6 +36,7 @@ pub struct ExpenseListItem {
     pub split_type: Option<SplitType>,
     pub expense_type: Option<ExpenseType>,
     pub participant_ids: Option<Vec<Uuid>>,
+    pub notes: Option<String>,
 }
 
 /// Raw SQL result row for paginated listing.
@@ -67,6 +68,8 @@ struct ExpenseListItemRow {
     expense_type: Option<String>,
     #[diesel(sql_type = Nullable<Array<DUuid>>)]
     participant_ids: Option<Vec<Uuid>>,
+    #[diesel(sql_type = Nullable<Text>)]
+    notes: Option<String>,
 }
 
 impl ExpenseListItemRow {
@@ -85,6 +88,7 @@ impl ExpenseListItemRow {
             split_type: self.split_type.and_then(|s| s.parse().ok()),
             expense_type: self.expense_type.and_then(|s| s.parse().ok()),
             participant_ids: self.participant_ids,
+            notes: self.notes,
         }
     }
 }
@@ -99,6 +103,7 @@ impl ExpenseRepository {
         cursor: Option<&str>,
         limit: i64,
         include_deleted: bool,
+        expense_type: Option<&str>,
     ) -> Result<(Vec<ExpenseListItem>, bool), RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
         let fetch_limit = std::cmp::min(limit, 100) + 1;
@@ -121,14 +126,16 @@ impl ExpenseRepository {
                     SELECT array_agg(sh.user_id)
                     FROM app.expense_version_share sh
                     WHERE sh.expense_version_id = e.current_version_id
-                ) AS participant_ids
+                ) AS participant_ids,
+                ev.notes
             FROM app.expense e
             LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
             WHERE e.event_id = $1
               AND ($2 OR e.deleted_at IS NULL)
               AND ($3::timestamptz IS NULL OR e.created_at < $3)
+              AND ($4::TEXT IS NULL OR ev.expense_type::TEXT = $4)
             ORDER BY e.created_at DESC
-            LIMIT $4
+            LIMIT $5
         "#;
 
         let cursor_ts: Option<DateTime<chrono::Utc>> = cursor
@@ -139,6 +146,7 @@ impl ExpenseRepository {
             .bind::<DUuid, _>(event_id)
             .bind::<diesel::sql_types::Bool, _>(include_deleted)
             .bind::<Nullable<Timestamptz>, _>(cursor_ts)
+            .bind::<Nullable<Text>, _>(expense_type)
             .bind::<Integer, _>(fetch_limit as i32)
             .load(&mut conn)
             .map_err(RepositoryError::from)?;

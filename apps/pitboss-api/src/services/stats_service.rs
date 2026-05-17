@@ -44,6 +44,7 @@ impl StatsService {
             your_share_cents: row.your_share_cents,
             settlement_progress,
             top_spender_id: row.top_spender_id,
+            top_spender_amount_cents: row.top_spender_amount_cents,
         })
     }
 }

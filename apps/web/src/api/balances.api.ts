@@ -67,6 +67,7 @@ export interface EventStats {
   your_share_cents: number;
   settlement_progress: SettlementProgress | null;
   top_spender_id: string | null;
+  top_spender_amount_cents: number | null;
 }
 
 export interface ExplainBalanceResponse {

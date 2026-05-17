@@ -7,6 +7,7 @@ interface UseInfiniteExpensesParams {
   enabled?: boolean;
   pageSize?: number;
   includeDeleted?: boolean;
+  expenseType?: string;
 }
 
 export function useInfiniteExpenses({
@@ -15,10 +16,11 @@ export function useInfiniteExpenses({
   enabled = true,
   pageSize = 20,
   includeDeleted = false,
+  expenseType,
 }: UseInfiniteExpensesParams) {
   return useInfiniteQuery({
-    queryKey: ['expenses-infinite', eventId, userId, includeDeleted],
-    queryFn: ({ pageParam }) => expensesApi.list(eventId, userId, pageParam, pageSize, includeDeleted),
+    queryKey: ['expenses-infinite', eventId, userId, includeDeleted, expenseType],
+    queryFn: ({ pageParam }) => expensesApi.list(eventId, userId, pageParam, pageSize, includeDeleted, expenseType),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     enabled: enabled && !!eventId && !!userId,

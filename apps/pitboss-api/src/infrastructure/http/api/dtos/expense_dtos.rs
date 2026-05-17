@@ -42,12 +42,14 @@ pub struct UpdateExpenseRequest {
 }
 
 /// Query params for listing expenses.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, utoipa::IntoParams)]
 pub struct ListExpensesParams {
     pub cursor: Option<String>,
     pub limit: Option<i64>,
     /// If true, include soft-deleted expenses.
     pub include_deleted: Option<bool>,
+    /// Filter by expense category (food, beer, gas, transport, merch, camping).
+    pub expense_type: Option<String>,
 }
 
 impl ListExpensesParams {
@@ -94,6 +96,9 @@ pub struct ExpenseListItem {
     /// UUIDs of all participants in this expense
     #[serde(skip_serializing_if = "Option::is_none")]
     pub participant_ids: Option<Vec<Uuid>>,
+    /// Optional notes from the current version
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
 }
 
 /// A single version of an expense.

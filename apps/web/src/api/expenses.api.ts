@@ -50,6 +50,7 @@ export interface ExpenseListItem {
   split_type?: string;
   expense_type?: string;
   participant_ids?: string[];
+  notes?: string;
 }
 
 export interface CreateExpenseRequest {
@@ -84,7 +85,8 @@ export const expensesApi = {
     userId: string,
     cursor?: string,
     limit = 20,
-    includeDeleted = false
+    includeDeleted = false,
+    expenseType?: string
   ): Promise<{ data: ExpenseListItem[]; hasMore: boolean; nextCursor?: string }> => {
     const params = new URLSearchParams({
       limit: String(limit),
@@ -92,6 +94,7 @@ export const expensesApi = {
       user_id: userId,
     });
     if (cursor) params.set('cursor', cursor);
+    if (expenseType) params.set('expense_type', expenseType);
     const response = await apiClient.get<{
       data: { items: ExpenseListItem[]; pagination: { has_more: boolean; next_cursor?: string } };
     }>(`/v1/events/${eventId}/expenses?${params.toString()}`);

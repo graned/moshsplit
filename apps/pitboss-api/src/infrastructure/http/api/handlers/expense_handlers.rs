@@ -30,6 +30,7 @@ use crate::services::expense_service::ExpenseService;
         ("cursor" = Option<String>, Query, description = "Pagination cursor"),
         ("limit" = Option<i64>, Query, description = "Max results (default 20, max 100)"),
         ("include_deleted" = Option<bool>, Query, description = "Include soft-deleted expenses"),
+        ("expense_type" = Option<String>, Query, description = "Filter by expense category"),
     ),
     responses(
         (status = 200, description = "Paginated list of expenses", body = PaginatedResponse<ExpenseListItem>),
@@ -53,6 +54,7 @@ pub async fn list_expenses(
         params.cursor.as_deref(),
         params.limit(),
         params.include_deleted(),
+        params.expense_type.as_deref(),
     )?;
 
     Ok(Json(PaginatedResponse {

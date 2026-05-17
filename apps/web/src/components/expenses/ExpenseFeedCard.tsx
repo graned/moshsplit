@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography, Box, Avatar, Tooltip } from '@mui/material';
+import { Card, CardContent, Typography, Box, Avatar, Tooltip, alpha } from '@mui/material';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { UserInfo } from '../../api/users.api';
 
@@ -25,6 +25,19 @@ const formatAmount = (cents: number, currency = 'EUR') => {
   }).format(cents / 100);
 };
 
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 2) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 interface ExpenseFeedCardProps {
   expense: ExpenseListItem;
   paidBy?: UserInfo;
@@ -43,12 +56,13 @@ export function ExpenseFeedCard({
   onClick,
 }: ExpenseFeedCardProps) {
   const iconSrc = expense.expense_type ? EXPENSE_TYPE_ICONS[expense.expense_type] : null;
-  const payerName = paidBy ? `${paidBy.firstName} ${paidBy.lastName}`.trim() || paidBy.email : expense.paid_by;
+  const payerEmail = paidBy?.email || expense.paid_by;
   const isPayerCurrentUser = expense.paid_by === currentUserId;
-  const payerInitial = payerName.charAt(0).toUpperCase();
+  const payerInitial = payerEmail.charAt(0).toUpperCase();
 
   const createdDate = expense.created_at ? new Date(expense.created_at) : null;
   const isValidDate = createdDate && !isNaN(createdDate.getTime());
+  const relativeTime = isValidDate ? formatRelativeTime(createdDate!) : '';
 
   return (
     <Card
@@ -56,107 +70,97 @@ export function ExpenseFeedCard({
       sx={{
         cursor: onClick ? 'pointer' : 'default',
         transition: 'box-shadow 0.2s',
+        borderRadius: 3,
+        overflow: 'hidden',
+        position: 'relative',
         '&:hover': onClick ? { boxShadow: 6 } : {},
       }}
     >
       <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            {/* Row 1: Icon + Title */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              {iconSrc && <img src={iconSrc} alt="" style={{ width: 22, height: 22, flexShrink: 0 }} />}
-              <Typography variant="h6" fontWeight={600} noWrap sx={{ fontSize: '1.05rem' }}>
-                {expense.title}
-              </Typography>
-            </Box>
-
-            {/* Row 2: Paid by */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tooltip
-                title={
-                  <Box sx={{ py: 0.5 }}>
-                    <Typography variant="body2" fontWeight={600}>
-                      {payerName}
-                    </Typography>
-                    {paidBy?.email && (
-                      <Typography variant="caption" color="text.secondary">
-                        {paidBy.email}
-                      </Typography>
-                    )}
-                  </Box>
-                }
-                arrow
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Paid by:
-                  </Typography>
-                  <Avatar
-                    sx={{
-                      width: 20,
-                      height: 20,
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      bgcolor: isPayerCurrentUser ? 'primary.main' : 'action.disabledBackground',
-                      cursor: 'default',
-                    }}
-                  >
-                    {payerInitial}
-                  </Avatar>
-                  <Typography variant="caption" color="text.secondary">
-                    {isPayerCurrentUser ? 'You' : payerName}
-                  </Typography>
-                </Box>
-              </Tooltip>
-            </Box>
-
-            {/* Row 3: Split participants */}
-            {participants.length > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Split:
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {participants.slice(0, 5).map((u, i) => {
-                    const isMe = u.id === currentUserId;
-                    return (
-                      <Tooltip key={u.id} title={`${u.firstName} ${u.lastName}`.trim() || u.email}>
-                        <Avatar
-                          sx={{
-                            width: 20,
-                            height: 20,
-                            fontSize: '0.6rem',
-                            fontWeight: 700,
-                            bgcolor: isMe ? 'primary.main' : 'action.disabledBackground',
-                            ml: i > 0 ? -0.5 : 0,
-                            border: 1,
-                            borderColor: 'background.paper',
-                          }}
-                        >
-                          {u.firstName.charAt(0).toUpperCase()}
-                        </Avatar>
-                      </Tooltip>
-                    );
-                  })}
-                  {participants.length > 5 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                      +{participants.length - 5}
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            )}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* Left: Avatar + Timeline connector */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                bgcolor: 'action.disabledBackground',
+                border: '1px solid',
+                borderColor: alpha('#534434', 0.2),
+              }}
+            >
+              {iconSrc ? (
+                <img src={iconSrc} alt="" style={{ width: 28, height: 28 }} />
+              ) : (
+                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700 }}>{payerInitial}</Typography>
+              )}
+            </Avatar>
+            <Box sx={{ width: 1, flex: 1, bgcolor: alpha('#534434', 0.2), borderRadius: 1, minHeight: 16 }} />
           </Box>
 
-          {/* Right side: Amount + Date */}
-          <Box sx={{ textAlign: 'right', ml: 2, flexShrink: 0 }}>
-            <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ fontSize: '1.1rem' }}>
-              {formatAmount(expense.amount_cents, currency)}
-            </Typography>
-            {isValidDate && (
-              <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
-                {createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </Typography>
+          {/* Right: Content */}
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="h6" fontWeight={600} sx={{ fontSize: '1.1rem', mb: 0.5 }}>
+                  {expense.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                  Paid by{' '}
+                  <Tooltip
+                    title={
+                      <Box sx={{ py: 0.5 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {payerEmail}
+                        </Typography>
+                      </Box>
+                    }
+                    arrow
+                  >
+                    <Box component="span" sx={{ color: 'primary.main', fontWeight: 700, cursor: 'default' }}>
+                      {isPayerCurrentUser ? 'You' : payerEmail}
+                    </Box>
+                  </Tooltip>{' '}
+                  • {relativeTime}
+                </Typography>
+              </Box>
+
+              {/* Amount */}
+              <Box sx={{ textAlign: 'right', ml: 2, flexShrink: 0 }}>
+                <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ fontSize: '1.5rem', lineHeight: 1.2 }}>
+                  {formatAmount(expense.amount_cents, currency)}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Notes */}
+            {expense.notes && (
+              <Box
+                sx={{
+                  fontStyle: 'italic',
+                  color: 'text.secondary',
+                  fontSize: '0.875rem',
+                  borderLeft: '2px solid',
+                  borderColor: alpha('primary.main', 0.4),
+                  pl: 1.5,
+                  py: 0.5,
+                  bgcolor: alpha('#131313', 0.3),
+                  borderRadius: '0 8px 8px 0',
+                  mt: 1,
+                }}
+              >
+                "{expense.notes}"
+              </Box>
+            )}
+
+            {/* Split participants */}
+            {participants.length > 0 && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Split among {participants.length} {participants.length === 1 ? 'person' : 'people'}
+                </Typography>
+              </Box>
             )}
           </Box>
         </Box>

@@ -22,4 +22,7 @@ pub struct EventStats {
     /// `None` if there are no expenses.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_spender_id: Option<Uuid>,
+    /// Amount paid by the top spender in cents.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_spender_amount_cents: Option<i64>,
 }

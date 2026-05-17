@@ -23,6 +23,8 @@ pub struct EventStatsRow {
     pub your_share_cents: i64,
     #[diesel(sql_type = Nullable<DUuid>)]
     pub top_spender_id: Option<Uuid>,
+    #[diesel(sql_type = Nullable<BigInt>)]
+    pub top_spender_amount_cents: Option<i64>,
 }
 
 #[derive(Clone, Debug)]
@@ -83,7 +85,8 @@ impl StatsRepository {
                 ts.amount AS total_spent_cents,
                 tset.amount AS total_settled_cents,
                 us.amount AS your_share_cents,
-                tsp.user_id AS top_spender_id
+                tsp.user_id AS top_spender_id,
+                tsp.total_paid AS top_spender_amount_cents
             FROM total_spent ts
             CROSS JOIN total_settled tset
             CROSS JOIN user_share us

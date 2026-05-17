@@ -10,6 +10,7 @@ interface ExpenseFeedProps {
   currency?: string;
   userMap: Record<string, UserInfo>;
   pageSize?: number;
+  expenseType?: string;
   onExpenseClick?: (expenseId: string) => void;
   emptyState?: React.ReactNode;
   className?: string;
@@ -21,6 +22,7 @@ export function ExpenseFeed({
   currency = 'EUR',
   userMap,
   pageSize = 20,
+  expenseType,
   onExpenseClick,
   emptyState,
   className,
@@ -29,6 +31,7 @@ export function ExpenseFeed({
     eventId,
     userId,
     pageSize,
+    expenseType,
   });
 
   const expenses = data?.pages.flatMap((p) => p.data) ?? [];
