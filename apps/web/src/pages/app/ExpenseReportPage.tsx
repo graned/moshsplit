@@ -127,7 +127,7 @@ export default function ExpenseReportPage() {
                   borderRadius: 3,
                 }}
               >
-                Deploy Damage
+                Add Damage
               </Button>
             )}
           </Box>

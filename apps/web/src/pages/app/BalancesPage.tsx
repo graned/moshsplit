@@ -79,6 +79,14 @@ export default function BalancesPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Fetch settlement requests
+  const { data: settlementsData } = useQuery({
+    queryKey: ['settlements', eventId, userId],
+    queryFn: () => settlementsApi.list(eventId!, userId!, undefined, 50),
+    enabled: !!eventId && !!userId,
+    staleTime: 1000 * 60 * 2,
+  });
+
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['balances', eventId, 'stats', userId],
@@ -94,7 +102,19 @@ export default function BalancesPage() {
       queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
       queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', eventId, userId] });
       setSettleDialogOpen(false);
+    },
+  });
+
+  // Confirm settlement mutation
+  const confirmSettlementMutation = useMutation({
+    mutationFn: (settlementId: string) => settlementsApi.updateStatus(eventId!, settlementId, 'confirmed'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', eventId, userId] });
     },
   });
 
@@ -214,6 +234,10 @@ export default function BalancesPage() {
     });
   };
 
+  const handleConfirmRequest = async (settlementId: string) => {
+    await confirmSettlementMutation.mutateAsync(settlementId);
+  };
+
   // Loading state
   if (balancesLoading || eventLoading) {
     return (
@@ -295,33 +319,30 @@ export default function BalancesPage() {
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          {routeEventId && (
-            <Button
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(`/app/events/${routeEventId}`)}
-              size="small"
-              sx={{ color: 'text.secondary' }}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              sx={{
+                fontSize: { xs: '1.5rem', md: '2rem' },
+                fontWeight: 700,
+                color: 'primary.main',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2,
+              }}
             >
-              Back
-            </Button>
-          )}
-          <Typography
-            variant="h4"
-            fontWeight={800}
+              Scales of War
+            </Typography>
+          </Box><Typography
             sx={{
-              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              mt: 0.25,
             }}
           >
-            Scales of War
+            {eventName ? `${eventName} — Balance the scales of justice` : 'The scales demand balance.'}
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary">
-          {eventName ? `${eventName} — Balance the scales of justice` : 'The scales demand balance.'}
-        </Typography>
       </Box>
 
       {/* Main Layout: Settlement Cards + Intel Panel */}
@@ -334,6 +355,8 @@ export default function BalancesPage() {
             currency={currency}
             members={members}
             onSettle={handleOpenSettleDialog}
+            settlementRequests={settlementsData?.data || []}
+            onConfirmRequest={handleConfirmRequest}
           />
         </Grid>
 

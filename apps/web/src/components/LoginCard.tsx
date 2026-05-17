@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, Button, Box, CircularProgress } from '@mui/material';
+import { Card, CardContent, Button, Box, CircularProgress, TextField, Typography, alpha } from '@mui/material';
 import { AuthHeroLogo } from './AuthHeroLogo';
 import { LoginForm } from './LoginForm';
 import { InvitationOnlyNotice } from './InvitationOnlyNotice';
@@ -16,10 +16,13 @@ interface LoginCardProps {
   error: string | null;
 }
 
+const DEFAULT_EMAIL = 'anayamaster@gmail.com';
+
 export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
   const { t } = useTranslation();
   const [externalLoading, setExternalLoading] = useState(false);
   const [externalError, setExternalError] = useState<string | null>(null);
+  const [devEmail, setDevEmail] = useState('');
   const setSession = useAuthStore((state) => state.setSession);
 
   const handleExternalLogin = async () => {
@@ -28,7 +31,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
 
     try {
       const apiToken = import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
-      const testEmail = import.meta.env.VITE_TEST_USER_EMAIL || 'admin@example.com';
+      const testEmail = devEmail.trim() || import.meta.env.VITE_TEST_USER_EMAIL || DEFAULT_EMAIL;
 
       const exchangeResult = await authApi.externalLogin({
         api_token: apiToken,
@@ -114,7 +117,51 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
 
         <LoginForm onSubmit={onSubmit} isLoading={isLoading} error={error} />
 
-        <Box sx={{ mt: 3, mb: 2 }}>
+        {/* Dev Section */}
+        <Box
+          sx={{
+            mt: 3,
+            p: 2,
+            borderRadius: 2,
+            border: `1px dashed ${alpha('#F59E0B', 0.3)}`,
+            bgcolor: alpha('#F59E0B', 0.04),
+          }}
+        >
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Dev Login
+          </Typography>
+
+          <TextField
+            type="email"
+            value={devEmail}
+            onChange={(e) => setDevEmail(e.target.value)}
+            placeholder={`Default: ${DEFAULT_EMAIL}`}
+            fullWidth
+            size="small"
+            autoComplete="email"
+            sx={{
+              mb: 1.5,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.3)',
+                },
+              },
+              '& .MuiOutlinedInput-input': {
+                color: 'text.primary',
+                '&::placeholder': {
+                  color: 'text.secondary',
+                  opacity: 0.7,
+                },
+              },
+            }}
+          />
+
           <Button
             fullWidth
             variant="outlined"
@@ -131,8 +178,9 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
           >
             {externalLoading ? <CircularProgress size={24} /> : 'Join with Pitboss'}
           </Button>
+
           {externalError && (
-            <Box sx={{ mt: 1, color: 'error.main', fontSize: '0.875rem', textAlign: 'center' }}>{externalError}</Box>
+            <Box sx={{ mt: 1, color: 'error.main', fontSize: '0.75rem', textAlign: 'center' }}>{externalError}</Box>
           )}
         </Box>
 
