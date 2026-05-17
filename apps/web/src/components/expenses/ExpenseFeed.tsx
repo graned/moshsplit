@@ -17,6 +17,7 @@ interface ExpenseFeedProps {
   expenseType?: string;
   emptyState?: React.ReactNode;
   className?: string;
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function ExpenseFeed({
@@ -29,6 +30,7 @@ export function ExpenseFeed({
   expenseType,
   emptyState,
   className,
+  scrollContainerRef,
 }: ExpenseFeedProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useInfiniteExpenses({
     eventId,
@@ -50,7 +52,7 @@ export function ExpenseFeed({
           fetchNextPage();
         }
       },
-      { rootMargin: '200px' }
+      { root: scrollContainerRef?.current ?? null, rootMargin: '200px' }
     );
 
     if (sentinelRef.current) {
@@ -58,7 +60,7 @@ export function ExpenseFeed({
     }
 
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, scrollContainerRef]);
 
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 

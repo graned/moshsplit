@@ -64,7 +64,8 @@ function MobileAppLayout() {
         sx={{
           flexGrow: 1,
           overflow: 'auto',
-          pb: hasEvent ? '64px' : 0,
+          WebkitOverflowScrolling: 'touch',
+          pb: hasEvent ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
           background: `
             linear-gradient(180deg, rgba(18, 18, 18, 0.75) 0%, rgba(26, 26, 26, 0.75) 50%, rgba(18, 18, 18, 0.75) 100%),
             url('/assets/background-moshsplit.webp')
@@ -84,7 +85,7 @@ function MobileAppLayout() {
             onClick={handleAddExpense}
             sx={{
               position: 'fixed',
-              bottom: 80,
+              bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)',
               right: 16,
               zIndex: (t) => t.zIndex.appBar + 1,
               bgcolor: 'primary.main',
