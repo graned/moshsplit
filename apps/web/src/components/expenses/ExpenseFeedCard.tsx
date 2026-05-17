@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography, Box, Avatar, Tooltip, alpha } from '@mui/material';
+import { Card, CardContent, Typography, Box, Avatar, Tooltip, alpha, useTheme } from '@mui/material';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { UserInfo } from '../../api/users.api';
 
@@ -55,6 +55,7 @@ export function ExpenseFeedCard({
   currency = 'EUR',
   onClick,
 }: ExpenseFeedCardProps) {
+  const theme = useTheme();
   const iconSrc = expense.expense_type ? EXPENSE_TYPE_ICONS[expense.expense_type] : null;
   const payerEmail = paidBy?.email || expense.paid_by;
   const isPayerCurrentUser = expense.paid_by === currentUserId;
@@ -149,7 +150,7 @@ export function ExpenseFeedCard({
                   color: 'text.secondary',
                   fontSize: '0.875rem',
                   borderLeft: '2px solid',
-                  borderColor: alpha('primary.main', 0.4),
+                  borderColor: alpha(theme.palette.primary.main, 0.4),
                   pl: 1.5,
                   py: 0.5,
                   bgcolor: alpha('#131313', 0.3),

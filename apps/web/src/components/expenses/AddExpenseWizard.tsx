@@ -5,7 +5,6 @@ import {
   TextField,
   Button,
   Avatar,
-  Chip,
   alpha,
   InputAdornment,
   CircularProgress,
@@ -125,11 +124,6 @@ export function AddExpenseWizard({
   const amountCents = useMemo(() => Math.round(parseFloat(amount || '0') * 100), [amount]);
 
   const equalShare = selectedMemberIds.length > 0 ? amountCents / selectedMemberIds.length : 0;
-
-  const selectedMembers = useMemo(
-    () => members.filter((m) => selectedMemberIds.includes(m.user_id)),
-    [members, selectedMemberIds]
-  );
 
   // -----------------------------------------------------------------------
   // Validation per step
@@ -541,33 +535,6 @@ export function AddExpenseWizard({
               value={`Equal among ${selectedMemberIds.length} survivor${selectedMemberIds.length > 1 ? 's' : ''}`}
             />
             <SummaryRow label="Each owes" value={formatCurrency(equalShare / 100)} highlight />
-          </Box>
-
-          {/* Survivors */}
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600}>
-              Survivors:
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-              {selectedMembers.map((m) => {
-                const name = m.user_name || m.user_email || '?';
-                const isMe = m.user_id === currentUser.id;
-                return (
-                  <Chip
-                    key={m.user_id}
-                    avatar={
-                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.65rem', fontWeight: 700 }}>
-                        {name.charAt(0).toUpperCase()}
-                      </Avatar>
-                    }
-                    label={isMe ? 'You' : name}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-                  />
-                );
-              })}
-            </Box>
           </Box>
 
           {/* Notes */}
