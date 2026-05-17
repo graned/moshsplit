@@ -5,7 +5,6 @@ import {
   Typography,
   Avatar,
   IconButton,
-  Button,
   alpha,
   useTheme,
   useMediaQuery,
@@ -20,7 +19,8 @@ import {
   ShoppingBag as ShoppingBagIcon,
   Receipt as ReceiptIcon,
   EventAvailable as EventAvailableIcon,
-  Check as CheckIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import { ExpenseListItem, expensesApi, ExpenseVersionDetail } from '../../api/expenses.api';
 import { UserInfo } from '../../api/users.api';
@@ -77,6 +77,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
 
   const [versions, setVersions] = useState<ExpenseVersionDetail[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pitExpanded, setPitExpanded] = useState(false);
 
   useEffect(() => {
     if (expense && open) {
@@ -453,32 +454,18 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ position: 'relative' }}>
-                    <Avatar
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        bgcolor: 'action.disabledBackground',
-                        border: '2px solid',
-                        borderColor: 'primary.main',
-                      }}
-                    >
-                      {payerInitial}
-                    </Avatar>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: -4,
-                        right: -4,
-                        bgcolor: 'primary.main',
-                        borderRadius: '50%',
-                        p: 0.25,
-                      }}
-                    >
-                      <CheckIcon sx={{ fontSize: 12, color: '#121212' }} />
-                    </Box>
-                  </Box>
+                  <Avatar
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      bgcolor: 'action.disabledBackground',
+                      border: '2px solid',
+                      borderColor: 'primary.main',
+                    }}
+                  >
+                    {payerInitial}
+                  </Avatar>
                   <Box>
                     <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, color: 'text.primary' }}>
                       {payerName}
@@ -514,7 +501,16 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
 
             {/* The Mosh Pit */}
             <Box sx={{ px: { xs: 2, md: 4 }, mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setPitExpanded(!pitExpanded)}
+              >
                 <Typography
                   sx={{
                     fontSize: '0.625rem',
@@ -526,13 +522,25 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                 >
                   {survivors.length} in the Pit
                 </Typography>
-                <Typography sx={{ fontSize: '0.875rem', color: 'primary.main', fontWeight: 600 }}>
-                  {formatAmount(perPersonCents, currency)} each
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.875rem', color: 'primary.main', fontWeight: 600 }}>
+                    {formatAmount(perPersonCents, currency)} each
+                  </Typography>
+                  {pitExpanded ? <ExpandLessIcon sx={{ fontSize: 20, color: 'text.secondary' }} /> : <ExpandMoreIcon sx={{ fontSize: 20, color: 'text.secondary' }} />}
+                </Box>
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {survivors.slice(0, 5).map((survivor) => {
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  maxHeight: pitExpanded ? 'none' : `${32 * 2 + 8 * 1}px`,
+                  overflow: 'hidden',
+                  transition: 'max-height 0.3s ease',
+                }}
+              >
+                {survivors.map((survivor) => {
                   const progress = survivor.shareCents > 0 ? (survivor.settledCents / survivor.shareCents) * 100 : 0;
                   const isCurrentUser = survivor.userId === currentUserId;
 
@@ -545,6 +553,7 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                         border: '1px solid',
                         borderColor: alpha('#fff', 0.05),
                         p: 1.5,
+                        flexShrink: 0,
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -616,30 +625,6 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
                     </Box>
                   );
                 })}
-
-                {survivors.length > 5 && (
-                  <Button
-                    fullWidth
-                    sx={{
-                      py: 1,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                      color: 'text.secondary',
-                      border: '1px dashed',
-                      borderColor: alpha('#534434', 0.3),
-                      borderRadius: 1.5,
-                      '&:hover': {
-                        bgcolor: 'background.paper',
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                      },
-                    }}
-                  >
-                    + View {survivors.length - 5} Others
-                  </Button>
-                )}
               </Box>
             </Box>
           </>
