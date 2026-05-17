@@ -13,19 +13,23 @@ import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { UserCacheProvider } from './providers/UserCacheProvider';
+import { DeviceProvider, useDevice } from './providers/DeviceProvider';
 import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppShell from './components/layout/AppShell';
+import MobileAppLayout from './layouts/mobile/MobileAppLayout';
 import EventDetailPage from './pages/app/EventDetailPage';
 import ExpenseReportPage from './pages/app/ExpenseReportPage';
 import BalancesPage from './pages/app/BalancesPage';
 import FeedPage from './pages/app/FeedPage';
+import MobileEventSelectPage from './pages/mobile/MobileEventSelectPage';
+import MobileFeedPage from './pages/mobile/MobileFeedPage';
+import MobileExpensePage from './pages/mobile/MobileExpensePage';
+import MobileSettlePage from './pages/mobile/MobileSettlePage';
 import { apiClient } from './api/client';
 
-// Create the Sentinel auth client with the base URL from env
 const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
 const authClient = new AuthClient(sentinelUrl);
 
-// Sync token from sentinel-auth-react store to apiClient
 function TokenSync() {
   const accessToken = useAuthStore((state) => state.accessToken);
 
@@ -34,6 +38,11 @@ function TokenSync() {
   }, [accessToken]);
 
   return null;
+}
+
+function DeviceLayout() {
+  const { isMobile } = useDevice();
+  return isMobile ? <MobileAppLayout /> : <AppShell />;
 }
 
 function AppContent() {
@@ -48,12 +57,30 @@ function AppContent() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<UserCacheProvider />}>
-          <Route path="/app" element={<AppShell />}>
-            <Route index element={<Navigate to="/app/events" replace />} />
-            <Route path="events/:eventId" element={<EventDetailPage />} />
-            <Route path="expenses/:eventId" element={<ExpenseReportPage />} />
-            <Route path="events/:eventId/balances" element={<BalancesPage />} />
-            <Route path="events/:eventId/feed" element={<FeedPage />} />
+          {/* Event select - mobile shows list, desktop redirects to events */}
+          <Route path="app" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+            <Route index element={<MobileEventSelectPage />} />
+          </Route>
+
+          {/* Mobile routes: /app/:eventId/* */}
+          <Route path="app/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+            <Route index element={<Navigate to="log" replace />} />
+            <Route path="log" element={<MobileFeedPage />} />
+            <Route path="warchest" element={<MobileExpensePage />} />
+            <Route path="settle" element={<MobileSettlePage />} />
+          </Route>
+
+          {/* Desktop routes: /app/events/:eventId/* */}
+          <Route path="app/events" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+            <Route index element={<Navigate to="/app" replace />} />
+          </Route>
+          <Route path="app/events/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+            <Route index element={<EventDetailPage />} />
+            <Route path="balances" element={<BalancesPage />} />
+            <Route path="feed" element={<FeedPage />} />
+          </Route>
+          <Route path="app/expenses/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+            <Route index element={<ExpenseReportPage />} />
           </Route>
         </Route>
       </Route>
@@ -64,12 +91,11 @@ function AppContent() {
   );
 }
 
-// MoshSplit branding - metal/rock themed auth pages
 const moshSplitTheme = {
   appName: 'MoshSplit',
   copyright: '© 2026 MoshSplit. All rights reserved.',
-  primaryColor: '#F59E0B', // Beer-gold - Vira Latas Metaleiros aesthetic
-  secondaryColor: '#1F2937', // Dark charcoal grey
+  primaryColor: '#F59E0B',
+  secondaryColor: '#1F2937',
   logo: (
     <img
       src="/viralatas-moshsplit.png"
@@ -90,7 +116,7 @@ function App() {
     <SentinelAuthProvider
       client={authClient}
       redirects={{
-        afterLogin: '/app/events',
+        afterLogin: '/app',
         afterLogout: '/login',
         verifyEmail: '/verify-email',
         changePassword: '/change-password',
