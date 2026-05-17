@@ -13,13 +13,16 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
-  LocalBar as BeerIcon,
-  Restaurant as FoodIcon,
-  LocalGasStation as FuelIcon,
-  ConfirmationNumber as TicketsIcon,
-  Forest as CampingIcon,
   Check as CheckIcon,
+  MoreHoriz as OtherIcon,
 } from '@mui/icons-material';
+
+import beerIcon from '../../../assets/beer-icon.png';
+import foodIcon from '../../../assets/food-icon.png';
+import tankIcon from '../../../assets/tank-icon.png';
+import transportIcon from '../../../assets/transport-icon.png';
+import campingIcon from '../../../assets/camping-icon.png';
+import merchIcon from '../../../assets/merch-icon.png';
 
 import { Stepper, StepDefinition } from './Stepper';
 import { ParticipantSearch } from './ParticipantSearch';
@@ -37,11 +40,13 @@ interface CategoryDef {
 }
 
 const CATEGORIES: CategoryDef[] = [
-  { value: 'beer', label: 'Beer', icon: <BeerIcon /> },
-  { value: 'food', label: 'Food', icon: <FoodIcon /> },
-  { value: 'gas', label: 'Fuel', icon: <FuelIcon /> },
-  { value: 'tickets', label: 'Tickets', icon: <TicketsIcon /> },
-  { value: 'camping', label: 'Camping', icon: <CampingIcon /> },
+  { value: 'beer', label: 'Beer', icon: <img src={beerIcon} alt="" style={{ width: 24, height: 24 }} /> },
+  { value: 'food', label: 'Food', icon: <img src={foodIcon} alt="" style={{ width: 24, height: 24 }} /> },
+  { value: 'gas', label: 'Fuel', icon: <img src={tankIcon} alt="" style={{ width: 24, height: 24 }} /> },
+  { value: 'transport', label: 'Transport', icon: <img src={transportIcon} alt="" style={{ width: 24, height: 24 }} /> },
+  { value: 'camping', label: 'Camping', icon: <img src={campingIcon} alt="" style={{ width: 24, height: 24 }} /> },
+  { value: 'merch', label: 'Merch', icon: <img src={merchIcon} alt="" style={{ width: 24, height: 24 }} /> },
+  { value: 'other', label: 'Other', icon: <OtherIcon sx={{ fontSize: 24 }} /> },
 ];
 
 // ---------------------------------------------------------------------------
