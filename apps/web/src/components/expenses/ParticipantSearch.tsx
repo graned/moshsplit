@@ -46,10 +46,6 @@ export function ParticipantSearch({
     });
   }, [allUsers, query]);
 
-  const selectedUsers = useMemo(() => {
-    return allUsers.filter((u) => value.includes(u.id));
-  }, [allUsers, value]);
-
   const toggleUser = (userId: string) => {
     onChange(value.includes(userId) ? value.filter((id) => id !== userId) : [...value, userId]);
   };
@@ -91,7 +87,7 @@ export function ParticipantSearch({
         py: 2,
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: 320,
+        maxHeight: 260,
         overflow: 'hidden',
       }}
     >
@@ -123,96 +119,47 @@ export function ParticipantSearch({
         />
       </Box>
 
-      {/* Selected users as chips */}
-      {selectedUsers.length > 0 && (
-        <Box
-          sx={{
-            flexShrink: 0,
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 1,
-            mb: 2,
-            maxHeight: 64,
-            overflowY: 'auto',
-          }}
-        >
-          {selectedUsers.map((user) => (
-            <Box
-              key={user.id}
-              onClick={() => toggleUser(user.id)}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.5,
-                py: 0.5,
-                borderRadius: 100,
-                bgcolor: alpha(theme.palette.primary.main, 0.15),
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.25),
-                },
-              }}
-            >
-              <Avatar
-                sx={{
-                  width: 24,
-                  height: 24,
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  bgcolor: 'primary.main',
-                  color: '#121212',
-                }}
-              >
-                {user.firstName.charAt(0)}
-              </Avatar>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary' }}>
-                {user.id === currentUserId ? 'You' : `${user.firstName} ${user.lastName}`.trim()}
-              </Typography>
-              <CheckIcon sx={{ fontSize: 14, color: 'primary.main' }} />
-            </Box>
-          ))}
-        </Box>
-      )}
-
       {/* Select all / none */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexShrink: 0 }}>
-        <Box
-          onClick={selectAll}
-          sx={{
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-            cursor: 'pointer',
-            bgcolor: alpha('#fff', 0.05),
-            border: `1px solid ${alpha('#fff', 0.1)}`,
-            transition: 'all 0.15s ease',
-            '&:hover': { bgcolor: alpha('#fff', 0.08) },
-          }}
-        >
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
-            Select All
-          </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box
+            onClick={selectAll}
+            sx={{
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 1,
+              cursor: 'pointer',
+              bgcolor: alpha('#fff', 0.05),
+              border: `1px solid ${alpha('#fff', 0.1)}`,
+              transition: 'all 0.15s ease',
+              '&:hover': { bgcolor: alpha('#fff', 0.08) },
+            }}
+          >
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
+              Select All
+            </Typography>
+          </Box>
+          <Box
+            onClick={deselectAll}
+            sx={{
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 1,
+              cursor: 'pointer',
+              bgcolor: alpha('#fff', 0.05),
+              border: `1px solid ${alpha('#fff', 0.1)}`,
+              transition: 'all 0.15s ease',
+              '&:hover': { bgcolor: alpha('#fff', 0.08) },
+            }}
+          >
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
+              Clear All
+            </Typography>
+          </Box>
         </Box>
-        <Box
-          onClick={deselectAll}
-          sx={{
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-            cursor: 'pointer',
-            bgcolor: alpha('#fff', 0.05),
-            border: `1px solid ${alpha('#fff', 0.1)}`,
-            transition: 'all 0.15s ease',
-            '&:hover': { bgcolor: alpha('#fff', 0.08) },
-          }}
-        >
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
-            Clear All
-          </Typography>
-        </Box>
+        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>
+          {value.length} selected
+        </Typography>
       </Box>
 
       {/* User list */}
