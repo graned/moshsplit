@@ -34,14 +34,6 @@ export default function FeedPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch user balance
-  const { data: userBalance, isLoading: balanceLoading } = useQuery({
-    queryKey: ['user-balance', eventId, userId],
-    queryFn: () => balancesApi.getUserBalance(eventId!, userId!),
-    enabled: !!eventId && !!userId,
-    staleTime: 1000 * 60 * 5,
-  });
-
   // Fetch members
   const { data: members = [], isLoading: membersLoading } = useQuery({
     queryKey: ['event-members', eventId],
@@ -146,7 +138,7 @@ export default function FeedPage() {
                 gap: 3,
               }}
             >
-              <MyStandingCard balance={userBalance} isLoading={balanceLoading} currency={currency} />
+              <MyStandingCard stats={stats} isLoading={statsLoading} currency={currency} />
 
               <FestivalMetricsCard
                 stats={stats}

@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer } from '@mui/material';
-import { People as PeopleIcon, ArrowDownward as OwedIcon, ArrowUpward as OwesIcon, AccountBalanceWallet as BalanceIcon, RssFeed as BattleLogIcon } from '@mui/icons-material';
+import { People as PeopleIcon, RssFeed as BattleLogIcon, AttachMoney as SpentIcon, CheckCircle as SettledIcon, Pending as OutstandingIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
@@ -47,22 +47,12 @@ export default function MobileFeedPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: userBalance, isLoading: balanceLoading } = useQuery({
-    queryKey: ['user-balance', eventId, userId],
-    queryFn: () => balancesApi.getUserBalance(eventId!, userId!),
-    enabled: !!eventId && !!userId,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['event-stats', eventId, userId],
     queryFn: () => balancesApi.getStats(eventId!, userId!),
     enabled: !!eventId && !!userId,
     staleTime: 1000 * 60 * 5,
   });
-
-  // Use stats for future metrics display
-  void stats;
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   const sentinelUsers = useUsers(memberUserIds);
@@ -114,9 +104,6 @@ export default function MobileFeedPage() {
     );
   }
 
-  const youOwe = userBalance?.owes_cents ?? 0;
-  const youAreOwed = userBalance?.paid_cents ?? 0;
-  const netBalance = userBalance?.balance_cents ?? 0;
   const crewCount = members.length;
 
   const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
@@ -207,28 +194,28 @@ export default function MobileFeedPage() {
           </Box>
         </Box>
 
-        {/* Glass standing cards */}
+        {/* Glass festival overview cards */}
         <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#ef4444', 0.2), backdropFilter: 'blur(8px)' }}>
+          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.08), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <OwesIcon sx={{ fontSize: 14, color: '#ef4444' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>You owe</Typography>
+              <SpentIcon sx={{ fontSize: 14, color: alpha('#fff', 0.6) }} />
+              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Spent</Typography>
             </Box>
-            {balanceLoading ? <CircularProgress size={14} sx={{ color: '#ef4444' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>{formatAmount(youOwe, currency)}</Typography>}
+            {statsLoading ? <CircularProgress size={14} sx={{ color: 'text.primary' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{formatAmount(stats?.total_spent_cents ?? 0, currency)}</Typography>}
           </Box>
           <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <OwedIcon sx={{ fontSize: 14, color: '#10b981' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Owed</Typography>
+              <SettledIcon sx={{ fontSize: 14, color: '#10b981' }} />
+              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settled</Typography>
             </Box>
-            {balanceLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(youAreOwed, currency)}</Typography>}
+            {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(stats?.total_settled_cents ?? 0, currency)}</Typography>}
           </Box>
           <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <BalanceIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net</Typography>
+              <OutstandingIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
+              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</Typography>
             </Box>
-            {balanceLoading ? <CircularProgress size={14} sx={{ color: '#F59E0B' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: netBalance >= 0 ? '#10b981' : '#ef4444' }}>{netBalance >= 0 ? '+' : ''}{formatAmount(netBalance, currency)}</Typography>}
+            {statsLoading ? <CircularProgress size={14} sx={{ color: '#F59E0B' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#F59E0B' }}>{formatAmount(stats?.outstanding_cents ?? 0, currency)}</Typography>}
           </Box>
         </Box>
 

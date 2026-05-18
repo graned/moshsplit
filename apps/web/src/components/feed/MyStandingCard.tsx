@@ -1,9 +1,9 @@
 import { Box, Typography, Button, Skeleton, alpha, useTheme } from '@mui/material';
-import { AccountBalanceWallet as WalletIcon } from '@mui/icons-material';
-import { UserBalanceResponse } from '../../api/balances.api';
+import { Festival as FestivalIcon } from '@mui/icons-material';
+import { EventStats } from '../../api/balances.api';
 
 interface MyStandingCardProps {
-  balance: UserBalanceResponse | undefined;
+  stats: EventStats | undefined;
   isLoading: boolean;
   currency: string;
   onSettleUp?: () => void;
@@ -16,16 +16,16 @@ const formatAmount = (cents: number, currency = 'EUR') => {
   }).format(cents / 100);
 };
 
-export function MyStandingCard({ balance, isLoading, currency, onSettleUp }: MyStandingCardProps) {
+export function MyStandingCard({ stats, isLoading, currency, onSettleUp }: MyStandingCardProps) {
   const theme = useTheme();
 
   if (isLoading) {
     return <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 3, bgcolor: 'background.paper' }} />;
   }
 
-  const youOwe = balance?.owes_cents ?? 0;
-  const youAreOwed = balance?.paid_cents ?? 0;
-  const netBalance = balance?.balance_cents ?? 0;
+  const totalSpent = stats?.total_spent_cents ?? 0;
+  const totalSettled = stats?.total_settled_cents ?? 0;
+  const outstanding = stats?.outstanding_cents ?? 0;
 
   return (
     <Box
@@ -40,7 +40,7 @@ export function MyStandingCard({ balance, isLoading, currency, onSettleUp }: MyS
       }}
     >
       {/* Watermark icon */}
-      <WalletIcon
+      <FestivalIcon
         sx={{
           position: 'absolute',
           top: 16,
@@ -62,27 +62,27 @@ export function MyStandingCard({ balance, isLoading, currency, onSettleUp }: MyS
           mb: 3,
         }}
       >
-        My Standing
+        Festival Overview
       </Typography>
 
       {/* Balance rows */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.primary' }}>You owe</Typography>
+          <Typography sx={{ fontSize: '0.875rem', color: 'text.primary' }}>Total Spent</Typography>
           <Typography
             sx={{
               fontSize: '1.25rem',
               fontWeight: 700,
-              color: 'error.main',
+              color: 'text.primary',
               letterSpacing: '-0.01em',
             }}
           >
-            {formatAmount(youOwe, currency)}
+            {formatAmount(totalSpent, currency)}
           </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.primary' }}>You are owed</Typography>
+          <Typography sx={{ fontSize: '0.875rem', color: 'text.primary' }}>Total Settled</Typography>
           <Typography
             sx={{
               fontSize: '1.25rem',
@@ -91,7 +91,7 @@ export function MyStandingCard({ balance, isLoading, currency, onSettleUp }: MyS
               letterSpacing: '-0.01em',
             }}
           >
-            {formatAmount(youAreOwed, currency)}
+            {formatAmount(totalSettled, currency)}
           </Typography>
         </Box>
 
@@ -107,17 +107,16 @@ export function MyStandingCard({ balance, isLoading, currency, onSettleUp }: MyS
             alignItems: 'center',
           }}
         >
-          <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>Net Balance</Typography>
+          <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>Outstanding</Typography>
           <Typography
             sx={{
               fontSize: '1.25rem',
               fontWeight: 700,
-              color: netBalance >= 0 ? 'success.main' : 'primary.main',
+              color: outstanding > 0 ? '#F59E0B' : 'success.main',
               letterSpacing: '-0.01em',
             }}
           >
-            {netBalance >= 0 ? '+' : ''}
-            {formatAmount(netBalance, currency)}
+            {formatAmount(outstanding, currency)}
           </Typography>
         </Box>
       </Box>
