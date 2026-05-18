@@ -334,7 +334,30 @@ EOF
 scp $SCP_OPTS /tmp/backup-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/backup.sh"
 ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/backup.sh"
 
-rm /tmp/status-script /tmp/logs-script /tmp/update-script /tmp/backup-script
+# Migration script
+cat > /tmp/migrate-script << 'EOF'
+#!/bin/bash
+cd /opt/moshsplit
+export $(grep -v '^#' .env | xargs)
+
+echo "Starting database..."
+docker compose up -d postgres
+sleep 10
+
+echo "Running Sentinel migrations..."
+docker run --rm \
+  --network moshsplit_app-net \
+  -e DATABASE_URL="$DATABASE_URL" \
+  -e SENTINEL_VERSION="${SENTINEL_VERSION:-v1.1.0}" \
+  ghcr.io/graned/sentinel-core:$SENTINEL_VERSION \
+  sentinel migrations run
+
+echo "Migrations complete!"
+EOF
+scp $SCP_OPTS /tmp/migrate-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/migrate.sh"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/migrate.sh"
+
+rm /tmp/status-script /tmp/logs-script /tmp/update-script /tmp/backup-script /tmp/migrate-script
 log_info "Management scripts created!"
 echo
 
