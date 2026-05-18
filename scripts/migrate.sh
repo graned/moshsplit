@@ -43,9 +43,8 @@ echo "Running Sentinel migrations..."
 docker run --rm \
   --network moshsplit_app-net \
   -e DATABASE_URL="$DATABASE_URL" \
-  -e SENTINEL_VERSION="${SENTINEL_VERSION:-v1.1.0}" \
   ghcr.io/graned/sentinel-core:$SENTINEL_VERSION \
-  sentinel migrations run
+  sentinel-core migrations run
 
 echo ""
 echo "====================================="
