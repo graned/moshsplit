@@ -63,6 +63,8 @@ export interface RelationshipSummary {
 // ---------------------------------------------------------------------------
 
 interface SettlementCardsProps {
+  activeTab?: 'incoming' | 'outgoing' | 'requests';
+  onTabChange?: (tab: 'incoming' | 'outgoing' | 'requests') => void;
   relationships: RelationshipSummary[];
   currentUserId: string;
   currency: string;
@@ -73,6 +75,8 @@ interface SettlementCardsProps {
 }
 
 export function SettlementCards({
+  activeTab: controlledActiveTab,
+  onTabChange,
   relationships,
   currentUserId,
   currency,
@@ -81,7 +85,17 @@ export function SettlementCards({
   onSettlementSuccess,
   eventId,
 }: SettlementCardsProps) {
-  const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing' | 'requests'>('incoming');
+  const internalActiveTab = useState<'incoming' | 'outgoing' | 'requests'>('incoming');
+  const [internalTab, setInternalTab] = internalActiveTab;
+
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalTab;
+  const setActiveTab = (tab: 'incoming' | 'outgoing' | 'requests') => {
+    if (controlledActiveTab !== undefined) {
+      onTabChange?.(tab);
+    } else {
+      setInternalTab(tab);
+    }
+  };
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const { getAllUsers } = useUserCache();
   const allUsers = getAllUsers();
@@ -154,68 +168,10 @@ export function SettlementCards({
   const theme = useTheme();
   const isMobile = !useMediaQuery(theme.breakpoints.up('md'));
 
-  const settlementFilters: { value: typeof activeTab; label: string }[] = [
-    { value: 'incoming', label: 'Incoming' },
-    { value: 'outgoing', label: 'Outgoing' },
-    { value: 'requests', label: 'Requests' },
-  ];
-
   return (
     <Box>
-      {/* Desktop: Tabs | Mobile: Horizontal scrollable chip filters */}
-      {isMobile ? (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 0.75,
-            mb: 3,
-            overflowX: 'auto',
-            pb: 0.5,
-            scrollbarWidth: 'none',
-            '::-webkit-scrollbar': { display: 'none' },
-          }}
-        >
-          {settlementFilters.map((filter) => {
-            const isSelected = activeTab === filter.value;
-            const count =
-              filter.value === 'incoming'
-                ? incoming.length
-                : filter.value === 'outgoing'
-                ? outgoing.length
-                : requestsToConfirm.length + requestsISent.length;
-
-            return (
-              <Box
-                key={filter.value}
-                onClick={() => setActiveTab(filter.value)}
-                sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: 100,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.03em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  bgcolor: isSelected ? 'primary.main' : alpha('#1E1E1E', 0.5),
-                  color: isSelected ? '#121212' : alpha('#fff', 0.6),
-                  border: '1px solid',
-                  borderColor: isSelected ? 'primary.main' : alpha('#fff', 0.1),
-                  transition: 'all 0.15s ease',
-                  minHeight: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {filter.label} ({count})
-              </Box>
-            );
-          })}
-        </Box>
-      ) : (
+      {/* Desktop-only tabs (mobile chips moved to MobileSettlePage header) */}
+      {!isMobile && (
         <Box
           sx={{
             display: 'flex',

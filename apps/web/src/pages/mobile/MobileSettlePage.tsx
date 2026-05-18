@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, Alert, alpha } from '@mui/material';
@@ -21,6 +21,8 @@ function formatAmount(cents: number, currency = 'EUR') {
 }
 
 export default function MobileSettlePage() {
+  const [activeTabFilter, setActiveTabFilter] = useState<'incoming' | 'outgoing' | 'requests'>('incoming');
+
   const { eventId: routeEventId } = useParams<{ eventId: string }>();
 
   const userId = useAuthStore((state) => state.userId);
@@ -390,6 +392,47 @@ export default function MobileSettlePage() {
             <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#F59E0B' }}>{formatAmount(pendingTotal, currency)}</Typography>
           </Box>
         </Box>
+
+        {/* Filter chips */}
+        <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '::-webkit-scrollbar': { display: 'none' } }}>
+          {[
+            { value: 'incoming', label: 'All', count: relationships.length },
+            { value: 'incoming', label: 'Incoming', count: relationships.filter((r) => r.isIncoming).length },
+            { value: 'outgoing', label: 'Outgoing', count: relationships.filter((r) => !r.isIncoming).length },
+            { value: 'requests', label: 'Requests', count: pendingRequests.length },
+          ].map((filter) => {
+            const isSelected = activeTabFilter === filter.value;
+            return (
+              <Box
+                key={filter.value}
+                onClick={() => setActiveTabFilter(filter.value as typeof activeTabFilter)}
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 100,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.03em',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  bgcolor: isSelected ? 'primary.main' : alpha('#1E1E1E', 0.5),
+                  color: isSelected ? '#121212' : alpha('#fff', 0.6),
+                  border: '1px solid',
+                  borderColor: isSelected ? 'primary.main' : alpha('#fff', 0.1),
+                  transition: 'all 0.15s ease',
+                  minHeight: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {filter.label} ({filter.count})
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
 
       {/* Scrollable Settlement Content */}
@@ -404,6 +447,8 @@ export default function MobileSettlePage() {
         }}
       >
         <SettlementCards
+          activeTab={activeTabFilter}
+          onTabChange={setActiveTabFilter}
           relationships={relationships}
           currentUserId={userId!}
           currency={currency}
