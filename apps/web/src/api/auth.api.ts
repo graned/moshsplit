@@ -124,10 +124,6 @@ export const authApi = {
       request_id: string;
     }>(API_ENDPOINTS.auth.externalLogin, data);
 
-    console.log('[authApi.externalLogin] Raw response keys:', Object.keys(response));
-    console.log('[authApi.externalLogin] response.data keys:', response.data ? Object.keys(response.data) : null);
-    console.log('[authApi.externalLogin] response.data.access_token:', typeof response.data?.access_token);
-
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'External login failed');
     }
