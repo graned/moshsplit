@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router';
+import { Routes, Route, Navigate, useNavigate } from 'react-router';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
 import {
   SentinelAuthProvider,
@@ -26,6 +26,8 @@ import MobileFeedPage from './pages/mobile/MobileFeedPage';
 import MobileExpensePage from './pages/mobile/MobileExpensePage';
 import MobileSettlePage from './pages/mobile/MobileSettlePage';
 import { apiClient } from './api/client';
+import { groupsApi } from './api/groups.api';
+import { useQuery } from '@tanstack/react-query';
 
 const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
 const authClient = new AuthClient(sentinelUrl);
@@ -45,6 +47,29 @@ function DeviceLayout() {
   return isMobile ? <MobileAppLayout /> : <AppShell />;
 }
 
+function MobilePostLoginRedirect() {
+  const navigate = useNavigate();
+  const userId = useAuthStore((state) => state.userId);
+
+  const { data } = useQuery({
+    queryKey: ['user-events', userId],
+    queryFn: () => groupsApi.list(userId!),
+    enabled: !!userId,
+  });
+
+  const events = data?.data || [];
+
+  useEffect(() => {
+    if (events.length === 1) {
+      navigate(`/app/${events[0].id}/log`, { replace: true });
+    } else if (events.length > 1) {
+      navigate('/app', { replace: true });
+    }
+  }, [events, navigate]);
+
+  return <MobileEventSelectPage />;
+}
+
 function AppContent() {
   return (
     <Routes>
@@ -56,7 +81,12 @@ function AppContent() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<UserCacheProvider />}>
-          {/* Mobile routes: /app/:eventId/* */}
+          {/* Mobile: event selection or auto-redirect */}
+          <Route path="app" element={<DeviceProvider><MobileAppLayout /></DeviceProvider>}>
+            <Route index element={<MobilePostLoginRedirect />} />
+          </Route>
+
+          {/* Mobile event routes: /app/:eventId/* */}
           <Route path="app/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
             <Route index element={<Navigate to="log" replace />} />
             <Route path="log" element={<MobileFeedPage />} />
