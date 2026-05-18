@@ -47,6 +47,9 @@ COPY . .
 # Build the release binary
 RUN cargo build --release --manifest-path apps/pitboss-api/Cargo.toml
 
+# Verify binary exists
+RUN ls -lh /app/target/release/pitboss-api
+
 
 # ── Production runtime ───────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS prod
@@ -56,7 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage.
-COPY --from=builder /app/target/release/pitboss-api /usr/local/bin/pitboss-api
+COPY --from=builder /app/apps/pitboss-api/target/release/pitboss-api /usr/local/bin/pitboss-api
 
 ENTRYPOINT ["pitboss-api"]
 
