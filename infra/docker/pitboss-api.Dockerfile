@@ -8,8 +8,6 @@
 # ── Dev stage ────────────────────────────────────────────────────────────────
 FROM rust:1.91-slim AS dev
 
-WORKDIR /app
-
 # Install build dependencies and hot-reload utility
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -19,11 +17,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && cargo install cargo-watch \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only what's needed
-COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* ./
-COPY packages/ ./packages/
-COPY apps/pitboss-api/src/ ./src/
-COPY apps/pitboss-api/migrations/ ./migrations/
+# Copy entire monorepo to preserve relative paths
+WORKDIR /moshsplit
+COPY . .
+
+# Run from the actual pitboss-api directory
+WORKDIR /moshsplit/apps/pitboss-api
 
 EXPOSE 8080
 
@@ -34,8 +33,6 @@ CMD ["cargo", "watch", "-x", "run"]
 # ── Production builder ───────────────────────────────────────────────────────
 FROM rust:1.91-slim AS builder
 
-WORKDIR /app
-
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -44,13 +41,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only what's needed for pitboss-api (avoids copying entire monorepo)
-COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* ./
-COPY packages/ ./packages/
-COPY apps/pitboss-api/src/ ./src/
-COPY apps/pitboss-api/migrations/ ./migrations/
+# Copy entire monorepo to preserve relative paths
+WORKDIR /moshsplit
+COPY . .
 
-# Build the release binary
+# Build from the actual pitboss-api directory (preserves relative paths in Cargo.toml)
+WORKDIR /moshsplit/apps/pitboss-api
 RUN cargo build --release
 
 
@@ -62,7 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage.
-COPY --from=builder /app/target/release/pitboss-api /usr/local/bin/pitboss-api
+COPY --from=builder /moshsplit/apps/pitboss-api/target/release/pitboss-api /usr/local/bin/pitboss-api
 
 ENTRYPOINT ["pitboss-api"]
 
