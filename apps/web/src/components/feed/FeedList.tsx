@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Box, CircularProgress, Typography, Card, CardContent } from '@mui/material';
 import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
@@ -19,6 +19,7 @@ interface FeedListProps {
   onSettlementClick?: (settlementId: string) => void;
   className?: string;
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  activityType?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export function FeedList({
   onSettlementClick,
   className,
   scrollContainerRef,
+  activityType,
 }: FeedListProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useActivityFeed({
     eventId,
@@ -43,6 +45,11 @@ export function FeedList({
   });
 
   const items = data?.pages.flatMap((p) => p.data) ?? [];
+
+  const filteredItems = useMemo(() => {
+    if (!activityType) return items;
+    return items.filter((item) => item.type === activityType);
+  }, [items, activityType]);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -153,7 +160,7 @@ export function FeedList({
   }
 
   // Empty state
-  if (items.length === 0) {
+  if (filteredItems.length === 0) {
     return (
       <Card sx={{ backgroundColor: 'background.paper', borderColor: 'divider' }}>
         <CardContent sx={{ py: 8, textAlign: 'center' }}>
@@ -185,7 +192,7 @@ export function FeedList({
   // Feed content
   return (
     <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {items.map(renderActivityItem)}
+      {filteredItems.map(renderActivityItem)}
 
       {/* Sentinel for infinite scroll */}
       <div ref={sentinelRef} style={{ height: 1 }} />
