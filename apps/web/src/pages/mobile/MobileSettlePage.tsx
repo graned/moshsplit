@@ -396,7 +396,6 @@ export default function MobileSettlePage() {
         {/* Filter chips */}
         <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '::-webkit-scrollbar': { display: 'none' } }}>
           {[
-            { value: 'incoming', label: 'All', count: relationships.length },
             { value: 'incoming', label: 'Incoming', count: relationships.filter((r) => r.isIncoming).length },
             { value: 'outgoing', label: 'Outgoing', count: relationships.filter((r) => !r.isIncoming).length },
             { value: 'requests', label: 'Requests', count: pendingRequests.length },
