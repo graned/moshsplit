@@ -19,13 +19,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && cargo install cargo-watch \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy entire workspace
-COPY . .
+# Copy only what's needed
+COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* ./
+COPY packages/ ./packages/
+COPY apps/pitboss-api/src/ ./src/
+COPY apps/pitboss-api/migrations/ ./migrations/
 
 EXPOSE 8080
 
 # `cargo watch` polls the filesystem and re-runs on every change.
-CMD ["cargo", "watch", "-x", "run", "--manifest-path", "apps/pitboss-api/Cargo.toml"]
+CMD ["cargo", "watch", "-x", "run"]
 
 
 # ── Production builder ───────────────────────────────────────────────────────
@@ -41,14 +44,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy entire workspace
-COPY . .
+# Copy only what's needed for pitboss-api (avoids copying entire monorepo)
+COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* ./
+COPY packages/ ./packages/
+COPY apps/pitboss-api/src/ ./src/
+COPY apps/pitboss-api/migrations/ ./migrations/
 
 # Build the release binary
-RUN cargo build --release --manifest-path apps/pitboss-api/Cargo.toml
-
-# Verify binary exists
-RUN ls -lh /app/target/release/pitboss-api
+RUN cargo build --release
 
 
 # ── Production runtime ───────────────────────────────────────────────────────
@@ -59,7 +62,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage.
-COPY --from=builder /app/apps/pitboss-api/target/release/pitboss-api /usr/local/bin/pitboss-api
+COPY --from=builder /app/target/release/pitboss-api /usr/local/bin/pitboss-api
 
 ENTRYPOINT ["pitboss-api"]
 
