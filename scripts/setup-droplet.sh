@@ -6,17 +6,18 @@
 # It installs Docker, copies configuration files, and deploys the application.
 #
 # Usage:
-#   ./setup-droplet.sh <droplet-ip> <user>
+#   ./setup-droplet.sh <droplet-ip> <user> [ssh-key-path]
 #
-# Example:
+# Examples:
 #   ./setup-droplet.sh 123.45.67.89 root
-#   ./setup-droplet.sh 123.45.67.89 mosh
+#   ./setup-droplet.sh 123.45.67.89 root ~/.ssh/dio_dev_droplet
 
 set -e
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 DROPLET_IP="${1:-}"
 DROPLET_USER="${2:-root}"
+SSH_KEY_PATH="${3:-}"
 PROJECT_NAME="moshsplit"
 REMOTE_DIR="/opt/$PROJECT_NAME"
 
@@ -54,8 +55,21 @@ check_requirements() {
     
     if [ -z "$DROPLET_IP" ]; then
         log_error "Droplet IP address is required."
-        echo "Usage: $0 <droplet-ip> <user>"
+        echo "Usage: $0 <droplet-ip> <user> [ssh-key-path]"
         exit 1
+    fi
+    
+    # Set SSH options
+    SSH_OPTS=""
+    SCP_OPTS=""
+    if [ -n "$SSH_KEY_PATH" ]; then
+        if [ ! -f "$SSH_KEY_PATH" ]; then
+            log_error "SSH key not found: $SSH_KEY_PATH"
+            exit 1
+        fi
+        SSH_OPTS="-i $SSH_KEY_PATH -o IdentitiesOnly=yes"
+        SCP_OPTS="-i $SSH_KEY_PATH"
+        log_info "Using SSH key: $SSH_KEY_PATH"
     fi
     
     log_info "Requirements met!"
@@ -68,6 +82,7 @@ log_info "Starting MoshSplit Droplet Setup"
 echo "====================================="
 echo "Droplet IP:   $DROPLET_IP"
 echo "User:         $DROPLET_USER"
+echo "SSH Key:      ${SSH_KEY_PATH:-default}"
 echo "Project:      $PROJECT_NAME"
 echo "Remote Dir:   $REMOTE_DIR"
 echo "====================================="
@@ -75,13 +90,25 @@ echo
 
 # Step 1: Test SSH connection
 log_info "Testing SSH connection..."
-if ! ssh -o ConnectTimeout=10 -o BatchMode=yes "$DROPLET_USER@$DROPLET_IP" "echo 'Connection successful'" > /dev/null 2>&1; then
+if ! ssh $SSH_OPTS -o ConnectTimeout=10 -o BatchMode=yes "$DROPLET_USER@$DROPLET_IP" "echo 'Connection successful'" > /dev/null 2>&1; then
     log_error "Cannot connect to Droplet via SSH."
     log_info "Make sure:"
     echo "  1. The Droplet is running"
     echo "  2. SSH is enabled (port 22)"
-    echo "  3. You have SSH access (key or password)"
-    echo "  4. Your SSH key is added (if using key auth)"
+    echo "  3. Your SSH key is added to the Droplet"
+    if [ -z "$SSH_KEY_PATH" ]; then
+        echo "  4. Or specify your SSH key:"
+        echo "     $0 $DROPLET_IP $DROPLET_USER ~/.ssh/dio_dev_droplet"
+    fi
+    echo ""
+    echo "To add your SSH key to the Droplet:"
+    echo "  1. Go to https://cloud.digitalocean.com/droplets"
+    echo "  2. Click on your Droplet"
+    echo "  3. Click 'Console'"
+    echo "  4. Login and run:"
+    echo "     mkdir -p /root/.ssh"
+    echo "     echo '<your-public-key>' >> /root/.ssh/authorized_keys"
+    echo "     chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys"
     exit 1
 fi
 log_info "SSH connection successful!"
@@ -89,15 +116,15 @@ echo
 
 # Step 2: Create remote directory
 log_info "Creating remote directory..."
-ssh "$DROPLET_USER@$DROPLET_IP" "sudo mkdir -p $REMOTE_DIR && sudo chown $DROPLET_USER:$DROPLET_USER $REMOTE_DIR"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "sudo mkdir -p $REMOTE_DIR && sudo chown $DROPLET_USER:$DROPLET_USER $REMOTE_DIR"
 log_info "Directory created: $REMOTE_DIR"
 echo
 
 # Step 3: Copy Docker Compose files
 log_info "Copying Docker Compose files..."
-scp infra/compose/prod-caddy.yml "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/docker-compose.yml"
-scp infra/docker/Caddyfile "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/Caddyfile"
-scp infra/compose/.env.example "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/.env.example"
+scp $SCP_OPTS infra/compose/prod-caddy.yml "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/docker-compose.yml"
+scp $SCP_OPTS infra/docker/Caddyfile "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/Caddyfile"
+scp $SCP_OPTS infra/compose/.env.example "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/.env.example"
 log_info "Docker Compose files copied!"
 echo
 
@@ -146,7 +173,7 @@ RUST_LOG=info
 MOSHSPLIT_VERSION=latest
 EOF
 
-scp /tmp/moshsplit-env "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/.env"
+scp $SCP_OPTS /tmp/moshsplit-env "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/.env"
 rm /tmp/moshsplit-env
 log_info ".env file created!"
 log_warn "IMPORTANT: Edit .env with your actual values!"
@@ -154,7 +181,7 @@ echo
 
 # Step 5: Install Docker and dependencies
 log_info "Installing Docker and dependencies..."
-ssh "$DROPLET_USER@$DROPLET_IP" << 'ENDSSH'
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" << 'ENDSSH'
 #!/bin/bash
 set -e
 
@@ -244,8 +271,8 @@ echo "Logs (press Ctrl+C to exit):"
 docker compose logs -f caddy
 EOF
 
-scp /tmp/deploy-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/deploy.sh"
-ssh "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/deploy.sh"
+scp $SCP_OPTS /tmp/deploy-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/deploy.sh"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/deploy.sh"
 rm /tmp/deploy-script
 log_info "Deployment script created!"
 echo
@@ -262,8 +289,8 @@ echo ""
 echo "Resource Usage:"
 docker stats --no-stream
 EOF
-scp /tmp/status-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/status.sh"
-ssh "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/status.sh"
+scp $SCP_OPTS /tmp/status-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/status.sh"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/status.sh"
 
 # Logs script
 cat > /tmp/logs-script << 'EOF'
@@ -271,8 +298,8 @@ cat > /tmp/logs-script << 'EOF'
 cd /opt/moshsplit
 docker compose logs -f "$@"
 EOF
-scp /tmp/logs-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/logs.sh"
-ssh "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/logs.sh"
+scp $SCP_OPTS /tmp/logs-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/logs.sh"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/logs.sh"
 
 # Update script
 cat > /tmp/update-script << 'EOF'
@@ -285,8 +312,8 @@ docker compose up -d --force-recreate
 echo "Update complete!"
 docker compose ps
 EOF
-scp /tmp/update-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/update.sh"
-ssh "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/update.sh"
+scp $SCP_OPTS /tmp/update-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/update.sh"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/update.sh"
 
 # Backup script
 cat > /tmp/backup-script << 'EOF'
@@ -304,8 +331,8 @@ cp .env "$BACKUP_DIR/"
 echo "Backup complete: $BACKUP_DIR"
 ls -la "$BACKUP_DIR"
 EOF
-scp /tmp/backup-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/backup.sh"
-ssh "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/backup.sh"
+scp $SCP_OPTS /tmp/backup-script "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/backup.sh"
+ssh $SSH_OPTS "$DROPLET_USER@$DROPLET_IP" "chmod +x $REMOTE_DIR/backup.sh"
 
 rm /tmp/status-script /tmp/logs-script /tmp/update-script /tmp/backup-script
 log_info "Management scripts created!"
@@ -319,7 +346,7 @@ echo ""
 echo "Next Steps:"
 echo "-----------"
 echo "1. SSH into your Droplet:"
-echo "   ssh $DROPLET_USER@$DROPLET_IP"
+echo "   ssh ${SSH_OPTS:+-i $SSH_KEY_PATH} $DROPLET_USER@$DROPLET_IP"
 echo ""
 echo "2. Navigate to project directory:"
 echo "   cd $REMOTE_DIR"
