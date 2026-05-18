@@ -6,7 +6,7 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { authApi } from '../../api/auth.api';
 import type { LoginCredentials } from './types';
 
-// Check for return URL on mount and redirect if present
+// Shared key with ProtectedRoute.tsx — both files must agree on the storage key.
 const RETURN_TO_KEY = 'moshsplit_return_to';
 
 function clearReturnTo() {

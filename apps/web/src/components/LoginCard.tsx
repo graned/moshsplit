@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, Button, Box, CircularProgress, TextField, Typography, alpha } from '@mui/material';
 import { AuthHeroLogo } from './AuthHeroLogo';
 import { LoginForm } from './LoginForm';
@@ -11,7 +11,7 @@ import { AuthClient } from '@moshsplit/sentinel-sdk';
 import { useNavigate } from 'react-router';
 import { useDevice } from '../providers/DeviceProvider';
 
-// Store return URL before navigating to login (used for post-login redirect)
+// Shared key with ProtectedRoute.tsx and LoginPage.tsx — all files must agree on the storage key.
 const RETURN_TO_KEY = 'moshsplit_return_to';
 
 function getReturnTo(): string | null {
@@ -42,15 +42,6 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
   const [devEmail, setDevEmail] = useState('');
   const setSession = useAuthStore((state) => state.setSession);
   const navigate = useNavigate();
-
-  // On mount, check for return URL and navigate back if present
-  useEffect(() => {
-    const returnTo = getReturnTo();
-    if (returnTo) {
-      clearReturnTo();
-      navigate(returnTo, { replace: true });
-    }
-  }, [navigate]);
 
   const handleExternalLogin = async () => {
     setExternalLoading(true);
