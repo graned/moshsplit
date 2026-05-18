@@ -1192,8 +1192,8 @@ function TransactionHistoryRow({
         sx={{
           width: 36,
           height: 36,
-          bgcolor: alpha(isOutgoing ? 'error.main' : 'primary.main', 0.15),
-          color: isOutgoing ? 'error.main' : 'primary.main',
+          bgcolor: isOutgoing ? alpha('#ef4444', 0.15) : alpha('#F59E0B', 0.15),
+          color: isOutgoing ? '#ef4444' : '#F59E0B',
           fontWeight: 600,
           fontSize: '0.85rem',
           flexShrink: 0,
