@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -21,7 +21,8 @@ import {
   KeyboardTab as PartialIcon,
   DoneAll as DoneAllIcon,
 } from '@mui/icons-material';
-import { settlementsApi, CreateSettlementRequest } from '../../api/settlements.api';
+import { useSettlementStore } from '../../stores/settlementStore';
+import { CreateSettlementRequest } from '../../api/settlements.api';
 import { UserInfo } from '../../api/users.api';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
@@ -57,9 +58,17 @@ export function RestoreHonorModal({
   const [mode, setMode] = useState<SettleMode>('full');
   const [amount, setAmount] = useState(totalOwedCents / 100);
   const [note, setNote] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { createSettlement, isCreating, error, clearError } = useSettlementStore();
+
+  useEffect(() => {
+    if (open) {
+      clearError();
+      setAmount(totalOwedCents / 100);
+      setMode('full');
+      setNote('');
+    }
+  }, [open, clearError, totalOwedCents]);
 
   const recipientName = toUserInfo
     ? `${toUserInfo.firstName} ${toUserInfo.lastName}`.trim() || toUserInfo.email
@@ -81,9 +90,6 @@ export function RestoreHonorModal({
   const handleSubmit = useCallback(async () => {
     if (amount <= 0) return;
 
-    setIsSubmitting(true);
-    setError(null);
-
     try {
       const req: CreateSettlementRequest = {
         from_user: fromUserId,
@@ -92,14 +98,12 @@ export function RestoreHonorModal({
         note: note.trim() || undefined,
       };
 
-      await settlementsApi.create(eventId, req);
+      await createSettlement(eventId, req);
       setShowSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit settlement request');
-    } finally {
-      setIsSubmitting(false);
+      // Error is stored in the store's error state
     }
-  }, [amount, note, fromUserId, toUser, eventId]);
+  }, [amount, note, fromUserId, toUser, eventId, createSettlement]);
 
   const handleSuccessClose = () => {
     setShowSuccess(false);
@@ -110,7 +114,7 @@ export function RestoreHonorModal({
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
+    if (!isCreating) {
       setShowSuccess(false);
       onClose();
     }
@@ -405,7 +409,7 @@ export function RestoreHonorModal({
           fullWidth
           variant="contained"
           onClick={handleSubmit}
-          disabled={isSubmitting || amount <= 0}
+          disabled={isCreating || amount <= 0}
           sx={{
             height: 56,
             borderRadius: 2,
@@ -419,7 +423,7 @@ export function RestoreHonorModal({
             '&:disabled': { bgcolor: alpha('#F59E0B', 0.3), color: alpha('#121212', 0.5) },
           }}
         >
-          {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'REQUEST HONOR RESTORATION'}
+          {isCreating ? <CircularProgress size={24} color="inherit" /> : 'REQUEST HONOR RESTORATION'}
         </Button>
       </DialogActions>
     </Dialog>

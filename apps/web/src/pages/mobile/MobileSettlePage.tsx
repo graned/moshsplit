@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, Alert, alpha } from '@mui/material';
 import { Scale as ScalesIcon, CheckCircle as SettledIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
@@ -13,7 +13,6 @@ import { SettlementCards, RelationshipSummary } from '../../components/balances/
 
 export default function MobileSettlePage() {
   const { eventId: routeEventId } = useParams<{ eventId: string }>();
-  const queryClient = useQueryClient();
 
   const userId = useAuthStore((state) => state.userId);
   const eventId = routeEventId;
@@ -136,13 +135,6 @@ export default function MobileSettlePage() {
 
   const allSettled = balances.length > 0 && balances.every((b) => b.balance_cents === 0);
 
-  const handleSettlementSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
-    queryClient.invalidateQueries({ queryKey: ['balances', eventId, 'stats'] });
-    queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId, userId] });
-    queryClient.invalidateQueries({ queryKey: ['settlements', eventId, userId] });
-  };
-
   if (balancesLoading || eventLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -225,7 +217,6 @@ export default function MobileSettlePage() {
         currency={currency}
         members={members}
         settlementRequests={settlementsData?.data || []}
-        onSettlementSuccess={handleSettlementSuccess}
         eventId={eventId!}
       />
     </Box>

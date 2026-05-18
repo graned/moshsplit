@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer } from '@mui/material';
@@ -8,6 +8,7 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { useUsers } from '../../hooks/useUserCache';
+import { useUIStore } from '../../stores/uiStore';
 import { FeedList } from '../../components/feed/FeedList';
 
 const ACTIVITY_FILTERS = [
@@ -31,8 +32,7 @@ export default function MobileFeedPage() {
   const userId = useAuthStore((state) => state.userId);
   const feedScrollRef = useRef<HTMLDivElement>(null);
 
-  const [activeFilter, setActiveFilter] = useState<string | undefined>(undefined);
-  const [membersDrawerOpen, setMembersDrawerOpen] = useState(false);
+  const { selectedActivityFilter, setSelectedActivityFilter, crewDrawerOpen, setCrewDrawerOpen } = useUIStore();
 
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event', eventId],
@@ -60,6 +60,9 @@ export default function MobileFeedPage() {
     enabled: !!eventId && !!userId,
     staleTime: 1000 * 60 * 5,
   });
+
+  // Use stats for future metrics display
+  void stats;
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   const sentinelUsers = useUsers(memberUserIds);
@@ -195,7 +198,7 @@ export default function MobileFeedPage() {
             >
               <IconButton
                 size="small"
-                onClick={() => setMembersDrawerOpen(true)}
+                onClick={() => setCrewDrawerOpen(true)}
                 sx={{ color: '#fff', width: 28, height: 28, bgcolor: alpha('#fff', 0.1) }}
               >
                 <PeopleIcon sx={{ fontSize: 16 }} />
@@ -232,11 +235,11 @@ export default function MobileFeedPage() {
         {/* Filter chips */}
         <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '::-webkit-scrollbar': { display: 'none' } }}>
           {ACTIVITY_FILTERS.map((filter) => {
-            const isSelected = activeFilter === filter.value;
+            const isSelected = selectedActivityFilter === filter.value;
             return (
               <Box
                 key={filter.value ?? 'all'}
-                onClick={() => setActiveFilter(filter.value)}
+                onClick={() => setSelectedActivityFilter(filter.value ?? null)}
                 sx={{
                   px: 1.5,
                   py: 0.5,
@@ -284,15 +287,15 @@ export default function MobileFeedPage() {
           userMap={userMap}
           currency={currency}
           scrollContainerRef={feedScrollRef}
-          activityType={activeFilter}
+          activityType={selectedActivityFilter ?? undefined}
         />
       </Box>
 
       {/* Members Drawer */}
       <Drawer
         anchor="bottom"
-        open={membersDrawerOpen}
-        onClose={() => setMembersDrawerOpen(false)}
+        open={crewDrawerOpen}
+        onClose={() => setCrewDrawerOpen(false)}
         slotProps={{
           backdrop: { sx: { bgcolor: 'rgba(0, 0, 0, 0.7)' } },
         }}

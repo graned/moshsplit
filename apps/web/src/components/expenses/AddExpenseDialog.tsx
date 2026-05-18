@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { Dialog, Box, Typography, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 
 import { AddExpenseWizard } from './AddExpenseWizard';
-import { expensesApi, CreateExpenseRequest } from '../../api/expenses.api';
+import { useExpenseStore } from '../../stores/expenseStore';
+import { CreateExpenseRequest } from '../../api/expenses.api';
 import { GroupMember } from '../../api/groups.api';
 
 interface AddExpenseDialogProps {
@@ -37,9 +39,14 @@ export function AddExpenseDialog({
 }: AddExpenseDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { createExpense, clearError } = useExpenseStore();
+
+  useEffect(() => {
+    if (open) clearError();
+  }, [open, clearError]);
 
   const handleSubmit = async (data: CreateExpenseRequest) => {
-    await expensesApi.create(eventId, data);
+    await createExpense(eventId, data);
   };
 
   return (

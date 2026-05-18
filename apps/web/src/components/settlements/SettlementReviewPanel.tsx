@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -20,7 +20,8 @@ import {
   Receipt as ProofIcon,
   ArrowForward as ArrowIcon,
 } from '@mui/icons-material';
-import { settlementsApi, SettlementListItem } from '../../api/settlements.api';
+import { useSettlementStore } from '../../stores/settlementStore';
+import { SettlementListItem } from '../../api/settlements.api';
 import { UserInfo } from '../../api/users.api';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
@@ -50,10 +51,12 @@ export function SettlementReviewPanel({
   currentUserId,
 }: SettlementReviewPanelProps) {
   const [rejectionNote, setRejectionNote] = useState('');
-  const [isApproving, setIsApproving] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { approveSettlement, rejectSettlement, isApproving, isRejecting, error, clearError } = useSettlementStore();
+
+  useEffect(() => {
+    if (open) clearError();
+  }, [open, clearError]);
 
   const fromName = fromUserInfo
     ? `${fromUserInfo.firstName} ${fromUserInfo.lastName}`.trim() || fromUserInfo.email
@@ -68,34 +71,24 @@ export function SettlementReviewPanel({
   const handleApprove = useCallback(async () => {
     if (!isRecipient) return;
 
-    setIsApproving(true);
-    setError(null);
-
     try {
-      await settlementsApi.approve(eventId, settlement.id);
+      await approveSettlement(eventId, settlement.id);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to approve settlement');
-    } finally {
-      setIsApproving(false);
+      // Error is stored in the store's error state
     }
-  }, [isRecipient, eventId, settlement.id, onSuccess]);
+  }, [isRecipient, eventId, settlement.id, onSuccess, approveSettlement]);
 
   const handleReject = useCallback(async () => {
     if (!isRecipient) return;
 
-    setIsRejecting(true);
-    setError(null);
-
     try {
-      await settlementsApi.reject(eventId, settlement.id, rejectionNote.trim() || undefined);
+      await rejectSettlement(eventId, settlement.id, rejectionNote.trim() || undefined);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reject settlement');
-    } finally {
-      setIsRejecting(false);
+      // Error is stored in the store's error state
     }
-  }, [isRecipient, eventId, settlement.id, rejectionNote, onSuccess]);
+  }, [isRecipient, eventId, settlement.id, rejectionNote, onSuccess, rejectSettlement]);
 
   const time = new Date(settlement.created_at).toLocaleDateString('en-US', {
     month: 'short',
@@ -315,7 +308,7 @@ export function SettlementReviewPanel({
                 <Button
                   variant="outlined"
                   onClick={() => setShowRejectForm(true)}
-                  disabled={isApproving}
+                  disabled={isApproving || isRejecting}
                   startIcon={<RejectIcon />}
                   sx={{
                     flex: 1,

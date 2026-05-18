@@ -13,14 +13,15 @@ import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
 import { FilterChips } from '../../components/expenses/FilterChips';
 import { LiveIntelSidebar } from '../../components/expenses/LiveIntelSidebar';
 import { useUsers } from '../../hooks/useUserCache';
+import { useUIStore } from '../../stores/uiStore';
 
 export default function ExpenseReportPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.userId);
 
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>();
+  const { addExpenseOpen, setAddExpenseOpen } = useUIStore();
   const theme = useTheme();
 
   const {
@@ -116,7 +117,7 @@ export default function ExpenseReportPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => setAddDialogOpen(true)}
+                onClick={() => setAddExpenseOpen(true)}
                 sx={{
                   py: 1.25,
                   px: 2,
@@ -234,7 +235,7 @@ export default function ExpenseReportPage() {
                     <Button
                       variant="contained"
                       startIcon={<AddIcon />}
-                      onClick={() => setAddDialogOpen(true)}
+                      onClick={() => setAddExpenseOpen(true)}
                       sx={{ mt: 3 }}
                     >
                       Add the first expense
@@ -270,8 +271,8 @@ export default function ExpenseReportPage() {
       {/* Add Expense Dialog */}
       {eventId && (
         <AddExpenseDialog
-          open={addDialogOpen}
-          onClose={() => setAddDialogOpen(false)}
+          open={addExpenseOpen}
+          onClose={() => setAddExpenseOpen(false)}
           eventId={eventId}
           members={members}
           currentUser={userMap[userId || ''] || { id: userId || '', firstName: '', lastName: '', email: '' }}

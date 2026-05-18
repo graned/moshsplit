@@ -10,6 +10,7 @@ import { ExpenseFeed } from '../../components/expenses/ExpenseFeed';
 import { FilterChips } from '../../components/expenses/FilterChips';
 import { AddExpenseDrawer } from '../../components/expenses/AddExpenseDrawer';
 import { useUsers } from '../../hooks/useUserCache';
+import { useUIStore } from '../../stores/uiStore';
 import { UserInfo } from '../../api/users.api';
 
 interface MobileOutletContext {
@@ -23,7 +24,7 @@ export default function MobileExpensePage() {
   const userId = useAuthStore((state) => state.userId);
 
   const [selectedType, setSelectedType] = useState<string>();
-  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const { addExpenseOpen, setAddExpenseOpen } = useUIStore();
 
   const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['event', paramEventId],
@@ -40,13 +41,13 @@ export default function MobileExpensePage() {
   const { data: eventForDialog } = useQuery({
     queryKey: ['event', eventId],
     queryFn: () => groupsApi.get(eventId!),
-    enabled: !!eventId && expenseDialogOpen,
+    enabled: !!eventId && addExpenseOpen,
   });
 
   const { data: membersForDialog = [] } = useQuery({
     queryKey: ['event-members', eventId],
     queryFn: () => groupsApi.listMembers(eventId!),
-    enabled: !!eventId && expenseDialogOpen,
+    enabled: !!eventId && addExpenseOpen,
   });
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
@@ -158,7 +159,7 @@ export default function MobileExpensePage() {
 
           {/* Add Expense Button */}
           <IconButton
-            onClick={() => setExpenseDialogOpen(true)}
+            onClick={() => setAddExpenseOpen(true)}
             sx={{
               ml: 1,
               flexShrink: 0,
@@ -204,13 +205,13 @@ export default function MobileExpensePage() {
       {/* Expense Drawer */}
       {eventId && (
         <AddExpenseDrawer
-          open={expenseDialogOpen}
-          onClose={() => setExpenseDialogOpen(false)}
+          open={addExpenseOpen}
+          onClose={() => setAddExpenseOpen(false)}
           eventId={eventId}
           members={membersForDialog}
           currentUser={currentUser}
           groupCurrency={eventForDialog?.currency}
-          onSuccess={() => setExpenseDialogOpen(false)}
+          onSuccess={() => setAddExpenseOpen(false)}
         />
       )}
     </Box>
