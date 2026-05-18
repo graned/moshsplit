@@ -7,9 +7,7 @@ import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { ExpenseFeed } from '../../components/expenses/ExpenseFeed';
-import { FilterChips } from '../../components/expenses/FilterChips';
-import { AddExpenseDrawer } from '../../components/expenses/AddExpenseDrawer';
+import { ExpenseFeed, FilterChips, AddExpenseDrawer } from '../../components/expenses';
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
 import { UserInfo } from '../../api/users.api';

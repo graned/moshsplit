@@ -8,10 +8,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { ExpenseFeed } from '../../components/expenses/ExpenseFeed';
-import { AddExpenseDialog } from '../../components/expenses/AddExpenseDialog';
-import { FilterChips } from '../../components/expenses/FilterChips';
-import { LiveIntelSidebar } from '../../components/expenses/LiveIntelSidebar';
+import { ExpenseFeed, AddExpenseDialog, FilterChips, LiveIntelSidebar } from '../../components/expenses';
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
 
