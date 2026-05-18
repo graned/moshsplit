@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { Box, CircularProgress, Typography, Card, CardContent } from '@mui/material';
+import { useCallback, useMemo } from 'react';
+import { Box, Typography } from '@mui/material';
 import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
 import { ActivityItem, isExpenseActivity, isSettlementActivity, isHonorRestoredActivity, isMemberJoinActivity } from '../../api/activity.api';
@@ -8,6 +8,7 @@ import { ExpenseFeedCard } from './ExpenseFeedCard';
 import { SettlementFeedCard } from './SettlementFeedCard';
 import { HonorRestoredFeedCard } from './HonorRestoredFeedCard';
 import { MemberJoinCard } from './MemberJoinCard';
+import { MobileCardList } from '../mobile';
 
 interface FeedListProps {
   eventId: string;
@@ -51,25 +52,6 @@ export function FeedList({
     return items.filter((item) => item.type === activityType);
   }, [items, activityType]);
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { root: scrollContainerRef?.current ?? null, rootMargin: '200px' }
-    );
-
-    if (sentinelRef.current) {
-      observer.observe(sentinelRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, scrollContainerRef]);
-
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
   const renderActivityItem = useCallback(
@@ -79,7 +61,6 @@ export function FeedList({
 
         return (
           <ExpenseFeedCard
-            key={item.id}
             activity={item}
             paidBy={paidBy}
             participantCount={item.participant_count}
@@ -96,7 +77,6 @@ export function FeedList({
 
         return (
           <SettlementFeedCard
-            key={item.id}
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
@@ -114,7 +94,6 @@ export function FeedList({
 
         return (
           <HonorRestoredFeedCard
-            key={item.id}
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
@@ -128,10 +107,9 @@ export function FeedList({
       if (isMemberJoinActivity(item)) {
         const joinedUser = getUser(item.user_id);
 
-        return <MemberJoinCard key={item.id} activity={item} joinedUser={joinedUser} currentUserId={userId} />;
+        return <MemberJoinCard activity={item} joinedUser={joinedUser} currentUserId={userId} />;
       }
 
-      // Fallback for unknown activity types
       return (
         <Box key={(item as ActivityItem).id} sx={{ p: 2, color: 'text.secondary' }}>
           <Typography variant="body2">Unknown activity type: {(item as ActivityItem).type}</Typography>
@@ -141,66 +119,55 @@ export function FeedList({
     [getUser, userId, currency, onExpenseClick, onSettlementClick]
   );
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
+  const emptyState = (
+    <Box
+      sx={{
+        width: '100%',
+        py: 8,
+        textAlign: 'center',
+        backgroundColor: 'background.paper',
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'divider',
+      }}
+    >
+      <Box
+        sx={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(245, 158, 11, 0.08)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          mb: 3,
+        }}
+      >
+        <SearchOffIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.5 }} />
       </Box>
-    );
-  }
-
-  // Error state
-  if (isError) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">Failed to load activity feed</Typography>
-      </Box>
-    );
-  }
-
-  // Empty state
-  if (filteredItems.length === 0) {
-    return (
-      <Card sx={{ backgroundColor: 'background.paper', borderColor: 'divider' }}>
-        <CardContent sx={{ py: 8, textAlign: 'center' }}>
-          <Box
-            sx={{
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              backgroundColor: 'rgba(245, 158, 11, 0.08)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 3,
-            }}
-          >
-            <SearchOffIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.5 }} />
-          </Box>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            No survivors found in this realm
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 320, mx: 'auto' }}>
-            The mosh pit is empty. Start adding expenses and the battle log will come alive.
-          </Typography>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Feed content
-  return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {filteredItems.map(renderActivityItem)}
-
-      {/* Sentinel for infinite scroll */}
-      <div ref={sentinelRef} style={{ height: 1 }} />
-      {isFetchingNextPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={24} />
-        </Box>
-      )}
+      <Typography variant="h6" fontWeight={600} gutterBottom>
+        No survivors found in this realm
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 320, mx: 'auto' }}>
+        The mosh pit is empty. Start adding expenses and the battle log will come alive.
+      </Typography>
     </Box>
+  );
+
+  return (
+    <MobileCardList
+      items={filteredItems}
+      renderItem={renderActivityItem}
+      isLoading={isLoading}
+      isError={isError}
+      error="Failed to load activity feed"
+      emptyState={emptyState}
+      hasNextPage={hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
+      fetchNextPage={fetchNextPage}
+      scrollContainerRef={scrollContainerRef}
+      gap={3}
+      className={className}
+    />
   );
 }

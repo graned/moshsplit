@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { useState, useCallback } from 'react';
+import { Typography } from '@mui/material';
 import { useInfiniteExpenses } from '../../hooks/useInfiniteExpenses';
 import { ExpenseFeedCard } from './ExpenseFeedCard';
 import { IntelLog } from './IntelLog';
 import { UserInfo } from '../../api/users.api';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { GroupMember } from '../../api/groups.api';
+import { MobileCardList } from '../mobile';
 
 interface ExpenseFeedProps {
   eventId: string;
@@ -44,7 +45,6 @@ export function ExpenseFeed({
 
   const expenses = data?.pages.flatMap((p) => p.data) ?? [];
 
-  // Filter to show only expenses where the user is the payer or a participant
   const filteredExpenses = filterForCurrentUser
     ? expenses.filter((expense) => {
         const isPayer = expense.paid_by === userId;
@@ -55,85 +55,50 @@ export function ExpenseFeed({
 
   const [selectedExpense, setSelectedExpense] = useState<ExpenseListItem | null>(null);
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { root: scrollContainerRef?.current ?? null, rootMargin: '200px' }
-    );
-
-    if (sentinelRef.current) {
-      observer.observe(sentinelRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, scrollContainerRef]);
-
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
   const handleExpenseClick = (expense: ExpenseListItem) => {
     setSelectedExpense(expense);
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">Failed to load expenses</Typography>
-      </Box>
-    );
-  }
-
-  if (filteredExpenses.length === 0) {
-    return (
-      emptyState ?? (
-        <Typography sx={{ p: 3, textAlign: 'center' }} color="text.secondary">
-          {filterForCurrentUser ? 'No expenses involving you yet' : 'No expenses yet'}
-        </Typography>
-      )
-    );
-  }
+  const defaultEmptyState = (
+    <Typography sx={{ p: 3, textAlign: 'center' }} color="text.secondary">
+      {filterForCurrentUser ? 'No expenses involving you yet' : 'No expenses yet'}
+    </Typography>
+  );
 
   return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      {filteredExpenses.map((expense) => {
-        const paidBy = getUser(expense.paid_by);
-        const participantUsers = (expense.participant_ids ?? [])
-          .map(getUser)
-          .filter((u): u is UserInfo => u !== undefined);
+    <>
+      <MobileCardList
+        items={filteredExpenses}
+        renderItem={(expense) => {
+          const paidBy = getUser(expense.paid_by);
+          const participantUsers = (expense.participant_ids ?? [])
+            .map(getUser)
+            .filter((u): u is UserInfo => u !== undefined);
 
-        return (
-          <ExpenseFeedCard
-            key={expense.id}
-            expense={expense}
-            paidBy={paidBy}
-            participants={participantUsers}
-            currentUserId={userId}
-            currency={currency}
-            onClick={() => handleExpenseClick(expense)}
-          />
-        );
-      })}
-
-      {/* Sentinel for infinite scroll */}
-      <div ref={sentinelRef} style={{ height: 1 }} />
-      {isFetchingNextPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={24} />
-        </Box>
-      )}
+          return (
+            <ExpenseFeedCard
+              expense={expense}
+              paidBy={paidBy}
+              participants={participantUsers}
+              currentUserId={userId}
+              currency={currency}
+              onClick={() => handleExpenseClick(expense)}
+            />
+          );
+        }}
+        isLoading={isLoading}
+        isError={isError}
+        error="Failed to load expenses"
+        emptyState={emptyState ?? defaultEmptyState}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        fetchNextPage={fetchNextPage}
+        scrollContainerRef={scrollContainerRef}
+        gap={1.5}
+        className={className}
+      />
 
       {/* Intel Log Modal */}
       <IntelLog
@@ -145,6 +110,6 @@ export function ExpenseFeed({
         currency={currency}
         currentUserId={userId}
       />
-    </Box>
+    </>
   );
 }

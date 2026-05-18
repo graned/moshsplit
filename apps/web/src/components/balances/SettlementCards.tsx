@@ -11,8 +11,6 @@ import {
   Chip,
   useMediaQuery,
   useTheme,
-  Card,
-  CardContent,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -37,6 +35,7 @@ import { SettlementListItem } from '../../api/settlements.api';
 import { GroupMember } from '../../api/groups.api';
 import { RestoreHonorModal } from '../settlements/RestoreHonorModal';
 import { SettlementReviewPanel } from '../settlements/SettlementReviewPanel';
+import { MobileCard } from '../mobile';
 
 const EXPENSE_ICONS: Record<string, React.ReactNode> = {
   beer: <BeerIcon sx={{ fontSize: 14 }} />,
@@ -309,25 +308,11 @@ export function SettlementCards({
                 const isCurrentUser = rel.userId === currentUserId;
 
                 return (
-                  <Card
+                  <MobileCard
                     key={rel.userId}
                     onClick={() => setExpandedUserId(isExpanded ? null : rel.userId)}
-                    sx={{
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease',
-                      backgroundColor: 'background.paper',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      overflow: 'hidden',
-                      '&:hover': {
-                        borderColor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.3),
-                        boxShadow: `0 4px 16px ${alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.12)}`,
-                        transform: 'translateY(-1px)',
-                      },
-                      '&:active': isMobile ? { transform: 'scale(0.98)' } : {},
-                    }}
+                    accentColor={rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main}
                   >
-                    <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
                     {/* Header row */}
                     <Box
                       sx={{
@@ -407,7 +392,6 @@ export function SettlementCards({
                         <ExpandMoreIcon />
                       </IconButton>
                     </Box>
-                    </CardContent>
 
                     {/* Expanded breakdown */}
                     <Collapse in={isExpanded}>
@@ -571,11 +555,11 @@ export function SettlementCards({
                             Restore Honor {formatAmount(rel.totalCents, currency)}
                           </Button>
                         )}
-                      </Box>
-                    </Collapse>
-                  </Card>
-                );
-              })}
+                        </Box>
+                      </Collapse>
+                    </MobileCard>
+                  );
+                })}
             </Box>
           )}
         </>
