@@ -31,10 +31,10 @@ function MobileBottomNav() {
 
   const navItems = eventId
     ? [
-        { path: `/app/${eventId}/log`, label: 'Battle Log', icon: <FeedIcon /> },
-        { path: `/app/${eventId}/warchest`, label: 'War Chest', icon: <ExpensesIcon /> },
-        { path: `/app/${eventId}/settle`, label: 'Settle', icon: <SettleIcon /> },
-      ]
+      { path: `/app/mobile/events/${eventId}/log`, label: 'Battle Log', icon: <FeedIcon /> },
+      { path: `/app/mobile/events/${eventId}/warchest`, label: 'War Chest', icon: <ExpensesIcon /> },
+      { path: `/app/mobile/events/${eventId}/settle`, label: 'Settle', icon: <SettleIcon /> },
+    ]
     : [];
 
   const handleNavigation = (path: string) => {

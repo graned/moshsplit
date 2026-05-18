@@ -14,7 +14,6 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { UserCacheProvider } from './providers/UserCacheProvider';
 import { DeviceProvider, useDevice } from './providers/DeviceProvider';
-import InvitationAcceptPage from './pages/auth/InvitationAcceptPage';
 import AppShell from './components/layout/AppShell';
 import MobileAppLayout from './layouts/mobile/MobileAppLayout';
 import EventDetailPage from './pages/app/EventDetailPage';
@@ -48,6 +47,7 @@ function DeviceLayout() {
 }
 
 function MobilePostLoginRedirect() {
+  const { isMobile } = useDevice();
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.userId);
 
@@ -61,9 +61,11 @@ function MobilePostLoginRedirect() {
 
   useEffect(() => {
     if (events.length === 1) {
-      navigate(`/app/${events[0].id}/log`, { replace: true });
-    } else if (events.length > 1) {
-      navigate('/app', { replace: true });
+      if (isMobile) {
+        navigate(`/app/mobile/events/${events[0].id}`, { replace: true });
+      } else {
+        navigate(`/app/web/events/${events[0].id}`, { replace: true });
+      }
     }
   }, [events, navigate]);
 
@@ -82,12 +84,12 @@ function AppContent() {
       <Route element={<ProtectedRoute />}>
         <Route element={<UserCacheProvider />}>
           {/* Mobile: event selection or auto-redirect */}
-          <Route path="app" element={<DeviceProvider><MobileAppLayout /></DeviceProvider>}>
+          <Route path="app" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
             <Route index element={<MobilePostLoginRedirect />} />
           </Route>
 
           {/* Mobile event routes: /app/:eventId/* */}
-          <Route path="app/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+          <Route path="app/mobile/events/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
             <Route index element={<Navigate to="log" replace />} />
             <Route path="log" element={<MobileFeedPage />} />
             <Route path="warchest" element={<MobileExpensePage />} />
@@ -95,13 +97,11 @@ function AppContent() {
           </Route>
 
           {/* Desktop routes: /app/events/:eventId/* */}
-          <Route path="app/events/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
-            <Route index element={<EventDetailPage />} />
-            <Route path="balances" element={<BalancesPage />} />
+          <Route path="app/web/events/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
+            <Route index element={<Navigate to="feed" replace />} />
             <Route path="feed" element={<FeedPage />} />
-          </Route>
-          <Route path="app/expenses/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
-            <Route index element={<ExpenseReportPage />} />
+            <Route path="balances" element={<BalancesPage />} />
+            <Route path="expenses" element={<ExpenseReportPage />} />
           </Route>
         </Route>
       </Route>

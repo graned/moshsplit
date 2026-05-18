@@ -22,7 +22,6 @@ import { useAuthStore } from '@moshsplit/auth-react';
 
 interface NavItem {
   path: string;
-  fallbackPath: string;
   label: string;
   icon: React.ReactNode;
 }
@@ -39,18 +38,21 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
   const { firstName, lastName, userEmail } = useAuthStore();
 
   const navItems: NavItem[] = [
-    { path: `/app/events/${eventId}/feed`, fallbackPath: '/app/feed', label: 'Battle Log', icon: <FeedIcon /> },
-    { path: `/app/expenses/${eventId}`, fallbackPath: '/app/expenses', label: 'War Chest', icon: <ExpensesIcon /> },
+    { path: `/app/web/events/${eventId}/feed`, label: 'Battle Log', icon: <FeedIcon /> },
+    { path: `/app/web/events/${eventId}/expenses`, label: 'War Chest', icon: <ExpensesIcon /> },
     {
-      path: `/app/events/${eventId}/balances`,
-      fallbackPath: '/app/balances',
+      path: `/app/web/events/${eventId}/balances`,
       label: 'Scales of War',
       icon: <BalancesIcon />,
     },
   ];
 
   const handleNavigation = (item: NavItem) => {
-    navigate(eventId ? item.path : item.fallbackPath);
+    if (eventId) {
+      navigate(item.path);
+    } else {
+      navigate('/login');
+    }
   };
 
   const initials = firstName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?';
@@ -130,10 +132,10 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
       {/* Navigation */}
       <List sx={{ py: 2, px: collapsed ? 1 : 2, flex: '1 0 auto' }}>
         {navItems.map((item) => {
-          const activePath = eventId ? item.path : item.fallbackPath;
+          const activePath = item.path;
           const isSelected = location.pathname === activePath || location.pathname.startsWith(activePath + '/');
           return (
-            <ListItem key={item.fallbackPath} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
               <Tooltip title={collapsed ? item.label : undefined} placement="right" disableHoverListener={!collapsed}>
                 <ListItemButton
                   selected={isSelected}

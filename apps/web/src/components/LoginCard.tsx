@@ -86,20 +86,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         return;
       }
 
-      // Desktop fallback: navigate to first event's feed
-      try {
-        const eventsResult = await groupsApi.list(exchangeResult.user_id, undefined, 1);
-        if (eventsResult.data.length > 0) {
-          const eventId = eventsResult.data[0].id;
-          if (isMobile) {
-            navigate(`/app/${eventId}/log`, { replace: true });
-          } else {
-            navigate(`/app/events/${eventId}/feed`, { replace: true });
-          }
-        }
-      } catch (error) {
-        console.error('[ExternalLogin] Failed to fetch event', error);
-      }
+      navigate(`/app`, { replace: true });
     } catch (err) {
       setExternalError(err instanceof Error ? err.message : 'External login failed');
       console.error('[ExternalLogin] Top-level error:', err);
