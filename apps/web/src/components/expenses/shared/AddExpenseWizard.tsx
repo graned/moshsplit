@@ -24,7 +24,6 @@ import tankIcon from '../../../../assets/tank-icon.png';
 import transportIcon from '../../../../assets/transport-icon.png';
 import merchIcon from '../../../../assets/merch-icon.png';
 import campingIcon from '../../../../assets/camping-icon.png';
-import merchIcon from '../../../assets/merch-icon.png';
 
 import { Stepper, StepDefinition } from '../../shared/forms/Stepper';
 import { ParticipantSearch } from '../../shared/forms/ParticipantSearch';
