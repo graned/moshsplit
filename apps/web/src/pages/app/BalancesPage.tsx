@@ -21,8 +21,7 @@ import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { settlementsApi } from '../../api/settlements.api';
 import { useUsers } from '../../hooks/useUserCache';
-import { SettlementCards, RelationshipSummary } from '../../components/balances/SettlementCards';
-import { LiveIntelPanel } from '../../components/balances/LiveIntelPanel';
+import { SettlementCards, RelationshipSummary, LiveIntelPanel } from '../../components/balances';
 
 export default function BalancesPage() {
   const { eventId: routeEventId } = useParams<{ eventId: string }>();

@@ -9,7 +9,7 @@ import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { settlementsApi } from '../../api/settlements.api';
 import { useUsers } from '../../hooks/useUserCache';
-import { SettlementCards, RelationshipSummary } from '../../components/balances/SettlementCards';
+import { SettlementCards, RelationshipSummary } from '../../components/balances';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
