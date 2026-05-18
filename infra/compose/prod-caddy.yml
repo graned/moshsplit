@@ -15,9 +15,9 @@
 #   - Sentinel API: https://moshsplit.example.com/sentinel/
 #
 # Images:
-#   - ghcr.io/<owner>/moshsplit/pitboss-api:<tag>
-#   - ghcr.io/<owner>/moshsplit/web:<tag>
-#   - ghcr.io/<owner>/moshsplit/sentinel-migrate:<tag>
+#   - ghcr.io/moshsplit/moshsplit/pitboss-api:<tag>
+#   - ghcr.io/moshsplit/moshsplit/web:<tag>
+#   - Sentinel uses official image: ghcr.io/graned/sentinel-core:v1.1.0
 
 services:
 
@@ -103,19 +103,6 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # ── Sentinel migrations ─────────────────────────────────────────────────────
-  sentinel-migrations:
-    image: ghcr.io/moshsplit/moshsplit/sentinel-migrate:${MOSHSPLIT_VERSION:-latest}
-    environment:
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-      SENTINEL_VERSION: ${SENTINEL_VERSION:-v1.1.0}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - app-net
-    restart: "no"
-
   # ── Sentinel (auth service) ───────────────────────────────────────────────
   sentinel:
     image: ghcr.io/graned/sentinel-core:v1.1.0
@@ -134,8 +121,6 @@ services:
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
     depends_on:
-      sentinel-migrations:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     networks:

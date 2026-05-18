@@ -62,7 +62,6 @@ COPY apps/pitboss-api/migrations/ /app/migrations/
 # Copy the full source (excluding Cargo.toml which is already at /app/).
 # Use specific paths to avoid overwriting packages/ directory.
 COPY apps/pitboss-api/src/ /app/src/
-COPY apps/pitboss-api/build.rs* /app/ 2>/dev/null || true
 
 # Build the release binary with locked dependencies.
 RUN cargo build --release --locked
