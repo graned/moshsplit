@@ -1,14 +1,41 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Box, Typography, Container } from '@mui/material';
+import { useNavigate } from 'react-router';
 import { LoginCard } from '../../components/LoginCard';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { authApi } from '../../api/auth.api';
 import type { LoginCredentials } from './types';
 
+// Check for return URL on mount and redirect if present
+const RETURN_TO_KEY = 'moshsplit_return_to';
+
+function clearReturnTo() {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(RETURN_TO_KEY);
+  }
+}
+
+function getReturnTo(): string | null {
+  if (typeof window !== 'undefined') {
+    return sessionStorage.getItem(RETURN_TO_KEY);
+  }
+  return null;
+}
+
 function LoginPage() {
   const setSession = useAuthStore((state) => state.setSession);
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  // On mount, check for return URL and navigate back if present
+  useEffect(() => {
+    const returnTo = getReturnTo();
+    if (returnTo) {
+      clearReturnTo();
+      navigate(returnTo, { replace: true });
+    }
+  }, [navigate]);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
@@ -17,6 +44,15 @@ function LoginPage() {
       try {
         const result = await authApi.login(credentials);
         setSession(result.user.id, result.token, '', true, false);
+
+        // Check for return URL before default redirect
+        const returnTo = getReturnTo();
+        if (returnTo) {
+          clearReturnTo();
+          navigate(returnTo, { replace: true });
+          return { success: true };
+        }
+
         return { success: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Login failed';
@@ -26,7 +62,7 @@ function LoginPage() {
         setIsLoading(false);
       }
     },
-    [setSession]
+    [setSession, navigate]
   );
 
   const handleSubmit = useCallback(

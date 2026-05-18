@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, Button, Box, CircularProgress, TextField, Typography, alpha } from '@mui/material';
 import { AuthHeroLogo } from './AuthHeroLogo';
 import { LoginForm } from './LoginForm';
@@ -9,6 +9,23 @@ import { authApi } from '../api/auth.api';
 import { groupsApi } from '../api/groups.api';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
+import { useNavigate } from 'react-router';
+
+// Store return URL before navigating to login (used for post-login redirect)
+const RETURN_TO_KEY = 'moshsplit_return_to';
+
+function getReturnTo(): string | null {
+  if (typeof window !== 'undefined') {
+    return sessionStorage.getItem(RETURN_TO_KEY);
+  }
+  return null;
+}
+
+function clearReturnTo() {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(RETURN_TO_KEY);
+  }
+}
 
 interface LoginCardProps {
   onSubmit: (credentials: LoginCredentials) => Promise<void>;
@@ -24,6 +41,16 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
   const [externalError, setExternalError] = useState<string | null>(null);
   const [devEmail, setDevEmail] = useState('');
   const setSession = useAuthStore((state) => state.setSession);
+  const navigate = useNavigate();
+
+  // On mount, check for return URL and navigate back if present
+  useEffect(() => {
+    const returnTo = getReturnTo();
+    if (returnTo) {
+      clearReturnTo();
+      navigate(returnTo, { replace: true });
+    }
+  }, [navigate]);
 
   const handleExternalLogin = async () => {
     setExternalLoading(true);
@@ -60,13 +87,22 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         console.error('[ExternalLogin] Failed to fetch user profile:', profileErr);
       }
 
+      // Check for return URL before default redirect
+      const returnTo = getReturnTo();
+      if (returnTo) {
+        clearReturnTo();
+        navigate(returnTo, { replace: true });
+        return;
+      }
+
+      // Desktop fallback: navigate to first event's feed
       try {
         const eventsResult = await groupsApi.list(exchangeResult.user_id, undefined, 1);
         if (eventsResult.data.length > 0) {
           window.location.href = `/app/events/${eventsResult.data[0].id}/feed`;
         }
       } catch (error) {
-        console.error('[ExernalLogin] Failed to fetch event', error);
+        console.error('[ExternalLogin] Failed to fetch event', error);
       }
     } catch (err) {
       setExternalError(err instanceof Error ? err.message : 'External login failed');

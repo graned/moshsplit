@@ -64,6 +64,8 @@ function BottomNav({ onAddExpense }: BottomNavProps) {
     if (externalUrl) {
       window.location.href = externalUrl;
     } else {
+      // Save current URL to return to after login
+      sessionStorage.setItem('moshsplit_return_to', location.pathname);
       navigate('/login');
     }
   };
