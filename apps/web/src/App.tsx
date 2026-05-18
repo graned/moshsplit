@@ -14,7 +14,7 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { UserCacheProvider } from './providers/UserCacheProvider';
 import { DeviceProvider, useDevice } from './providers/DeviceProvider';
-import AppShell from './components/layout/AppShell';
+import { AppShell } from './components/desktop';
 import MobileAppLayout from './layouts/mobile/MobileAppLayout';
 import ExpenseReportPage from './pages/app/ExpenseReportPage';
 import BalancesPage from './pages/app/BalancesPage';

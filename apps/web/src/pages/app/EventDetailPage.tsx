@@ -11,7 +11,7 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { expensesApi, ExpenseListItem } from '../../api/expenses.api';
-import { ExpensesTable } from '../../components/groups/ExpensesTable';
+import { ExpensesTable } from '../../components/desktop';
 import { mockEvent, mockExpenses, mockMembers, mockUserId } from '../../api/mock-data';
 
 function PageNav({
