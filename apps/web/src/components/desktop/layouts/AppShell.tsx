@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import Sidebar from './Sidebar';
-import { AddExpenseDialog } from '../../expenses/AddExpenseDialog';
+import { AddExpenseDialog } from '../../expenses';
 import { groupsApi } from '../../../api/groups.api';
 
 const SIDEBAR_WIDTH = 280;
