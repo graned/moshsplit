@@ -1088,14 +1088,15 @@ function TransactionHistory({
   // Group transactions by date
   const groupedTransactions = new Map<string, TransactionItem[]>();
   for (const tx of transactions) {
-    const dateKey = tx.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const validDate = tx.date && !isNaN(tx.date.getTime()) ? tx.date : new Date();
+    const dateKey = validDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const existing = groupedTransactions.get(dateKey) || [];
-    existing.push(tx);
+    existing.push({ ...tx, date: validDate });
     groupedTransactions.set(dateKey, existing);
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {Array.from(groupedTransactions.entries()).map(([dateKey, dayTransactions]) => (
         <Box key={dateKey}>
           <Typography
@@ -1107,7 +1108,8 @@ function TransactionHistory({
             {dateKey}
           </Typography>
           {dayTransactions.map((tx) => {
-            const timeStr = tx.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const validDate = tx.date && !isNaN(tx.date.getTime()) ? tx.date : new Date();
+            const timeStr = validDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             return (
               <TransactionHistoryRow
                 key={tx.id}
