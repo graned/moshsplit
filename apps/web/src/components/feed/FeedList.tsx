@@ -61,6 +61,7 @@ export function FeedList({
 
         return (
           <ExpenseFeedCard
+            key={item.id}
             activity={item}
             paidBy={paidBy}
             participantCount={item.participant_count}
@@ -77,6 +78,7 @@ export function FeedList({
 
         return (
           <SettlementFeedCard
+            key={item.id}
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
@@ -94,6 +96,7 @@ export function FeedList({
 
         return (
           <HonorRestoredFeedCard
+            key={item.id}
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
@@ -107,7 +110,7 @@ export function FeedList({
       if (isMemberJoinActivity(item)) {
         const joinedUser = getUser(item.user_id);
 
-        return <MemberJoinCard activity={item} joinedUser={joinedUser} currentUserId={userId} />;
+        return <MemberJoinCard key={item.id} activity={item} joinedUser={joinedUser} currentUserId={userId} />;
       }
 
       return (

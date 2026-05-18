@@ -79,6 +79,7 @@ export function ExpenseFeed({
 
           return (
             <ExpenseFeedCard
+              key={expense.id}
               expense={expense}
               paidBy={paidBy}
               participants={participantUsers}
