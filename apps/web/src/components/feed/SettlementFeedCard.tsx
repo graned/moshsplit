@@ -67,7 +67,7 @@ export function SettlementFeedCard({
 
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
-          <Typography variant="body1" fontWeight={500} sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
+          <Typography component="span" variant="body1" fontWeight={500} sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
             <Tooltip title="Honor Settlement Requested" arrow>
               <Box component="span" color="warning.main">Honor requested:</Box>
             </Tooltip>{' '}
