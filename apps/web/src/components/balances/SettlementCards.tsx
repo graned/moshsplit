@@ -11,10 +11,11 @@ import {
   Chip,
   useMediaQuery,
   useTheme,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   LocalBar as BeerIcon,
   LocalGasStation as GasIcon,
   Restaurant as FoodIcon,
@@ -280,42 +281,57 @@ export function SettlementCards({
                 const isCurrentUser = rel.userId === currentUserId;
 
                 return (
-                  <Box
+                  <Card
                     key={rel.userId}
+                    onClick={() => setExpandedUserId(isExpanded ? null : rel.userId)}
                     sx={{
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease',
+                      backgroundColor: 'background.paper',
+                      borderColor: 'divider',
                       borderRadius: 2,
-                      border: `1px solid ${alpha('#fff', 0.1)}`,
-                      bgcolor: 'elevated.main',
                       overflow: 'hidden',
+                      '&:hover': {
+                        borderColor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.3),
+                        boxShadow: `0 4px 16px ${alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.12)}`,
+                        transform: 'translateY(-1px)',
+                      },
+                      '&:active': isMobile ? { transform: 'scale(0.98)' } : {},
                     }}
                   >
+                    <CardContent sx={{ py: 2, px: 2, '&:last-child': { pb: 2 } }}>
                     {/* Header row */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 2,
-                        p: 2,
-                        cursor: 'pointer',
+                        gap: 1.5,
                       }}
-                      onClick={() => setExpandedUserId(isExpanded ? null : rel.userId)}
                     >
                       <Avatar
                         sx={{
-                          width: 48,
-                          height: 48,
-                          bgcolor: rel.isIncoming ? 'primary.main' : 'error.main',
-                          color: '#121212',
+                          width: 44,
+                          height: 44,
+                          bgcolor: rel.isIncoming ? alpha(theme.palette.primary.main, 0.15) : alpha(theme.palette.error.main, 0.15),
+                          color: rel.isIncoming ? 'primary.main' : 'error.main',
                           fontWeight: 700,
-                          fontSize: '1.25rem',
+                          fontSize: '1rem',
                           flexShrink: 0,
+                          border: '1px solid',
+                          borderColor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.2),
                         }}
                       >
                         {getMemberInitial(rel.userId)}
                       </Avatar>
 
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body1" fontWeight={600} color="text.primary" noWrap>
+                        <Typography
+                          variant="body1"
+                          fontWeight={600}
+                          color="text.primary"
+                          noWrap
+                          sx={{ fontSize: '0.9rem' }}
+                        >
                           {isCurrentUser ? 'You' : name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -329,33 +345,64 @@ export function SettlementCards({
                           fontWeight={700}
                           sx={{
                             color: rel.isIncoming ? 'primary.main' : 'error.main',
-                            fontSize: '1.25rem',
+                            fontSize: '1.1rem',
                           }}
                         >
                           {formatAmount(rel.totalCents, currency)}
                         </Typography>
-                        <Typography
-                          variant="caption"
+                        <Chip
+                          label={rel.isIncoming ? 'Tribute owed' : 'Your tribute'}
+                          size="small"
                           sx={{
+                            height: 18,
+                            fontSize: '0.6rem',
                             fontWeight: 700,
-                            letterSpacing: '0.05em',
+                            letterSpacing: '0.03em',
                             textTransform: 'uppercase',
+                            bgcolor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.12),
                             color: rel.isIncoming ? 'primary.main' : 'error.main',
+                            border: '1px solid',
+                            borderColor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.2),
                           }}
-                        >
-                          {rel.isIncoming ? 'Tributes owed to you' : 'You need to pay tribute'}
-                        </Typography>
+                        />
                       </Box>
 
-                      <IconButton size="small" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                        {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      <IconButton
+                        size="small"
+                        sx={{
+                          color: 'text.secondary',
+                          flexShrink: 0,
+                          transition: 'transform 0.2s ease',
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        }}
+                      >
+                        <ExpandMoreIcon />
                       </IconButton>
                     </Box>
+                    </CardContent>
 
                     {/* Expanded breakdown */}
                     <Collapse in={isExpanded}>
                       <Divider sx={{ borderColor: alpha('#fff', 0.05) }} />
-                      <Box sx={{ p: 2 }}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          pt: 1.5,
+                          maxHeight: isMobile ? 280 : 'none',
+                          overflowY: isMobile ? 'auto' : 'visible',
+                          pb: isMobile ? 'calc(2 + env(safe-area-inset-bottom, 0px))' : 2,
+                          '&::-webkit-scrollbar': {
+                            width: 4,
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: 'transparent',
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: alpha(theme.palette.primary.main, 0.2),
+                            borderRadius: 2,
+                          },
+                        }}
+                      >
                         {rel.expenses.map((exp, i) => (
                           <ExpenseRow
                             key={i}
@@ -412,7 +459,7 @@ export function SettlementCards({
                         )}
                       </Box>
                     </Collapse>
-                  </Box>
+                  </Card>
                 );
               })}
             </Box>
