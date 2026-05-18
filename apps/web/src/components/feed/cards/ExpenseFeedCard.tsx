@@ -4,12 +4,12 @@ import { ExpenseActivity } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
 import { FeedCard } from './FeedCard';
 
-import foodIcon from '../../../assets/food-icon.png';
-import beerIcon from '../../../assets/beer-icon.png';
-import tankIcon from '../../../assets/tank-icon.png';
-import transportIcon from '../../../assets/transport-icon.png';
-import merchIcon from '../../../assets/merch-icon.png';
-import campingIcon from '../../../assets/camping-icon.png';
+import foodIcon from '../../../../assets/food-icon.png';
+import beerIcon from '../../../../assets/beer-icon.png';
+import tankIcon from '../../../../assets/tank-icon.png';
+import transportIcon from '../../../../assets/transport-icon.png';
+import merchIcon from '../../../../assets/merch-icon.png';
+import campingIcon from '../../../../assets/camping-icon.png';
 
 const EXPENSE_TYPE_ICONS: Record<string, string> = {
   food: foodIcon,

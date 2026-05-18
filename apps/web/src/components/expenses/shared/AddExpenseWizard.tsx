@@ -18,11 +18,12 @@ import {
   MoreHoriz as OtherIcon,
 } from '@mui/icons-material';
 
-import beerIcon from '../../../assets/beer-icon.png';
-import foodIcon from '../../../assets/food-icon.png';
-import tankIcon from '../../../assets/tank-icon.png';
-import transportIcon from '../../../assets/transport-icon.png';
-import campingIcon from '../../../assets/camping-icon.png';
+import beerIcon from '../../../../assets/beer-icon.png';
+import foodIcon from '../../../../assets/food-icon.png';
+import tankIcon from '../../../../assets/tank-icon.png';
+import transportIcon from '../../../../assets/transport-icon.png';
+import merchIcon from '../../../../assets/merch-icon.png';
+import campingIcon from '../../../../assets/camping-icon.png';
 import merchIcon from '../../../assets/merch-icon.png';
 
 import { Stepper, StepDefinition } from '../../shared/forms/Stepper';
