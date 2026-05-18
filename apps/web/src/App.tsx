@@ -16,9 +16,9 @@ import { UserCacheProvider } from './providers/UserCacheProvider';
 import { DeviceProvider, useDevice } from './providers/DeviceProvider';
 import AppShell from './components/layout/AppShell';
 import MobileAppLayout from './layouts/mobile/MobileAppLayout';
-import FeedPage from './pages/app/FeedPage';
-import BalancesPage from './pages/app/BalancesPage';
 import ExpenseReportPage from './pages/app/ExpenseReportPage';
+import BalancesPage from './pages/app/BalancesPage';
+import FeedPage from './pages/app/FeedPage';
 import MobileEventSelectPage from './pages/mobile/MobileEventSelectPage';
 import MobileFeedPage from './pages/mobile/MobileFeedPage';
 import MobileExpensePage from './pages/mobile/MobileExpensePage';
@@ -46,6 +46,7 @@ function DeviceLayout() {
 }
 
 function MobilePostLoginRedirect() {
+  const { isMobile } = useDevice();
   const navigate = useNavigate();
   const userId = useAuthStore((state) => state.userId);
 
@@ -59,7 +60,11 @@ function MobilePostLoginRedirect() {
 
   useEffect(() => {
     if (events.length === 1) {
-      navigate(`/app/mobile/events/${events[0].id}/log`, { replace: true });
+      if (isMobile) {
+        navigate(`/app/mobile/events/${events[0].id}`, { replace: true });
+      } else {
+        navigate(`/app/web/events/${events[0].id}`, { replace: true });
+      }
     }
   }, [events, navigate]);
 
