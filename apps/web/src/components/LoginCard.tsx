@@ -92,9 +92,9 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         if (eventsResult.data.length > 0) {
           const eventId = eventsResult.data[0].id;
           if (isMobile) {
-            window.location.href = `/app/${eventId}/log`;
+            navigate(`/app/${eventId}/log`, { replace: true });
           } else {
-            window.location.href = `/app/events/${eventId}/feed`;
+            navigate(`/app/events/${eventId}/feed`, { replace: true });
           }
         }
       } catch (error) {
