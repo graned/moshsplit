@@ -31,7 +31,7 @@ function MobileBottomNav() {
 
   const navItems = eventId
     ? [
-        { path: `/app/events/${eventId}/feed`, label: 'Battle Log', icon: <FeedIcon /> },
+        { path: `/app/${eventId}/log`, label: 'Battle Log', icon: <FeedIcon /> },
         { path: `/app/${eventId}/warchest`, label: 'War Chest', icon: <ExpensesIcon /> },
         { path: `/app/${eventId}/settle`, label: 'Settle', icon: <SettleIcon /> },
       ]

@@ -18,6 +18,7 @@ interface FeedListProps {
   onExpenseClick?: (expenseId: string) => void;
   onSettlementClick?: (settlementId: string) => void;
   className?: string;
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -33,6 +34,7 @@ export function FeedList({
   onExpenseClick,
   onSettlementClick,
   className,
+  scrollContainerRef,
 }: FeedListProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useActivityFeed({
     eventId,
@@ -51,7 +53,7 @@ export function FeedList({
           fetchNextPage();
         }
       },
-      { rootMargin: '200px' }
+      { root: scrollContainerRef?.current ?? null, rootMargin: '200px' }
     );
 
     if (sentinelRef.current) {
@@ -59,7 +61,7 @@ export function FeedList({
     }
 
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, scrollContainerRef]);
 
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 

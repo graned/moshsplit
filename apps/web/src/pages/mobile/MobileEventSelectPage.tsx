@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -29,10 +30,16 @@ export default function MobileEventSelectPage() {
 
   const events = eventsResponse?.data || [];
 
+  useEffect(() => {
+    if (!isLoading && !error && events.length === 1) {
+      navigate(`/app/${events[0].id}/log`, { replace: true });
+    }
+  }, [events, isLoading, error, navigate]);
+
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
@@ -45,18 +52,9 @@ export default function MobileEventSelectPage() {
     );
   }
 
-  return (
-    <Box sx={{ p: 2 }}>
-      <Typography
-        variant="h4"
-        fontWeight={800}
-        color="primary.main"
-        sx={{ mb: 3, letterSpacing: '-0.02em' }}
-      >
-        Your Events
-      </Typography>
-
-      {events.length === 0 ? (
+  if (events.length === 0) {
+    return (
+      <Box sx={{ p: 2 }}>
         <Card sx={{ bgcolor: '#1E1E1E', border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <Box
@@ -81,44 +79,57 @@ export default function MobileEventSelectPage() {
             </Typography>
           </CardContent>
         </Card>
-      ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {events.map((event: GroupListItem) => (
-            <Card
-              key={event.id}
-              sx={{
-                bgcolor: '#1E1E1E',
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <CardActionArea onClick={() => navigate(`/app/${event.id}/log`)}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      sx={{
-                        bgcolor: 'primary.main',
-                        color: '#121212',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {event.name.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" fontWeight={600}>
-                        {event.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {event.description || 'No description'}
-                      </Typography>
-                    </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 2 }}>
+      <Typography
+        variant="h4"
+        fontWeight={800}
+        color="primary.main"
+        sx={{ mb: 3, letterSpacing: '-0.02em' }}
+      >
+        Your Events
+      </Typography>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {events.map((event: GroupListItem) => (
+          <Card
+            key={event.id}
+            sx={{
+              bgcolor: '#1E1E1E',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <CardActionArea onClick={() => navigate(`/app/${event.id}/log`)}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: 'primary.main',
+                      color: '#121212',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {event.name.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" fontWeight={600}>
+                      {event.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {event.description || 'No description'}
+                    </Typography>
                   </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          ))}
-        </Box>
-      )}
+                </Box>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        ))}
+      </Box>
     </Box>
   );
 }
