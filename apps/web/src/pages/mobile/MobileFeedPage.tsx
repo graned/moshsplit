@@ -9,7 +9,7 @@ import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
-import { FeedList } from '../../components/feed/FeedList';
+import { FeedList } from '../../components/feed';
 
 const ACTIVITY_FILTERS = [
   { value: undefined, label: 'All' },

@@ -5,12 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { useMemo } from 'react';
 
-import { EventBanner } from '../../components/feed/EventBanner';
-import { FeedSectionHeader } from '../../components/feed/FeedSectionHeader';
-import { FeedList } from '../../components/feed/FeedList';
-import { MyStandingCard } from '../../components/feed/MyStandingCard';
-import { FestivalMetricsCard } from '../../components/feed/FestivalMetricsCard';
-import { PitCrewList } from '../../components/feed/PitCrewList';
+import { EventBanner, FeedSectionHeader, FeedList, MyStandingCard, FestivalMetricsCard, PitCrewList } from '../../components/feed';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { useUsers } from '../../hooks/useUserCache';
