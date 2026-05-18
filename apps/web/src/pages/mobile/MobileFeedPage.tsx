@@ -107,7 +107,7 @@ export default function MobileFeedPage() {
   const crewCount = members.length;
   const totalSpent = stats?.total_spent_cents ?? 0;
 
-  const bannerUrl = event?.images?.banner?.url;
+  const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
   const headerBg = bannerUrl
     ? `linear-gradient(to bottom, rgba(18,18,18,0.3) 0%, rgba(18,18,18,0.7) 60%, #121212 100%), url(${bannerUrl})`
     : `linear-gradient(to bottom, rgba(18,18,18,0.6) 0%, rgba(18,18,18,0.85) 60%, #121212 100%), linear-gradient(135deg, #4A2F0A 0%, #1A1A1A 100%)`;
