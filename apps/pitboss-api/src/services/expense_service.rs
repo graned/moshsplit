@@ -310,7 +310,13 @@ impl ExpenseService {
                 share_cents,
             })
             .collect();
-        self.share_repo.bulk_insert(&share_rows)?;
+        let affected = self.share_repo.bulk_insert(&share_rows)?;
+        if affected != share_rows.len() {
+            return Err(ServiceError::Internal(format!(
+                "Failed to insert all shares: expected {}, got {}",
+                share_rows.len(), affected
+            )));
+        }
 
         Ok(self.get_expense(expense_id)?)
     }
@@ -384,7 +390,13 @@ impl ExpenseService {
                 share_cents,
             })
             .collect();
-        self.share_repo.bulk_insert(&share_rows)?;
+        let affected = self.share_repo.bulk_insert(&share_rows)?;
+        if affected != share_rows.len() {
+            return Err(ServiceError::Internal(format!(
+                "Failed to insert all shares: expected {}, got {}",
+                share_rows.len(), affected
+            )));
+        }
 
         // Update current_version_id on expense
         self.expense_repo.set_current_version(expense_id, version_id)?;

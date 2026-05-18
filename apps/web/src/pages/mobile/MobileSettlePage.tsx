@@ -140,6 +140,12 @@ export default function MobileSettlePage() {
     }
 
     return Array.from(expenseMap.values())
+      .map((r) => {
+        if (r.totalCents < 0) {
+          return { ...r, totalCents: Math.abs(r.totalCents), isIncoming: !r.isIncoming };
+        }
+        return r;
+      })
       .filter((r) => r.totalCents > 0)
       .sort((a, b) => b.totalCents - a.totalCents);
   }, [explainData, userId]);
