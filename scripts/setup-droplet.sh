@@ -125,6 +125,7 @@ log_info "Copying Docker Compose files..."
 scp $SCP_OPTS infra/compose/prod-caddy.yml "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/docker-compose.yml"
 scp $SCP_OPTS infra/docker/Caddyfile "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/Caddyfile"
 scp $SCP_OPTS infra/compose/.env.example "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/.env.example"
+scp -r $SCP_OPTS infra/compose/init "$DROPLET_USER@$DROPLET_IP:$REMOTE_DIR/"
 log_info "Docker Compose files copied!"
 echo
 
