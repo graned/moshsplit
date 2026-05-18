@@ -59,18 +59,26 @@ pub struct ExpenseBreakdown {
 /// Breakdown of a single payment for the "explain" endpoint.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct PaymentBreakdown {
+    pub id: Uuid,
     pub from_user: Uuid,
     pub to_user: Uuid,
     pub amount_cents: i32,
+    pub recorded_at: DateTime<Utc>,
+    pub description: Option<String>,
+    pub payment_method: Option<String>,
 }
 
 /// Breakdown of a single settlement for the "explain" endpoint.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct SettlementBreakdown {
+    pub id: Uuid,
     pub from_user: Uuid,
     pub to_user: Uuid,
     pub amount_cents: i32,
     pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub settled_at: Option<DateTime<Utc>>,
+    pub note: Option<String>,
 }
 
 /// Full breakdown explaining a user's balance.

@@ -152,9 +152,13 @@ impl BalanceService {
         let payments: Vec<PaymentBreakdown> = payment_rows
             .into_iter()
             .map(|r| PaymentBreakdown {
+                id: r.id,
                 from_user: r.from_user,
                 to_user: r.to_user,
                 amount_cents: r.amount_cents,
+                recorded_at: r.recorded_at,
+                description: r.description,
+                payment_method: r.payment_method,
             })
             .collect();
 
@@ -162,10 +166,14 @@ impl BalanceService {
         let settlements: Vec<SettlementBreakdown> = settlement_rows
             .into_iter()
             .map(|r| SettlementBreakdown {
+                id: r.id,
                 from_user: r.from_user,
                 to_user: r.to_user,
                 amount_cents: r.amount_cents,
                 status: r.status,
+                created_at: r.created_at,
+                settled_at: r.settled_at,
+                note: r.note,
             })
             .collect();
 

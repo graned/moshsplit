@@ -21,7 +21,7 @@ function formatAmount(cents: number, currency = 'EUR') {
 }
 
 export default function MobileSettlePage() {
-  const [activeTabFilter, setActiveTabFilter] = useState<'incoming' | 'outgoing' | 'requests'>('incoming');
+  const [activeTabFilter, setActiveTabFilter] = useState<'incoming' | 'outgoing' | 'requests' | 'history'>('incoming');
 
   const { eventId: routeEventId } = useParams<{ eventId: string }>();
 
@@ -75,6 +75,7 @@ export default function MobileSettlePage() {
 
     const expenseMap = new Map<string, RelationshipSummary>();
 
+    // Process expenses - build raw relationships
     for (const exp of explainData.expenses) {
       if (!exp.participants || exp.participants.length === 0) continue;
 
@@ -87,11 +88,17 @@ export default function MobileSettlePage() {
               userId: participantId,
               totalCents: 0,
               expenses: [],
+              settlements: [],
+              payments: [],
+              rawExpenseCents: 0,
+              rawSettlementCents: 0,
+              rawPaymentCents: 0,
               isIncoming: true,
             });
           }
           const rel = expenseMap.get(participantId)!;
           rel.totalCents += exp.share_cents;
+          rel.rawExpenseCents += exp.share_cents;
           rel.expenses.push(exp);
         }
       } else {
@@ -100,15 +107,22 @@ export default function MobileSettlePage() {
             userId: exp.paid_by,
             totalCents: 0,
             expenses: [],
+            settlements: [],
+            payments: [],
+            rawExpenseCents: 0,
+            rawSettlementCents: 0,
+            rawPaymentCents: 0,
             isIncoming: false,
           });
         }
         const rel = expenseMap.get(exp.paid_by)!;
         rel.totalCents += exp.share_cents;
+        rel.rawExpenseCents += exp.share_cents;
         rel.expenses.push(exp);
       }
     }
 
+    // Process settlements - adjust balance but track separately for transparency
     for (const settlement of explainData.settlements) {
       if (settlement.status !== 'confirmed') continue;
 
@@ -116,38 +130,61 @@ export default function MobileSettlePage() {
         const rel = expenseMap.get(settlement.to_user);
         if (rel && !rel.isIncoming) {
           rel.totalCents -= settlement.amount_cents;
+          rel.rawSettlementCents -= settlement.amount_cents;
+          rel.settlements.push(settlement);
         }
       } else if (settlement.to_user === userId) {
         const rel = expenseMap.get(settlement.from_user);
         if (rel && rel.isIncoming) {
           rel.totalCents -= settlement.amount_cents;
+          rel.rawSettlementCents -= settlement.amount_cents;
+          rel.settlements.push(settlement);
         }
       }
     }
 
+    // Process payments - adjust balance but track separately for transparency
     for (const payment of explainData.payments) {
       if (payment.from_user === userId) {
         const rel = expenseMap.get(payment.to_user);
         if (rel && !rel.isIncoming) {
           rel.totalCents -= payment.amount_cents;
+          rel.rawPaymentCents -= payment.amount_cents;
+          rel.payments.push(payment);
         }
       } else if (payment.to_user === userId) {
         const rel = expenseMap.get(payment.from_user);
         if (rel && rel.isIncoming) {
           rel.totalCents -= payment.amount_cents;
+          rel.rawPaymentCents -= payment.amount_cents;
+          rel.payments.push(payment);
         }
       }
     }
 
-    return Array.from(expenseMap.values())
-      .map((r) => {
-        if (r.totalCents < 0) {
-          return { ...r, totalCents: Math.abs(r.totalCents), isIncoming: !r.isIncoming };
-        }
-        return r;
-      })
-      .filter((r) => r.totalCents > 0)
-      .sort((a, b) => b.totalCents - a.totalCents);
+    // Convert to display format and include BOTH directions
+    const allRelationships: RelationshipSummary[] = [];
+
+    for (const rel of expenseMap.values()) {
+      // Normalize negative totals by flipping direction
+      const normalized = { ...rel };
+      if (normalized.totalCents < 0) {
+        normalized.totalCents = Math.abs(normalized.totalCents);
+        normalized.isIncoming = !normalized.isIncoming;
+        // Flip the raw values too for display
+        normalized.rawExpenseCents = -normalized.rawExpenseCents;
+        normalized.rawSettlementCents = -normalized.rawSettlementCents;
+        normalized.rawPaymentCents = -normalized.rawPaymentCents;
+      }
+
+      // Include relationship if there's ANY activity (expenses, settlements, or payments)
+      if (normalized.rawExpenseCents > 0 || normalized.settlements.length > 0 || normalized.payments.length > 0) {
+        allRelationships.push(normalized);
+      }
+    }
+
+    // Sort by total amount descending
+    return allRelationships.sort((a, b) => b.totalCents - a.totalCents);
   }, [explainData, userId]);
 
   const incomingTotal = relationships.filter((r) => r.isIncoming).reduce((s, r) => s + r.totalCents, 0);

@@ -108,6 +108,11 @@ export default function BalancesPage() {
               userId: participantId,
               totalCents: 0,
               expenses: [],
+              settlements: [],
+              payments: [],
+              rawExpenseCents: 0,
+              rawSettlementCents: 0,
+              rawPaymentCents: 0,
               isIncoming: true,
             });
           }
@@ -122,6 +127,11 @@ export default function BalancesPage() {
             userId: exp.paid_by,
             totalCents: 0,
             expenses: [],
+            settlements: [],
+            payments: [],
+            rawExpenseCents: 0,
+            rawSettlementCents: 0,
+            rawPaymentCents: 0,
             isIncoming: false,
           });
         }

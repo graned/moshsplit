@@ -41,16 +41,24 @@ export interface ExpenseBreakdown {
 }
 
 export interface PaymentBreakdown {
+  id: string;
   from_user: string;
   to_user: string;
   amount_cents: number;
+  recorded_at: string;
+  description?: string;
+  payment_method?: string;
 }
 
 export interface SettlementBreakdown {
+  id: string;
   from_user: string;
   to_user: string;
   amount_cents: number;
   status: string;
+  created_at: string;
+  settled_at?: string;
+  note?: string;
 }
 
 export interface SettlementProgress {

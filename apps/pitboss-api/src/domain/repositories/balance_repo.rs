@@ -54,16 +54,26 @@ pub struct ExpenseBreakdownRow {
 #[derive(Debug, Clone, QueryableByName)]
 pub struct PaymentBreakdownRow {
     #[diesel(sql_type = DUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = DUuid)]
     pub from_user: Uuid,
     #[diesel(sql_type = DUuid)]
     pub to_user: Uuid,
     #[diesel(sql_type = Integer)]
     pub amount_cents: i32,
+    #[diesel(sql_type = Timestamptz)]
+    pub recorded_at: DateTime<Utc>,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub description: Option<String>,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub payment_method: Option<String>,
 }
 
 /// A settlement breakdown entry.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct SettlementBreakdownRow {
+    #[diesel(sql_type = DUuid)]
+    pub id: Uuid,
     #[diesel(sql_type = DUuid)]
     pub from_user: Uuid,
     #[diesel(sql_type = DUuid)]
@@ -72,6 +82,12 @@ pub struct SettlementBreakdownRow {
     pub amount_cents: i32,
     #[diesel(sql_type = Text)]
     pub status: String,
+    #[diesel(sql_type = Timestamptz)]
+    pub created_at: DateTime<Utc>,
+    #[diesel(sql_type = Nullable<Timestamptz>)]
+    pub settled_at: Option<DateTime<Utc>>,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub note: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -287,7 +303,7 @@ impl BalanceRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let sql = r#"
-            SELECT from_user, to_user, amount_cents
+            SELECT id, from_user, to_user, amount_cents, recorded_at, description, payment_method
             FROM app.payment
             WHERE event_id = $1 AND (from_user = $2 OR to_user = $2)
             ORDER BY recorded_at
@@ -311,7 +327,7 @@ impl BalanceRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let sql = r#"
-            SELECT from_user, to_user, amount_cents, status
+            SELECT id, from_user, to_user, amount_cents, status, created_at, settled_at, note
             FROM app.settlement
             WHERE event_id = $1 AND (from_user = $2 OR to_user = $2)
             ORDER BY created_at

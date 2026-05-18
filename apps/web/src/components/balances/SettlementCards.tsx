@@ -27,10 +27,12 @@ import {
   TrendingDown as OutgoingIcon,
   Pending as PendingIcon,
   CheckCircle as ConfirmIcon,
+  SwapHoriz as SettleIcon,
+  Payment as PaymentIcon,
 } from '@mui/icons-material';
 import { useUserCache, useUser } from '../../hooks/useUserCache';
 import { UserInfo } from '../../api/users.api';
-import { ExpenseBreakdown } from '../../api/balances.api';
+import { ExpenseBreakdown, SettlementBreakdown, PaymentBreakdown } from '../../api/balances.api';
 import { SettlementListItem } from '../../api/settlements.api';
 import { GroupMember } from '../../api/groups.api';
 import { RestoreHonorModal } from '../settlements/RestoreHonorModal';
@@ -56,6 +58,11 @@ export interface RelationshipSummary {
   userId: string;
   totalCents: number;
   expenses: ExpenseBreakdown[];
+  settlements: SettlementBreakdown[];
+  payments: PaymentBreakdown[];
+  rawExpenseCents: number;
+  rawSettlementCents: number;
+  rawPaymentCents: number;
   isIncoming: boolean; // true = they owe me, false = I owe them
 }
 
@@ -64,8 +71,8 @@ export interface RelationshipSummary {
 // ---------------------------------------------------------------------------
 
 interface SettlementCardsProps {
-  activeTab?: 'incoming' | 'outgoing' | 'requests';
-  onTabChange?: (tab: 'incoming' | 'outgoing' | 'requests') => void;
+  activeTab?: 'incoming' | 'outgoing' | 'requests' | 'history';
+  onTabChange?: (tab: 'incoming' | 'outgoing' | 'requests' | 'history') => void;
   relationships: RelationshipSummary[];
   currentUserId: string;
   currency: string;
@@ -73,6 +80,8 @@ interface SettlementCardsProps {
   settlementRequests: SettlementListItem[];
   onSettlementSuccess?: () => void;
   eventId: string;
+  settlements?: SettlementBreakdown[];
+  payments?: PaymentBreakdown[];
 }
 
 export function SettlementCards({
@@ -86,11 +95,11 @@ export function SettlementCards({
   onSettlementSuccess,
   eventId,
 }: SettlementCardsProps) {
-  const internalActiveTab = useState<'incoming' | 'outgoing' | 'requests'>('incoming');
+  const internalActiveTab = useState<'incoming' | 'outgoing' | 'requests' | 'history'>('incoming');
   const [internalTab, setInternalTab] = internalActiveTab;
 
   const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalTab;
-  const setActiveTab = (tab: 'incoming' | 'outgoing' | 'requests') => {
+  const setActiveTab = (tab: 'incoming' | 'outgoing' | 'requests' | 'history') => {
     if (controlledActiveTab !== undefined) {
       onTabChange?.(tab);
     } else {
@@ -403,19 +412,105 @@ export function SettlementCards({
                           },
                         }}
                       >
-                        {rel.expenses.map((exp, i) => (
-                          <ExpenseRow
-                            key={i}
-                            expense={exp}
-                            currency={currency}
-                            isIncoming={rel.isIncoming}
-                          />
-                        ))}
+                        {/* Expense transactions */}
+                        {rel.expenses.length > 0 && (
+                          <>
+                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                              Expenses
+                            </Typography>
+                            {rel.expenses.map((exp, i) => (
+                              <ExpenseRow
+                                key={i}
+                                expense={exp}
+                                currency={currency}
+                                isIncoming={rel.isIncoming}
+                              />
+                            ))}
+                          </>
+                        )}
+
+                        {/* Settlement transactions */}
+                        {rel.settlements.length > 0 && (
+                          <>
+                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mt: 1.5, mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                              Settlements
+                            </Typography>
+                            {rel.settlements.map((stl, i) => (
+                              <SettlementRow
+                                key={i}
+                                settlement={stl}
+                                currency={currency}
+                              />
+                            ))}
+                          </>
+                        )}
+
+                        {/* Payment transactions */}
+                        {rel.payments.length > 0 && (
+                          <>
+                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mt: 1.5, mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                              Payments
+                            </Typography>
+                            {rel.payments.map((pmt, i) => (
+                              <PaymentRow
+                                key={i}
+                                payment={pmt}
+                                currency={currency}
+                              />
+                            ))}
+                          </>
+                        )}
+
+                        {/* Net calculation summary */}
+                        {(rel.rawExpenseCents !== 0 || rel.rawSettlementCents !== 0 || rel.rawPaymentCents !== 0) && (
+                          <Box
+                            sx={{
+                              mt: 2,
+                              pt: 1.5,
+                              borderTop: `1px solid ${alpha('#fff', 0.1)}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 0.5,
+                            }}
+                          >
+                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                              Net Calculation
+                            </Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography variant="body2" color="text.secondary">
+                                Expenses
+                              </Typography>
+                              <Typography variant="body2" fontWeight={600}>
+                                {rel.rawExpenseCents >= 0 ? '+' : ''}{formatAmount(rel.rawExpenseCents, currency)}
+                              </Typography>
+                            </Box>
+                            {rel.rawSettlementCents !== 0 && (
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Settlements
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {rel.rawSettlementCents >= 0 ? '+' : ''}{formatAmount(rel.rawSettlementCents, currency)}
+                                </Typography>
+                              </Box>
+                            )}
+                            {rel.rawPaymentCents !== 0 && (
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Payments
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {rel.rawPaymentCents >= 0 ? '+' : ''}{formatAmount(rel.rawPaymentCents, currency)}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
 
                         {/* Total row */}
                         <Box
                           sx={{
-                            mt: 2,
+                            mt: 1.5,
                             pt: 1.5,
                             borderTop: `1px solid ${alpha('#fff', 0.1)}`,
                             display: 'flex',
@@ -424,7 +519,7 @@ export function SettlementCards({
                           }}
                         >
                           <Typography variant="body2" fontWeight={700} color="text.secondary">
-                            Total:
+                            Net Total:
                           </Typography>
                           <Typography
                             variant="body1"
@@ -433,7 +528,7 @@ export function SettlementCards({
                               color: rel.isIncoming ? 'primary.main' : 'error.main',
                             }}
                           >
-                            {formatAmount(rel.totalCents, currency)}
+                            {rel.isIncoming ? '+' : '-'}{formatAmount(rel.totalCents, currency)}
                           </Typography>
                         </Box>
 
@@ -634,6 +729,138 @@ function ExpenseRow({
         </Typography>
         <Typography variant="caption" color="text.secondary">
           share
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Settlement Row
+// ---------------------------------------------------------------------------
+
+function SettlementRow({
+  settlement,
+  currency,
+}: {
+  settlement: SettlementBreakdown;
+  currency: string;
+}) {
+  const createdDate = new Date(settlement.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        py: 1.5,
+      }}
+    >
+      <Box
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          bgcolor: alpha('#10b981', 0.15),
+          color: '#10b981',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <SettleIcon sx={{ fontSize: 14 }} />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+            {settlement.note || 'Settlement'}
+          </Typography>
+        </Box>
+        <Typography variant="caption" color="text.secondary">
+          {createdDate} • {settlement.status}
+        </Typography>
+      </Box>
+      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+        <Typography
+          variant="body2"
+          fontWeight={700}
+          sx={{ color: '#10b981' }}
+        >
+          {formatAmount(settlement.amount_cents, currency)}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          settled
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Payment Row
+// ---------------------------------------------------------------------------
+
+function PaymentRow({
+  payment,
+  currency,
+}: {
+  payment: PaymentBreakdown;
+  currency: string;
+}) {
+  const recordedDate = new Date(payment.recorded_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        py: 1.5,
+      }}
+    >
+      <Box
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          bgcolor: alpha('#8b5cf6', 0.15),
+          color: '#8b5cf6',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <PaymentIcon sx={{ fontSize: 14 }} />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+            {payment.description || 'Payment'}
+          </Typography>
+        </Box>
+        <Typography variant="caption" color="text.secondary">
+          {recordedDate}
+        </Typography>
+      </Box>
+      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+        <Typography
+          variant="body2"
+          fontWeight={700}
+          sx={{ color: '#8b5cf6' }}
+        >
+          {formatAmount(payment.amount_cents, currency)}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          paid
         </Typography>
       </Box>
     </Box>
