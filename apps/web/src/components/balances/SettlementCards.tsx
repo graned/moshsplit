@@ -220,6 +220,15 @@ export function SettlementCards({
             total={requestsToConfirm.reduce((sum, r) => sum + r.amount_cents, 0)}
             currency={currency}
           />
+          <TabButton
+            active={activeTab === 'history'}
+            onClick={() => setActiveTab('history')}
+            icon={<SettleIcon sx={{ fontSize: 16 }} />}
+            label="History"
+            count={relationships.reduce((sum, r) => sum + r.settlements.length + r.payments.length, 0)}
+            total={0}
+            currency={currency}
+          />
         </Box>
       )}
 
@@ -271,8 +280,18 @@ export function SettlementCards({
         </>
       )}
 
+      {/* History tab content */}
+      {activeTab === 'history' && (
+        <TransactionHistory
+          relationships={relationships}
+          currency={currency}
+          userMap={userMap}
+          currentUserId={currentUserId}
+        />
+      )}
+
       {/* Incoming/Outgoing tab content */}
-      {activeTab !== 'requests' && (
+      {activeTab !== 'requests' && activeTab !== 'history' && (
         <>
           {displayList.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -968,6 +987,261 @@ function SettlementRequestCard({
           Review
         </Button>
       )}
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Transaction History Component
+// ---------------------------------------------------------------------------
+
+interface TransactionItem {
+  id: string;
+  type: 'settlement' | 'payment';
+  date: Date;
+  amountCents: number;
+  counterpartyUserId: string;
+  counterpartyName: string;
+  counterpartyInitial: string;
+  note?: string;
+  status?: string;
+  isOutgoing: boolean;
+}
+
+function TransactionHistory({
+  relationships,
+  currency,
+  userMap,
+  currentUserId,
+}: {
+  relationships: RelationshipSummary[];
+  currency: string;
+  userMap: Map<string, UserInfo>;
+  currentUserId: string;
+}) {
+  const getMemberNameFromMap = (userId: string): string => {
+    const user = userMap.get(userId);
+    if (user) {
+      const fullName = `${user.firstName} ${user.lastName}`.trim();
+      return fullName || user.email || userId.slice(0, 8);
+    }
+    return userId.slice(0, 8);
+  };
+
+  // Flatten all settlements and payments from all relationships
+  const transactions = useMemo(() => {
+    const items: TransactionItem[] = [];
+
+    for (const rel of relationships) {
+      const counterpartyName = getMemberNameFromMap(rel.userId);
+      const counterpartyInitial = counterpartyName.charAt(0).toUpperCase();
+
+      // Add settlements
+      for (const settlement of rel.settlements) {
+        const isOutgoing = settlement.from_user === currentUserId;
+        items.push({
+          id: `settlement-${settlement.id}`,
+          type: 'settlement',
+          date: new Date(settlement.created_at),
+          amountCents: settlement.amount_cents,
+          counterpartyUserId: rel.userId,
+          counterpartyName,
+          counterpartyInitial,
+          note: settlement.note || undefined,
+          status: settlement.status,
+          isOutgoing,
+        });
+      }
+
+      // Add payments
+      for (const payment of rel.payments) {
+        const isOutgoing = payment.from_user === currentUserId;
+        items.push({
+          id: `payment-${payment.id}`,
+          type: 'payment',
+          date: new Date(payment.recorded_at),
+          amountCents: payment.amount_cents,
+          counterpartyUserId: rel.userId,
+          counterpartyName,
+          counterpartyInitial,
+          note: payment.description || undefined,
+          isOutgoing,
+        });
+      }
+    }
+
+    // Sort by date (newest first)
+    return items.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [relationships, currentUserId, userMap, getMemberNameFromMap]);
+
+  if (transactions.length === 0) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+        <Typography variant="body1" color="text.secondary">
+          No transaction history yet.
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Group transactions by date
+  const groupedTransactions = new Map<string, TransactionItem[]>();
+  for (const tx of transactions) {
+    const dateKey = tx.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const existing = groupedTransactions.get(dateKey) || [];
+    existing.push(tx);
+    groupedTransactions.set(dateKey, existing);
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {Array.from(groupedTransactions.entries()).map(([dateKey, dayTransactions]) => (
+        <Box key={dateKey}>
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            color="text.secondary"
+            sx={{ display: 'block', mb: 1, mt: 2, letterSpacing: '0.05em', textTransform: 'uppercase' }}
+          >
+            {dateKey}
+          </Typography>
+          {dayTransactions.map((tx) => {
+            const timeStr = tx.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            return (
+              <TransactionHistoryRow
+                key={tx.id}
+                type={tx.type}
+                counterpartyName={tx.counterpartyName}
+                counterpartyInitial={tx.counterpartyInitial}
+                amountCents={tx.amountCents}
+                currency={currency}
+                timeStr={timeStr}
+                note={tx.note}
+                status={tx.status}
+                isOutgoing={tx.isOutgoing}
+              />
+            );
+          })}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Transaction History Row
+// ---------------------------------------------------------------------------
+
+function TransactionHistoryRow({
+  type,
+  counterpartyName,
+  counterpartyInitial,
+  amountCents,
+  currency,
+  timeStr,
+  note,
+  status,
+  isOutgoing,
+}: {
+  type: 'settlement' | 'payment';
+  counterpartyName: string;
+  counterpartyInitial: string;
+  amountCents: number;
+  currency: string;
+  timeStr: string;
+  note?: string;
+  status?: string;
+  isOutgoing: boolean;
+}) {
+  const isSettlement = type === 'settlement';
+  const icon = isSettlement ? <SettleIcon sx={{ fontSize: 14 }} /> : <PaymentIcon sx={{ fontSize: 14 }} />;
+  const iconBgColor = isSettlement ? alpha('#10b981', 0.15) : alpha('#8b5cf6', 0.15);
+  const iconColor = isSettlement ? '#10b981' : '#8b5cf6';
+  const amountColor = isOutgoing ? 'error.main' : 'primary.main';
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        p: 1.5,
+        borderRadius: 2,
+        border: `1px solid ${alpha('#fff', 0.08)}`,
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          bgcolor: iconBgColor,
+          color: iconColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Avatar
+        sx={{
+          width: 36,
+          height: 36,
+          bgcolor: alpha(isOutgoing ? 'error.main' : 'primary.main', 0.15),
+          color: isOutgoing ? 'error.main' : 'primary.main',
+          fontWeight: 600,
+          fontSize: '0.85rem',
+          flexShrink: 0,
+        }}
+      >
+        {counterpartyInitial}
+      </Avatar>
+
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+          {isSettlement ? (isOutgoing ? `Paid to ${counterpartyName}` : `Received from ${counterpartyName}`) : (isOutgoing ? `Payment to ${counterpartyName}` : `Payment from ${counterpartyName}`)}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            {timeStr}
+          </Typography>
+          {status && status !== 'confirmed' && (
+            <Chip
+              label={status}
+              size="small"
+              sx={{
+                height: 16,
+                fontSize: '0.6rem',
+                fontWeight: 600,
+                bgcolor: status === 'pending' ? alpha('#F59E0B', 0.15) : alpha('#6b7280', 0.15),
+                color: status === 'pending' ? '#F59E0B' : '#6b7280',
+              }}
+            />
+          )}
+          {note && (
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 150 }}>
+              • {note}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+
+      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+        <Typography
+          variant="body2"
+          fontWeight={700}
+          sx={{ color: amountColor }}
+        >
+          {isOutgoing ? '-' : '+'}{formatAmount(amountCents, currency)}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {isSettlement ? 'settled' : 'paid'}
+        </Typography>
+      </Box>
     </Box>
   );
 }

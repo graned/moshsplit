@@ -442,6 +442,7 @@ export default function MobileSettlePage() {
             { value: 'incoming', label: 'Incoming', count: relationships.filter((r) => r.isIncoming).length },
             { value: 'outgoing', label: 'Outgoing', count: relationships.filter((r) => !r.isIncoming).length },
             { value: 'requests', label: 'Requests', count: pendingRequests.length },
+            { value: 'history', label: 'History', count: relationships.reduce((sum, r) => sum + r.settlements.length + r.payments.length, 0) },
           ].map((filter) => {
             const isSelected = activeTabFilter === filter.value;
             return (
