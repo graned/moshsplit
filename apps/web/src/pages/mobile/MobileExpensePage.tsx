@@ -253,6 +253,7 @@ export default function MobileExpensePage() {
           userMap={userMap}
           members={members}
           expenseType={selectedType}
+          filterForCurrentUser={true}
         />
       </Box>
 

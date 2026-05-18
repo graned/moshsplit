@@ -18,6 +18,8 @@ interface ExpenseFeedProps {
   emptyState?: React.ReactNode;
   className?: string;
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  /** When true, filters to show only expenses where user is the payer or a participant */
+  filterForCurrentUser?: boolean;
 }
 
 export function ExpenseFeed({
@@ -31,6 +33,7 @@ export function ExpenseFeed({
   emptyState,
   className,
   scrollContainerRef,
+  filterForCurrentUser = false,
 }: ExpenseFeedProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useInfiniteExpenses({
     eventId,
@@ -40,6 +43,15 @@ export function ExpenseFeed({
   });
 
   const expenses = data?.pages.flatMap((p) => p.data) ?? [];
+
+  // Filter to show only expenses where the user is the payer or a participant
+  const filteredExpenses = filterForCurrentUser
+    ? expenses.filter((expense) => {
+        const isPayer = expense.paid_by === userId;
+        const isParticipant = expense.participant_ids?.includes(userId);
+        return isPayer || isParticipant;
+      })
+    : expenses;
 
   const [selectedExpense, setSelectedExpense] = useState<ExpenseListItem | null>(null);
 
@@ -84,11 +96,11 @@ export function ExpenseFeed({
     );
   }
 
-  if (expenses.length === 0) {
+  if (filteredExpenses.length === 0) {
     return (
       emptyState ?? (
         <Typography sx={{ p: 3, textAlign: 'center' }} color="text.secondary">
-          No expenses yet
+          {filterForCurrentUser ? 'No expenses involving you yet' : 'No expenses yet'}
         </Typography>
       )
     );
@@ -96,7 +108,7 @@ export function ExpenseFeed({
 
   return (
     <Box className={className} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      {expenses.map((expense) => {
+      {filteredExpenses.map((expense) => {
         const paidBy = getUser(expense.paid_by);
         const participantUsers = (expense.participant_ids ?? [])
           .map(getUser)

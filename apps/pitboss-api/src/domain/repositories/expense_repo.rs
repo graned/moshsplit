@@ -96,6 +96,7 @@ impl ExpenseListItemRow {
 impl ExpenseRepository {
     /// List expenses for an event with cursor-based pagination.
     /// Optionally includes soft-deleted expenses when `include_deleted` is true.
+    /// Optionally filters by user_id (shows expenses where user is payer or participant).
     /// Returns `(rows, has_more)`.
     pub fn list_by_event_id_paginated(
         &self,
@@ -104,6 +105,7 @@ impl ExpenseRepository {
         limit: i64,
         include_deleted: bool,
         expense_type: Option<&str>,
+        user_id: Option<Uuid>,
     ) -> Result<(Vec<ExpenseListItem>, bool), RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
         let fetch_limit = std::cmp::min(limit, 100) + 1;
@@ -134,8 +136,11 @@ impl ExpenseRepository {
               AND ($2 OR e.deleted_at IS NULL)
               AND ($3::timestamptz IS NULL OR e.created_at < $3)
               AND ($4::TEXT IS NULL OR ev.expense_type::TEXT = $4)
+              AND ($5::UUID IS NULL OR ev.paid_by = $5 OR $5 = ANY(
+                  SELECT sh.user_id FROM app.expense_version_share sh WHERE sh.expense_version_id = e.current_version_id
+              ))
             ORDER BY e.created_at DESC
-            LIMIT $5
+            LIMIT $6
         "#;
 
         let cursor_ts: Option<DateTime<chrono::Utc>> = cursor
@@ -147,6 +152,7 @@ impl ExpenseRepository {
             .bind::<diesel::sql_types::Bool, _>(include_deleted)
             .bind::<Nullable<Timestamptz>, _>(cursor_ts)
             .bind::<Nullable<Text>, _>(expense_type)
+            .bind::<Nullable<DUuid>, _>(user_id)
             .bind::<Integer, _>(fetch_limit as i32)
             .load(&mut conn)
             .map_err(RepositoryError::from)?;

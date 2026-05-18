@@ -400,6 +400,7 @@ impl ExpenseService {
         limit: i64,
         include_deleted: bool,
         expense_type: Option<&str>,
+        user_id: Option<Uuid>,
     ) -> Result<(Vec<ExpenseListItem>, bool, Option<String>), ServiceError> {
         self.event_repo
             .find_by_id(event_id)?
@@ -407,7 +408,7 @@ impl ExpenseService {
 
         let (rows, has_more) = self
             .expense_repo
-            .list_by_event_id_paginated(event_id, cursor, limit, include_deleted, expense_type)?;
+            .list_by_event_id_paginated(event_id, cursor, limit, include_deleted, expense_type, user_id)?;
 
         let items: Vec<ExpenseListItem> = rows
             .into_iter()
