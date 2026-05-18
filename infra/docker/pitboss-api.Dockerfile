@@ -6,65 +6,32 @@
 #              `prod` for production (optimised release build on slim runtime).
 
 # ── Dev stage ────────────────────────────────────────────────────────────────
-FROM rust:latest AS dev
+FROM rust:1.91-slim AS dev
 
 WORKDIR /app
 
 # Install hot-reload utility
 RUN cargo install cargo-watch
 
-# ── Dependency caching ───────────────────────────────────────────────────────
-# Copy manifest files first so Docker can cache dependency layers.
-COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
-
-# Copy packages first so path dependencies resolve during initial build.
-COPY packages/ /app/packages/
-
-# Create a dummy main.rs so `cargo build` can resolve and cache dependencies.
-# This layer is reused unless Cargo.toml / Cargo.lock changes.
-RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
-RUN cargo build --release 2>/dev/null || true
-
-# Copy migrations so SQLx can find and apply them.
-COPY apps/pitboss-api/migrations/ /app/migrations/
-
-# Copy real source (overrides dummy main.rs). In dev the src/ directory
-# is typically mounted as a volume for live editing; this COPY is the
-# fallback so the image is self-contained.
-COPY apps/pitboss-api/src/ /app/src/
+# Copy entire workspace
+COPY . .
 
 EXPOSE 8080
 
 # `cargo watch` polls the filesystem and re-runs on every change.
-CMD ["cargo", "watch", "-x", "run"]
+CMD ["cargo", "watch", "-x", "run", "--manifest-path", "apps/pitboss-api/Cargo.toml"]
 
 
 # ── Production builder ───────────────────────────────────────────────────────
-FROM rust:latest AS builder
+FROM rust:1.91-slim AS builder
 
 WORKDIR /app
 
-# ── Dependency caching ───────────────────────────────────────────────────────
-# Copy manifest files first so Docker can cache dependency layers.
-COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
-
-# Copy packages first so path dependencies resolve during initial build.
-COPY packages/ /app/packages/
-
-# Create a dummy main.rs so `cargo build` can resolve and cache dependencies.
-# This layer is reused unless Cargo.toml / Cargo.lock changes.
-RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
-RUN cargo build --release 2>/dev/null || true
-
-# Copy migrations for the release build too.
-COPY apps/pitboss-api/migrations/ /app/migrations/
-
-# Copy the full source (excluding Cargo.toml which is already at /app/).
-# Use specific paths to avoid overwriting packages/ directory.
-COPY apps/pitboss-api/src/ /app/src/
+# Copy entire workspace
+COPY . .
 
 # Build the release binary with locked dependencies.
-RUN cargo build --release --locked
+RUN cargo build --release --manifest-path apps/pitboss-api/Cargo.toml
 
 
 # ── Production runtime ───────────────────────────────────────────────────────
