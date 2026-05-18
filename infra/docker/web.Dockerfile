@@ -59,10 +59,22 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Copy root workspace files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc /app/
+
+# Copy all package manifests for workspace resolution
 COPY apps/web/package.json /app/apps/web/
+COPY packages/sentinel-sdk/package.json /app/packages/sentinel-sdk/
+COPY packages/sentinel-auth-react/package.json /app/packages/sentinel-auth-react/
+
+# Install dependencies (workspace-aware)
 RUN pnpm install --frozen-lockfile
 
+# Copy package sources (needed for TypeScript build)
+COPY packages/sentinel-sdk/ /app/packages/sentinel-sdk/
+COPY packages/sentinel-auth-react/ /app/packages/sentinel-auth-react/
+
+# Copy web app source
 COPY apps/web/ /app/apps/web/
 
 # Environment variables for production build - these will be baked into the bundle
@@ -71,6 +83,11 @@ ARG VITE_SENTINEL_URL=http://sentinel:8000
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 ENV VITE_SENTINEL_URL=${VITE_SENTINEL_URL}
 
+# Build packages first (TypeScript -> JS)
+RUN pnpm --filter @moshsplit/sentinel-sdk build
+RUN pnpm --filter @moshsplit/auth-react build
+
+# Build web app
 RUN pnpm --filter web build
 
 

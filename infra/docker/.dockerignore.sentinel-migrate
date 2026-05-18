@@ -1,0 +1,67 @@
+# ── sentinel-migrate Dockerfile specific ignores ─────────────────────────────
+
+# All apps (not needed for migrations)
+apps/
+
+# All packages (not needed for migrations)
+packages/
+
+# Rust build artifacts
+target/
+**/target/
+
+# Node dependencies
+node_modules/
+.pnpm-store/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.npmrc
+
+# Documentation
+**/*.md
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# Vendor
+vendor/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# CI / local config
+.github/
+.docker/
+
+# Other Docker files
+infra/docker/pitboss-api.Dockerfile
+infra/docker/web.Dockerfile
+infra/docker/sentinel-ui-nginx.conf
+
+# Compose files
+infra/compose/
+
+# Scripts
+scripts/
+
+# Pulumi
+infra/pulumi/

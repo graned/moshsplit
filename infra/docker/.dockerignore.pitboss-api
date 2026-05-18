@@ -1,0 +1,71 @@
+# ── pitboss-api Dockerfile specific ignores ──────────────────────────────────
+
+# Dependencies (will be built in container)
+node_modules/
+.pnpm-store/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.npmrc
+
+# Frontend apps (not needed for backend build)
+apps/web/
+apps/sentinel-ui/
+
+# Other packages not needed
+packages/sentinel-sdk/
+packages/sentinel-auth-react/
+packages/external-integration/
+
+# Rust build artifacts (fresh build in CI)
+apps/pitboss-api/target/
+target/
+
+# Documentation
+**/*.md
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# Vendor
+vendor/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# CI / local config
+.github/
+.docker/
+
+# Other Docker files
+infra/docker/web.Dockerfile
+infra/docker/sentinel-migrate.Dockerfile
+infra/docker/sentinel-ui-nginx.conf
+
+# Compose files
+infra/compose/
+
+# Scripts
+scripts/
+apps/pitboss-api/scripts/
+
+# Pulumi
+infra/pulumi/

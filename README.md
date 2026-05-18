@@ -58,6 +58,10 @@ This starts:
 
 For production: `docker compose -f infra/compose/prod.yml up` (requires `.env` file, see below).
 
+For production with pre-built images from GitHub Container Registry: `docker compose -f infra/compose/prod-ghcr.yml up`.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment instructions, CI/CD setup, and production configuration.
+
 ---
 
 ## Project Structure
@@ -389,6 +393,35 @@ chore:    maintenance tasks
 ### Decisions
 
 - [ADR Index](docs/decisions/README.md) — ADR catalog with template and pending decisions
+
+---
+
+## CI/CD
+
+MoshSplit uses GitHub Actions for automated Docker builds. When a version tag is pushed (e.g., `v1.2.3`), images are automatically built and pushed to GitHub Container Registry.
+
+### Trigger a Release Build
+
+```bash
+# 1. Update versions in Cargo.toml and package.json
+# 2. Commit changes
+git add .
+git commit -m "Release v1.2.3"
+
+# 3. Create and push tag
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+### Available Images
+
+| Image | Description |
+|-------|-------------|
+| `ghcr.io/moshsplit/moshsplit/pitboss-api` | Rust backend API |
+| `ghcr.io/moshsplit/moshsplit/web` | React frontend |
+| `ghcr.io/moshsplit/moshsplit/sentinel-migrate` | Database migrations |
+
+For complete CI/CD and deployment documentation, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 

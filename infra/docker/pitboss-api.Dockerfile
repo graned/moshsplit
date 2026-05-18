@@ -44,17 +44,27 @@ FROM rust:latest AS builder
 
 WORKDIR /app
 
-# Same dependency-caching pattern as the dev stage.
+# ── Dependency caching ───────────────────────────────────────────────────────
+# Copy manifest files first so Docker can cache dependency layers.
 COPY apps/pitboss-api/Cargo.toml apps/pitboss-api/Cargo.lock* /app/
+
+# Copy packages first so path dependencies resolve during initial build.
 COPY packages/ /app/packages/
+
+# Create a dummy main.rs so `cargo build` can resolve and cache dependencies.
+# This layer is reused unless Cargo.toml / Cargo.lock changes.
 RUN mkdir -p /app/src && echo "fn main() {}" > /app/src/main.rs
 RUN cargo build --release 2>/dev/null || true
 
 # Copy migrations for the release build too.
 COPY apps/pitboss-api/migrations/ /app/migrations/
 
-# Copy the full source and build the release binary.
-COPY apps/pitboss-api/ /app/
+# Copy the full source (excluding Cargo.toml which is already at /app/).
+# Use specific paths to avoid overwriting packages/ directory.
+COPY apps/pitboss-api/src/ /app/src/
+COPY apps/pitboss-api/build.rs* /app/ 2>/dev/null || true
+
+# Build the release binary with locked dependencies.
 RUN cargo build --release --locked
 
 

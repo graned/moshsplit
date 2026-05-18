@@ -1,0 +1,69 @@
+# ── web Dockerfile specific ignores ──────────────────────────────────────────
+
+# Rust/Backend apps (not needed for frontend build)
+apps/pitboss-api/
+
+# Packages not needed for web
+packages/sentinel-client/
+packages/external-integration/
+
+# Rust build artifacts
+target/
+**/target/
+Cargo.lock
+Cargo.toml
+diesel.toml
+
+# Documentation
+**/*.md
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output (will be created fresh)
+apps/web/dist/
+apps/web/dist-types/
+apps/web/tsconfig.tsbuildinfo
+
+# Vendor
+vendor/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# CI / local config
+.github/
+.docker/
+
+# Other Docker files
+infra/docker/pitboss-api.Dockerfile
+infra/docker/sentinel-migrate.Dockerfile
+infra/docker/sentinel-ui-nginx.conf
+
+# Compose files
+infra/compose/
+
+# Scripts
+scripts/
+
+# Pulumi
+infra/pulumi/
+
+# Test files (optional, uncomment to exclude)
+# apps/web/src/**/*.test.ts
+# apps/web/src/**/*.test.tsx

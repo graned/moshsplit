@@ -1,0 +1,161 @@
+# MoshSplit — Production Docker Compose (GHCR Images)
+# ====================================================
+# This compose file uses pre-built images from GitHub Container Registry.
+# Images are automatically built and pushed when tags are pushed to GitHub.
+#
+# Usage:
+#   1. Create .env file with required variables (see .env.example)
+#   2. docker compose -f infra/compose/prod-ghcr.yml up -d
+#
+# Images:
+#   - ghcr.io/<owner>/moshsplit/pitboss-api:<tag>
+#   - ghcr.io/<owner>/moshsplit/web:<tag>
+#   - ghcr.io/<owner>/moshsplit/sentinel-migrate:<tag>
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-moshsplit}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── pitboss-api (Rust / Axum) ──────────────────────────────────────────────
+  pitboss-api:
+    # Use the latest tagged image or specify a version:
+    image: ghcr.io/moshsplit/moshsplit/pitboss-api:${MOSHSPLIT_VERSION:-latest}
+    # For local testing with built images, uncomment:
+    # build:
+    #   context: ../../
+    #   dockerfile: infra/docker/pitboss-api.Dockerfile
+    #   target: prod
+    ports:
+      - "${PITBOSS_API_PORT:-8080}:8080"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      PGOPTIONS: "-c search_path=app"
+      RUST_LOG: ${RUST_LOG:-info}
+      SENTINEL_URL: http://sentinel:8000
+      SENTINEL_PUBLIC_KEY: ${SENTINEL_PUBLIC_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:80,http://localhost:5173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      sentinel:
+        condition: service_started
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Sentinel migrations (runs before Sentinel, creates tables in 'auth' schema) ─
+  sentinel-migrations:
+    # Use the latest tagged image or specify a version:
+    image: ghcr.io/moshsplit/moshsplit/sentinel-migrate:${MOSHSPLIT_VERSION:-latest}
+    # For local testing with built images, uncomment:
+    # build:
+    #   context: ../../
+    #   dockerfile: infra/docker/sentinel-migrate.Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      SENTINEL_VERSION: ${SENTINEL_VERSION:-v1.1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+    restart: "no"
+
+  # ── Sentinel (auth service) ───────────────────────────────────────────────
+  sentinel:
+    image: ghcr.io/graned/sentinel-core:v1.1.0
+    ports:
+      - "${SENTINEL_PORT:-9000}:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      PGOPTIONS: "-c search_path=auth"
+      HEX_KEY: ${HEX_KEY:?HEX_KEY is required}
+      CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:?CONFIG_ENCRYPTION_KEY is required}
+      RUST_LOG: ${RUST_LOG:-info}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-http://localhost:9000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:80}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:80,http://localhost:5173}
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8000"
+    depends_on:
+      sentinel-migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/v1/api/system/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Sentinel UI (management dashboard) ─────────────────────────────────────
+  sentinel-ui:
+    image: ghcr.io/graned/sentinel-ui:v1.1.0
+    ports:
+      - "${SENTINEL_UI_PORT:-3000}:80"
+    volumes:
+      - ../../infra/docker/sentinel-ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      API_URL: ${SENTINEL_URL:-http://localhost:9000}
+    depends_on:
+      sentinel:
+        condition: service_started
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  # ── Web (React PWA) ─────────────────────────────────────────────────────────
+  web:
+    # Use the latest tagged image or specify a version:
+    image: ghcr.io/moshsplit/moshsplit/web:${MOSHSPLIT_VERSION:-latest}
+    # For local testing with built images, uncomment:
+    # build:
+    #   context: ../../
+    #   dockerfile: infra/docker/web.Dockerfile
+    #   target: prod
+    ports:
+      - "${WEB_PORT:-80}:80"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://pitboss-api:8080}
+      VITE_SENTINEL_URL: ${VITE_SENTINEL_URL:-http://sentinel:8000}
+    depends_on:
+      - pitboss-api
+    networks:
+      - app-net
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
+networks:
+  app-net:
+    driver: bridge
