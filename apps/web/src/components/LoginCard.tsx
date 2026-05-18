@@ -3,13 +3,13 @@ import { Card, CardContent, Button, Box, CircularProgress, TextField, Typography
 import { AuthHeroLogo } from './AuthHeroLogo';
 import { LoginForm } from './LoginForm';
 import { InvitationOnlyNotice } from './InvitationOnlyNotice';
-import { useTranslation } from 'react-i18next';
 import type { LoginCredentials } from '../pages/auth/types';
 import { authApi } from '../api/auth.api';
 import { groupsApi } from '../api/groups.api';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
 import { useNavigate } from 'react-router';
+import { useDevice } from '../providers/DeviceProvider';
 
 // Store return URL before navigating to login (used for post-login redirect)
 const RETURN_TO_KEY = 'moshsplit_return_to';
@@ -36,7 +36,7 @@ interface LoginCardProps {
 const DEFAULT_EMAIL = 'anayamaster@gmail.com';
 
 export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
-  const { t } = useTranslation();
+  const { isMobile } = useDevice();
   const [externalLoading, setExternalLoading] = useState(false);
   const [externalError, setExternalError] = useState<string | null>(null);
   const [devEmail, setDevEmail] = useState('');
@@ -99,7 +99,12 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       try {
         const eventsResult = await groupsApi.list(exchangeResult.user_id, undefined, 1);
         if (eventsResult.data.length > 0) {
-          window.location.href = `/app/events/${eventsResult.data[0].id}/feed`;
+          const eventId = eventsResult.data[0].id;
+          if (isMobile) {
+            window.location.href = `/app/${eventId}/log`;
+          } else {
+            window.location.href = `/app/events/${eventId}/feed`;
+          }
         }
       } catch (error) {
         console.error('[ExternalLogin] Failed to fetch event', error);
@@ -147,7 +152,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
           p: { xs: 3, sm: 4 },
         }}
       >
-        <AuthHeroLogo title={t('auth.login.title')} subtitle={t('auth.login.tagline')} />
+        <AuthHeroLogo title="Join the Pit" subtitle="Sign in to split the chaos" />
 
         <LoginForm onSubmit={onSubmit} isLoading={isLoading} error={error} />
 
