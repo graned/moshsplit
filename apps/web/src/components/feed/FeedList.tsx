@@ -8,7 +8,7 @@ import { ExpenseFeedCard } from './ExpenseFeedCard';
 import { SettlementFeedCard } from './SettlementFeedCard';
 import { HonorRestoredFeedCard } from './HonorRestoredFeedCard';
 import { MemberJoinCard } from './MemberJoinCard';
-import { MobileCardList } from '../mobile';
+import { MobileCardList } from '../shared/lists/MobileCardList';
 
 interface FeedListProps {
   eventId: string;

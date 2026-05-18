@@ -1,5 +1,5 @@
 import { Box, Typography, Skeleton, alpha, useTheme } from '@mui/material';
-import { GlassCard } from '../ui/GlassCard';
+import { GlassCard } from '../shared/cards/GlassCard';
 import { Group } from '../../api/groups.api';
 import { EventStats } from '../../api/balances.api';
 

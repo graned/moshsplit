@@ -25,8 +25,8 @@ import transportIcon from '../../../assets/transport-icon.png';
 import campingIcon from '../../../assets/camping-icon.png';
 import merchIcon from '../../../assets/merch-icon.png';
 
-import { Stepper, StepDefinition } from './Stepper';
-import { ParticipantSearch } from './ParticipantSearch';
+import { Stepper, StepDefinition } from '../shared/forms/Stepper';
+import { ParticipantSearch } from '../shared/forms/ParticipantSearch';
 import { CreateExpenseRequest } from '../../api/expenses.api';
 import { GroupMember } from '../../api/groups.api';
 

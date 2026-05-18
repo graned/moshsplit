@@ -6,7 +6,7 @@ import { IntelLog } from './IntelLog';
 import { UserInfo } from '../../api/users.api';
 import { ExpenseListItem } from '../../api/expenses.api';
 import { GroupMember } from '../../api/groups.api';
-import { MobileCardList } from '../mobile';
+import { MobileCardList } from '../shared/lists/MobileCardList';
 
 interface ExpenseFeedProps {
   eventId: string;

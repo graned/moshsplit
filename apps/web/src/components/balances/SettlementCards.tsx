@@ -35,7 +35,7 @@ import { SettlementListItem } from '../../api/settlements.api';
 import { GroupMember } from '../../api/groups.api';
 import { RestoreHonorModal } from '../settlements/RestoreHonorModal';
 import { SettlementReviewPanel } from '../settlements/SettlementReviewPanel';
-import { MobileCard } from '../mobile';
+import { MobileCard } from '../shared/cards/MobileCard';
 
 const EXPENSE_ICONS: Record<string, React.ReactNode> = {
   beer: <BeerIcon sx={{ fontSize: 14 }} />,
