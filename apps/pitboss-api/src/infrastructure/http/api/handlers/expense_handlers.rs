@@ -31,7 +31,7 @@ use crate::services::expense_service::ExpenseService;
         ("limit" = Option<i64>, Query, description = "Max results (default 20, max 100)"),
         ("include_deleted" = Option<bool>, Query, description = "Include soft-deleted expenses"),
         ("expense_type" = Option<String>, Query, description = "Filter by expense category"),
-        ("user_id" = Option<Uuid>, Query, description = "Filter to show only expenses where user is payer or participant"),
+        ("user_id" = Option<Uuid>, Query, description = "Filter to show only expenses paid by the user"),
     ),
     responses(
         (status = 200, description = "Paginated list of expenses", body = PaginatedResponse<ExpenseListItem>),

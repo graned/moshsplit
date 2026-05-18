@@ -50,7 +50,7 @@ pub struct ListExpensesParams {
     pub include_deleted: Option<bool>,
     /// Filter by expense category (food, beer, gas, transport, merch, camping).
     pub expense_type: Option<String>,
-    /// Filter to show only expenses where the user is the payer or a participant.
+    /// Filter to show only expenses paid by the user (War Chest).
     pub user_id: Option<Uuid>,
 }
 

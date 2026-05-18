@@ -407,3 +407,66 @@ async fn test_list_expenses_pagination() {
     let items = body2["data"]["items"].as_array().unwrap();
     assert!(items.len() <= 2, "limit param should restrict results");
 }
+
+#[tokio::test]
+async fn test_list_expenses_filters_by_user_id_payer_only() {
+    // Create event with 2 members
+    let fix = TestFixture::new(&unique_name("exp-user-filter")).await;
+    let payer = fix.members[0].clone();
+    let other_member = fix.members[1].clone();
+
+    // Create expense paid by member[0]
+    post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Paid by member 0",
+            "amount_cents": 1000,
+            "paid_by": payer,
+            "split_type": "equal",
+            "split_data": {"shares": fix.members.clone()}
+        }),
+    )
+    .await;
+
+    // Create another expense also paid by member[0]
+    post_json(
+        &format!("/v1/events/{}/expenses", fix.event_id),
+        &json!({
+            "title": "Also paid by member 0",
+            "amount_cents": 2000,
+            "paid_by": payer,
+            "split_type": "equal",
+            "split_data": {"shares": fix.members.clone()}
+        }),
+    )
+    .await;
+
+    // Filter by payer (member[0]) - should return 2 expenses
+    let (status, body) = get_json(&format!(
+        "/v1/events/{}/expenses?user_id={}",
+        fix.event_id, payer
+    ))
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_valid_envelope(&body, true);
+    let items = body["data"]["items"].as_array().unwrap();
+    assert_eq!(items.len(), 2, "should return expenses paid by the user");
+
+    // Verify all returned expenses have paid_by = user_id
+    for item in items {
+        let paid_by = item["paid_by"].as_str().unwrap();
+        assert_eq!(paid_by, payer, "returned expense should be paid by the filtered user");
+    }
+
+    // Filter by non-payer member - should return 0 expenses
+    let (status2, body2) = get_json(&format!(
+        "/v1/events/{}/expenses?user_id={}",
+        fix.event_id, other_member
+    ))
+    .await;
+
+    assert_eq!(status2, StatusCode::OK);
+    let items2 = body2["data"]["items"].as_array().unwrap();
+    assert_eq!(items2.len(), 0, "should not return expenses where user is only a participant");
+}

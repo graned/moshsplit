@@ -136,12 +136,7 @@ impl ExpenseRepository {
               AND ($2 OR e.deleted_at IS NULL)
               AND ($3::timestamptz IS NULL OR e.created_at < $3)
               AND ($4::TEXT IS NULL OR ev.expense_type::TEXT = $4)
-              AND ($5::UUID IS NULL OR ev.paid_by = $5 OR $5 = ANY(COALESCE(
-                  (SELECT array_agg(sh.user_id)
-                   FROM app.expense_version_share sh
-                   WHERE sh.expense_version_id = e.current_version_id),
-                  ARRAY[]::UUID[]
-              )))
+              AND ($5::UUID IS NULL OR ev.paid_by = $5)
             ORDER BY e.created_at DESC
             LIMIT $6
         "#;
