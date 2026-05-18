@@ -10,8 +10,12 @@ FROM rust:1.91-slim AS dev
 
 WORKDIR /app
 
-# Install hot-reload utility
-RUN cargo install cargo-watch
+# Install build dependencies and hot-reload utility
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    && cargo install cargo-watch \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy entire workspace
 COPY . .
@@ -27,10 +31,16 @@ FROM rust:1.91-slim AS builder
 
 WORKDIR /app
 
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy entire workspace
 COPY . .
 
-# Build the release binary with locked dependencies.
+# Build the release binary
 RUN cargo build --release --manifest-path apps/pitboss-api/Cargo.toml
 
 
