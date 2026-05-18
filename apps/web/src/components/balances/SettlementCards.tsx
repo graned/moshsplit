@@ -9,6 +9,8 @@ import {
   IconButton,
   Divider,
   Chip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -149,48 +151,111 @@ export function SettlementCards({
 
   const targetUser = restoreHonorTarget ? userMap.get(restoreHonorTarget.userId) : undefined;
 
+  const theme = useTheme();
+  const isMobile = !useMediaQuery(theme.breakpoints.up('md'));
+
+  const settlementFilters: { value: typeof activeTab; label: string }[] = [
+    { value: 'incoming', label: 'Incoming' },
+    { value: 'outgoing', label: 'Outgoing' },
+    { value: 'requests', label: 'Requests' },
+  ];
+
   return (
     <Box>
-      {/* Tabs */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          mb: 3,
-          p: 0.5,
-          borderRadius: 2,
-          bgcolor: 'elevated.main',
-          border: `1px solid ${alpha('#fff', 0.05)}`,
-        }}
-      >
-        <TabButton
-          active={activeTab === 'incoming'}
-          onClick={() => setActiveTab('incoming')}
-          icon={<IncomingIcon sx={{ fontSize: 16 }} />}
-          label="Incoming"
-          count={incoming.length}
-          total={incoming.reduce((sum, r) => sum + r.totalCents, 0)}
-          currency={currency}
-        />
-        <TabButton
-          active={activeTab === 'outgoing'}
-          onClick={() => setActiveTab('outgoing')}
-          icon={<OutgoingIcon sx={{ fontSize: 16 }} />}
-          label="Outgoing"
-          count={outgoing.length}
-          total={outgoing.reduce((sum, r) => sum + r.totalCents, 0)}
-          currency={currency}
-        />
-        <TabButton
-          active={activeTab === 'requests'}
-          onClick={() => setActiveTab('requests')}
-          icon={<PendingIcon sx={{ fontSize: 16 }} />}
-          label="Requests"
-          count={requestsToConfirm.length + requestsISent.length}
-          total={requestsToConfirm.reduce((sum, r) => sum + r.amount_cents, 0)}
-          currency={currency}
-        />
-      </Box>
+      {/* Desktop: Tabs | Mobile: Horizontal scrollable chip filters */}
+      {isMobile ? (
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.75,
+            mb: 3,
+            overflowX: 'auto',
+            pb: 0.5,
+            scrollbarWidth: 'none',
+            '::-webkit-scrollbar': { display: 'none' },
+          }}
+        >
+          {settlementFilters.map((filter) => {
+            const isSelected = activeTab === filter.value;
+            const count =
+              filter.value === 'incoming'
+                ? incoming.length
+                : filter.value === 'outgoing'
+                ? outgoing.length
+                : requestsToConfirm.length + requestsISent.length;
+
+            return (
+              <Box
+                key={filter.value}
+                onClick={() => setActiveTab(filter.value)}
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 100,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.03em',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  bgcolor: isSelected ? 'primary.main' : alpha('#1E1E1E', 0.5),
+                  color: isSelected ? '#121212' : alpha('#fff', 0.6),
+                  border: '1px solid',
+                  borderColor: isSelected ? 'primary.main' : alpha('#fff', 0.1),
+                  transition: 'all 0.15s ease',
+                  minHeight: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {filter.label} ({count})
+              </Box>
+            );
+          })}
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            mb: 3,
+            p: 0.5,
+            borderRadius: 2,
+            bgcolor: 'elevated.main',
+            border: `1px solid ${alpha('#fff', 0.05)}`,
+          }}
+        >
+          <TabButton
+            active={activeTab === 'incoming'}
+            onClick={() => setActiveTab('incoming')}
+            icon={<IncomingIcon sx={{ fontSize: 16 }} />}
+            label="Incoming"
+            count={incoming.length}
+            total={incoming.reduce((sum, r) => sum + r.totalCents, 0)}
+            currency={currency}
+          />
+          <TabButton
+            active={activeTab === 'outgoing'}
+            onClick={() => setActiveTab('outgoing')}
+            icon={<OutgoingIcon sx={{ fontSize: 16 }} />}
+            label="Outgoing"
+            count={outgoing.length}
+            total={outgoing.reduce((sum, r) => sum + r.totalCents, 0)}
+            currency={currency}
+          />
+          <TabButton
+            active={activeTab === 'requests'}
+            onClick={() => setActiveTab('requests')}
+            icon={<PendingIcon sx={{ fontSize: 16 }} />}
+            label="Requests"
+            count={requestsToConfirm.length + requestsISent.length}
+            total={requestsToConfirm.reduce((sum, r) => sum + r.amount_cents, 0)}
+            currency={currency}
+          />
+        </Box>
+      )}
 
       {/* Requests tab content */}
       {activeTab === 'requests' && (
