@@ -1031,6 +1031,7 @@ function TransactionHistory({
   // Flatten all settlements and payments from all relationships
   const transactions = useMemo(() => {
     const items: TransactionItem[] = [];
+    let idx = 0;
 
     for (const rel of relationships) {
       const counterpartyName = getMemberNameFromMap(rel.userId);
@@ -1040,7 +1041,7 @@ function TransactionHistory({
       for (const settlement of rel.settlements) {
         const isOutgoing = settlement.from_user === currentUserId;
         items.push({
-          id: `settlement-${settlement.id}`,
+          id: settlement.id || `settlement-${idx++}`,
           type: 'settlement',
           date: new Date(settlement.created_at),
           amountCents: settlement.amount_cents,
@@ -1057,7 +1058,7 @@ function TransactionHistory({
       for (const payment of rel.payments) {
         const isOutgoing = payment.from_user === currentUserId;
         items.push({
-          id: `payment-${payment.id}`,
+          id: payment.id || `payment-${idx++}`,
           type: 'payment',
           date: new Date(payment.recorded_at),
           amountCents: payment.amount_cents,
