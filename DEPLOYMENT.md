@@ -10,8 +10,9 @@ This guide covers building, deploying, and running MoshSplit using Docker and Gi
 2. [Docker Images](#docker-images)
 3. [GitHub Actions CI/CD](#github-actions-cicd)
 4. [Running in Production](#running-in-production)
-5. [Environment Variables](#environment-variables)
-6. [Troubleshooting](#troubleshooting)
+5. [Caddy Reverse Proxy](#caddy-reverse-proxy)
+6. [Environment Variables](#environment-variables)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -34,13 +35,18 @@ docker compose -f infra/compose/prod-ghcr.yml up -d
 
 ### Access Services
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| Web Frontend | http://localhost:80 | React PWA |
-| Pitboss API | http://localhost:8080 | REST API |
-| Sentinel Auth | http://localhost:9000 | Auth service |
-| Sentinel UI | http://localhost:3000 | Admin dashboard |
-| PostgreSQL | localhost:5432 | Database |
+With Caddy reverse proxy, all services are accessed through a single domain:
+
+| Service | URL Path | Description |
+|---------|----------|-------------|
+| Web Frontend | `https://your-domain.com/` | React PWA (default route) |
+| Web Frontend | `https://your-domain.com/moshsplit/*` | React PWA (explicit path) |
+| Pitboss API | `https://your-domain.com/pitboss/*` | REST API |
+| Sentinel Auth | `https://your-domain.com/auth/*` | Auth service |
+| Sentinel UI | Internal only | Admin dashboard (configure separately) |
+| PostgreSQL | Internal only | Database |
+
+**Note:** Only Caddy exposes ports 80 and 443. All other services are internal-only.
 
 ---
 
@@ -195,9 +201,146 @@ docker compose -f infra/compose/prod-ghcr.yml exec postgres pg_isready
 
 ### Step 5: Access Sentinel UI
 
-1. Open http://localhost:3000
+1. Open https://your-domain.com/sentinel-ui (if configured)
 2. Default credentials: `admin` / `admin`
 3. **Change the admin password immediately!**
+
+---
+
+## Caddy Reverse Proxy
+
+MoshSplit uses [Caddy](https://caddyserver.com/) as a reverse proxy to handle all external traffic. Caddy provides:
+
+- **Automatic SSL/TLS** - Certificates from Let's Encrypt, auto-renewed
+- **HTTP/2 support** - Modern protocol with better performance
+- **Path-based routing** - Clean URL structure for all services
+- **Compression** - gzip and zstd compression enabled
+- **Security headers** - Proper headers for production security
+
+### Architecture
+
+```
+                    ┌─────────────────────────────────────┐
+                    │         Caddy (ports 80/443)        │
+                    │  - SSL/TLS termination               │
+                    │  - Reverse proxy                     │
+                    │  - Compression                       │
+                    └─────────────┬───────────────────────┘
+                                  │
+          ┌───────────────────────┼───────────────────────┐
+          │                       │                       │
+          ▼                       ▼                       ▼
+   ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
+   │   Sentinel  │        │ Pitboss API │        │    Web      │
+   │  :8000      │        │  :8080      │        │   :80       │
+   │  /auth/*    │        │ /pitboss/*  │        │  /moshsplit/*
+   └─────────────┘        └─────────────┘        └─────────────┘
+```
+
+### Configuring MOSHSPLIT_URL
+
+The `MOSHSPLIT_URL` environment variable tells Caddy which domain to serve:
+
+1. **Set your domain** in `.env`:
+   ```bash
+   MOSHSPLIT_URL=moshsplit.example.com
+   ```
+
+2. **DNS Configuration**: Point your domain's A record to your server's IP:
+   ```
+   moshsplit.example.com.  IN  A  <your-server-ip>
+   ```
+
+3. **Firewall**: Ensure ports 80 and 443 are open:
+   ```bash
+   # Example for UFW
+   ufw allow 80/tcp
+   ufw allow 443/tcp
+   ```
+
+### URL Routing
+
+| Request Path | Routes To | Prefix Stripped |
+|--------------|-----------|-----------------|
+| `/auth/*` | Sentinel | Yes (`/auth`) |
+| `/pitboss/*` | Pitboss API | Yes (`/pitboss`) |
+| `/moshsplit/*` | Web frontend | Yes (`/moshsplit`) |
+| `/` (default) | Web frontend | No |
+
+### Example API Calls
+
+```bash
+# Health check via Caddy
+curl https://moshsplit.example.com/pitboss/health
+
+# Auth endpoints
+curl https://moshsplit.example.com/auth/v1/api/system/health
+
+# Web frontend
+curl https://moshsplit.example.com/
+```
+
+### SSL/TLS Certificates
+
+Caddy automatically handles SSL/TLS:
+
+- **First startup**: Caddy obtains certificates from Let's Encrypt
+- **Renewal**: Automatic renewal before expiration
+- **Storage**: Certificates stored in `caddy_data` volume
+
+**Requirements for SSL:**
+- Domain must resolve to your server
+- Port 80 must be accessible (for ACME challenge)
+- Valid email in Caddy config (optional but recommended)
+
+### Caddy Volumes
+
+| Volume | Purpose |
+|--------|---------|
+| `caddy_data` | SSL certificates, site data |
+| `caddy_config` | Caddy configuration cache |
+
+### Customizing Caddy
+
+To customize the Caddy configuration, edit `infra/docker/Caddyfile`:
+
+```bash
+# Edit the Caddyfile
+nano infra/docker/Caddyfile
+
+# Restart Caddy to apply changes
+docker compose -f infra/compose/prod-ghcr.yml restart caddy
+```
+
+### Testing SSL
+
+```bash
+# Check certificate info
+curl -vI https://moshsplit.example.com/
+
+# Verify SSL grade (requires ssl-labs or similar)
+# Visit: https://www.ssllabs.com/ssltest/
+```
+
+### Troubleshooting Caddy
+
+```bash
+# View Caddy logs
+docker compose -f infra/compose/prod-ghcr.yml logs caddy
+
+# Check Caddy admin API
+curl http://localhost:2019/metrics
+
+# Reload Caddy config
+docker compose -f infra/compose/prod-ghcr.yml restart caddy
+```
+
+### Local Development Without SSL
+
+For local development, you can:
+
+1. Use the `dev.yml` compose file (no Caddy)
+2. Or configure Caddy for local domains with self-signed certs
 
 ---
 
@@ -207,6 +350,7 @@ docker compose -f infra/compose/prod-ghcr.yml exec postgres pg_isready
 
 | Variable | Service | Description |
 |----------|---------|-------------|
+| `MOSHSPLIT_URL` | Caddy | Your production domain (e.g., `moshsplit.example.com`) |
 | `POSTGRES_PASSWORD` | PostgreSQL | Database password |
 | `DATABASE_URL` | All | Full connection string |
 | `HEX_KEY` | Sentinel | 64-char hex encryption key |
@@ -219,13 +363,12 @@ docker compose -f infra/compose/prod-ghcr.yml exec postgres pg_isready
 |----------|---------|-------------|
 | `POSTGRES_USER` | `postgres` | Database user |
 | `POSTGRES_DB` | `moshsplit` | Database name |
-| `PITBOSS_API_PORT` | `8080` | API port |
-| `SENTINEL_PORT` | `9000` | Sentinel port |
-| `SENTINEL_UI_PORT` | `3000` | Sentinel UI port |
-| `WEB_PORT` | `80` | Web frontend port |
 | `RUST_LOG` | `info` | Log level |
 | `MOSHSPLIT_VERSION` | `latest` | Image version tag |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:80` | Comma-separated CORS origins |
+| `CORS_ALLOWED_ORIGINS` | `https://${MOSHSPLIT_URL}` | Comma-separated CORS origins |
+| `SENTINEL_VERSION` | `v1.1.0` | Sentinel version for migrations |
+
+**Note:** Port variables (`PITBOSS_API_PORT`, `SENTINEL_PORT`, etc.) are no longer used in production with Caddy, as all services are internal-only.
 
 ### Frontend Build-Time Variables
 

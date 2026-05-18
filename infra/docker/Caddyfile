@@ -1,0 +1,116 @@
+# MoshSplit Caddy Reverse Proxy Configuration
+# ============================================
+# This file configures Caddy as a reverse proxy for all MoshSplit services.
+# Caddy automatically handles SSL/TLS certificate provisioning and renewal.
+#
+# Environment Variables:
+#   {$MOSHSPLIT_URL} - Your domain (e.g., moshsplit.example.com)
+#
+# Routing:
+#   /auth/*      -> Sentinel (auth service)
+#   /pitboss/*   -> Pitboss API (backend API)
+#   /moshsplit/* -> Web frontend (React PWA)
+#   /            -> Web frontend (default)
+
+{$MOSHSPLIT_URL} {
+    # Enable compression
+    encode gzip zstd
+
+    # Logging
+    log {
+        output stdout
+        format json
+    }
+
+    # ── Sentinel Auth Service ──────────────────────────────────────────────
+    # Routes: /auth/* -> sentinel:8000
+    # Strips /auth prefix before forwarding
+    @sentinel {
+        path /auth/*
+    }
+    handle @sentinel {
+        uri strip_prefix /auth
+        reverse_proxy sentinel:8000 {
+            # Pass original host and scheme
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # ── Pitboss API Service ────────────────────────────────────────────────
+    # Routes: /pitboss/* -> pitboss-api:8080
+    # Strips /pitboss prefix before forwarding
+    @pitboss {
+        path /pitboss/*
+    }
+    handle @pitboss {
+        uri strip_prefix /pitboss
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # ── Web Frontend (MoshSplit) ───────────────────────────────────────────
+    # Routes: /moshsplit/* -> web:80
+    # Strips /moshsplit prefix before forwarding
+    @moshsplit {
+        path /moshsplit/*
+    }
+    handle @moshsplit {
+        uri strip_prefix /moshsplit
+        reverse_proxy web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # ── Default Route ──────────────────────────────────────────────────────
+    # All other requests go to the web frontend
+    # This allows the React router to handle client-side routing
+    @default {
+        not path /auth/*
+        not path /pitboss/*
+        not path /moshsplit/*
+    }
+    handle @default {
+        reverse_proxy web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+}
+
+# ── CORS Headers (if needed for cross-origin requests) ─────────────────────
+# Uncomment if you need to allow cross-origin requests from other domains
+#
+# {$MOSHSPLIT_URL} {
+#     @cors_preflight {
+#         method OPTIONS
+#     }
+#     handle @cors_preflight {
+#         header Access-Control-Allow-Origin "{$MOSHSPLIT_URL}"
+#         header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+#         header Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+#         header Access-Control-Allow-Credentials "true"
+#         header Access-Control-Max-Age "86400"
+#         respond "" 204
+#     }
+#
+#     header Access-Control-Allow-Origin "{$MOSHSPLIT_URL}"
+#     header Access-Control-Allow-Credentials "true"
+#
+#     # ... rest of the configuration above ...
+# }

@@ -40,10 +40,11 @@ RUN pnpm --filter @moshsplit/auth-react build
 COPY apps/web/ /app/apps/web/
 
 # Set environment variables for Vite (can be overridden at runtime via -e flag)
-# VITE_API_BASE_URL: URL for pitboss-api (used for API calls / direct URL in prod)
+# VITE_API_BASE_URL: URL for pitboss-api (relative path for Caddy, full URL for direct)
 # VITE_SENTINEL_URL: URL for Sentinel auth service
-ENV VITE_API_BASE_URL=http://pitboss-api:8080
-ENV VITE_SENTINEL_URL=http://sentinel:8000
+# Note: In dev mode, Vite proxy handles routing to local services
+ENV VITE_API_BASE_URL=/pitboss
+ENV VITE_SENTINEL_URL=/sentinel
 
 EXPOSE 5173
 
@@ -78,8 +79,10 @@ COPY packages/sentinel-auth-react/ /app/packages/sentinel-auth-react/
 COPY apps/web/ /app/apps/web/
 
 # Environment variables for production build - these will be baked into the bundle
-ARG VITE_API_BASE_URL=http://pitboss-api:8080
-ARG VITE_SENTINEL_URL=http://sentinel:8000
+# For Caddy deployment, use relative paths (all services same-origin)
+# For direct deployment, use full URLs (e.g., http://pitboss-api:8080)
+ARG VITE_API_BASE_URL=/pitboss
+ARG VITE_SENTINEL_URL=/sentinel
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 ENV VITE_SENTINEL_URL=${VITE_SENTINEL_URL}
 
