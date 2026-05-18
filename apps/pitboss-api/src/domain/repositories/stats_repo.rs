@@ -22,6 +22,8 @@ pub struct EventStatsRow {
     #[diesel(sql_type = BigInt)]
     pub your_share_cents: i64,
     #[diesel(sql_type = BigInt)]
+    pub your_paid_cents: i64,
+    #[diesel(sql_type = BigInt)]
     pub your_outstanding_cents: i64,
     #[diesel(sql_type = BigInt)]
     pub your_incoming_cents: i64,
@@ -122,6 +124,7 @@ impl StatsRepository {
                 ts.amount AS total_spent_cents,
                 tset.amount AS total_settled_cents,
                 us.amount AS your_share_cents,
+                upd.amount AS your_paid_cents,
                 uo.amount AS your_outstanding_cents,
                 uie.amount AS your_incoming_cents,
                 uis.amount AS your_incoming_settled_cents,
@@ -130,6 +133,7 @@ impl StatsRepository {
             FROM total_spent ts
             CROSS JOIN total_settled tset
             CROSS JOIN user_share us
+            CROSS JOIN user_paid_directly upd
             CROSS JOIN user_outstanding uo
             CROSS JOIN user_incoming_expected uie
             CROSS JOIN user_incoming_settled uis

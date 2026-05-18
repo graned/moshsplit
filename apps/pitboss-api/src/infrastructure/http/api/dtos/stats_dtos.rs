@@ -15,6 +15,8 @@ pub struct EventStats {
     pub outstanding_cents: i64,
     /// Current user's total share across all expenses.
     pub your_share_cents: i64,
+    /// Total the current user paid directly (sum of expenses where user = paid_by).
+    pub your_paid_cents: i64,
     /// Current user's outstanding: what they still owe (share - paid - settled).
     /// Zero if they don't owe anything.
     pub your_outstanding_cents: i64,

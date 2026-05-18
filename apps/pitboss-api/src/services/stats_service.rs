@@ -42,6 +42,7 @@ impl StatsService {
             total_settled_cents: row.total_settled_cents,
             outstanding_cents,
             your_share_cents: row.your_share_cents,
+            your_paid_cents: row.your_paid_cents,
             your_outstanding_cents: row.your_outstanding_cents,
             your_incoming_cents: row.your_incoming_cents,
             your_incoming_settled_cents: row.your_incoming_settled_cents,

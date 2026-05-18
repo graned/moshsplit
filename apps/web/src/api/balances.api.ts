@@ -65,6 +65,7 @@ export interface EventStats {
   total_settled_cents: number;
   outstanding_cents: number;
   your_share_cents: number;
+  your_paid_cents: number;
   your_outstanding_cents: number;
   your_incoming_cents: number;
   your_incoming_settled_cents: number;

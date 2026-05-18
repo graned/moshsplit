@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useOutletContext } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, Alert, alpha, IconButton } from '@mui/material';
-import { ReceiptLong as WarChestIcon, Add as AddIcon, AccountBalanceWallet as SpentIcon, ArrowDownward as ReturnIcon } from '@mui/icons-material';
+import { ReceiptLong as WarChestIcon, Add as AddIcon, AccountBalanceWallet as SpentIcon, ArrowDownward as ReturnIcon, Paid as RealSpendIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
@@ -124,8 +124,9 @@ export default function MobileExpensePage() {
     ? `linear-gradient(to bottom, rgba(18,18,18,0.3) 0%, rgba(18,18,18,0.7) 60%, #121212 100%), url(${bannerUrl})`
     : `linear-gradient(to bottom, rgba(18,18,18,0.6) 0%, rgba(18,18,18,0.85) 60%, #121212 100%), linear-gradient(135deg, #4A2F0A 0%, #1A1A1A 100%)`;
 
-  const youSpent = stats?.your_share_cents ?? 0;
+  const youPaid = stats?.your_paid_cents ?? 0;
   const youGetBack = stats?.your_incoming_cents ?? 0;
+  const yourRealSpend = youPaid - youGetBack;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -210,9 +211,9 @@ export default function MobileExpensePage() {
           <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.08), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
               <SpentIcon sx={{ fontSize: 14, color: alpha('#fff', 0.6) }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>You Spent</Typography>
+              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>You Paid</Typography>
             </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{formatAmount(youSpent, currency)}</Typography>}
+            {statsLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{formatAmount(youPaid, currency)}</Typography>}
           </Box>
           <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
@@ -220,6 +221,13 @@ export default function MobileExpensePage() {
               <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Getting Back</Typography>
             </Box>
             {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(youGetBack, currency)}</Typography>}
+          </Box>
+          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+              <RealSpendIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
+              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Real Spend</Typography>
+            </Box>
+            {statsLoading ? <CircularProgress size={14} sx={{ color: '#F59E0B' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#F59E0B' }}>{formatAmount(yourRealSpend, currency)}</Typography>}
           </Box>
         </Box>
 

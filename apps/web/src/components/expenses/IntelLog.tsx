@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
+  Drawer,
   Box,
   Typography,
   Avatar,
@@ -86,7 +87,6 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
       expensesApi
         .listVersions(eventId, expense.id)
         .then((data) => {
-          console.log('[IntelLog] Versions loaded:', data);
           setVersions(data);
         })
         .catch((err) => console.error('[IntelLog] Failed to load versions:', err))
@@ -135,8 +135,6 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
     if (payerId) ids.add(payerId);
     return Array.from(ids);
   }, [memberUserIds, shareUserIds, payerId]);
-
-  console.log('[IntelLog] allUserIds:', allUserIds, 'syntheticVersion:', syntheticVersion, 'members:', members);
 
   const userMap = useUsers(allUserIds);
 
@@ -210,77 +208,38 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
 
   const settledCount = survivors.filter((s) => s.isSettled).length;
 
-  useEffect(() => {
-    if (open) {
-      console.log('[IntelLog Debug]', {
-        currentUserId,
-        hasLatestVersion: !!syntheticVersion,
-        syntheticVersionSharesCount: syntheticVersion?.shares?.length ?? 0,
-        survivorsCount: survivors.length,
-        myShareCents,
-        perPersonCents,
-        versionsCount: versions.length,
-      });
-    }
-  }, [open, currentUserId, survivors, myShareCents, syntheticVersion, perPersonCents, versions]);
-
   const typeConfig = expense?.expense_type ? EXPENSE_TYPE_CONFIG[expense.expense_type] : null;
   const typeIcon = typeConfig?.icon ?? <ReceiptIcon />;
 
   if (!expense) return null;
 
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullScreen={isMobile}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: '#131313',
-          borderRadius: isMobile ? 0 : 3,
-          m: isMobile ? 0 : undefined,
-          maxHeight: isMobile ? '100%' : '90vh',
-          height: isMobile ? '100%' : 'auto',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      {/* Header */}
+  const content = (
+    <>
+      {/* Title */}
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
           px: 2,
-          py: 1.5,
-          borderBottom: '1px solid',
-          borderColor: alpha('#534434', 0.1),
-          bgcolor: alpha('#131313', 0.85),
-          backdropFilter: 'blur(12px)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
+          pb: 1.5,
+          borderBottom: 1,
+          borderColor: 'divider',
+          flexShrink: 0,
         }}
       >
         <Typography
+          variant="h6"
+          fontWeight={700}
           sx={{
-            fontSize: '1.25rem',
-            fontWeight: 700,
+            fontSize: '1.1rem',
             color: 'primary.main',
             letterSpacing: '-0.02em',
           }}
         >
           Intel Log
         </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }}>
-          <CloseIcon />
-        </IconButton>
       </Box>
 
       {/* Scrollable Content */}
-      <Box sx={{ overflow: 'auto', maxHeight: isMobile ? 'calc(100% - 56px)' : '80vh' }}>
+      <Box sx={{ overflow: 'auto', flex: 1 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
@@ -670,6 +629,660 @@ export function IntelLog({ open, onClose, expense, eventId, members, currency, c
             </Box>
           </>
         )}
+      </Box>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer
+        anchor="bottom"
+        open={open}
+        onClose={onClose}
+        slotProps={{
+          backdrop: {
+            sx: {
+              bgcolor: 'rgba(0, 0, 0, 0.6)',
+            },
+          },
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            bgcolor: '#1A1A1A',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            maxHeight: '92dvh',
+            height: 'auto',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+      >
+        {/* Grab handle */}
+        <Box
+          sx={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            px: 2,
+            pt: 1.5,
+            pb: 0.5,
+            flexShrink: 0,
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 36,
+              height: 4,
+              borderRadius: 2,
+              bgcolor: alpha('#fff', 0.15),
+            }}
+          />
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              width: 32,
+              height: 32,
+              '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
+            }}
+          >
+            <CloseIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Box>
+
+        {/* Title */}
+        <Box
+          sx={{
+            px: 2,
+            pb: 1.5,
+            borderBottom: 1,
+            borderColor: 'divider',
+            flexShrink: 0,
+          }}
+        >
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            sx={{
+              fontSize: '1.1rem',
+              color: 'primary.main',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Intel Log
+          </Typography>
+        </Box>
+
+        {/* Scrollable content wrapper */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            overflow: 'hidden',
+            px: 2,
+            pb: 'max(16px, env(safe-area-inset-bottom))',
+          }}
+        >
+          <Box sx={{ overflow: 'auto', flex: 1 }}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                {/* Hero Section */}
+                <Box
+                  sx={{
+                    pt: 3,
+                    pb: 3,
+                    textAlign: 'center',
+                    background: 'linear-gradient(to bottom, #1c1b1b, #131313)',
+                    position: 'relative',
+                    mx: -2,
+                    px: 2,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: 1.5,
+                      boxShadow: `0px 6px 20px ${alpha(theme.palette.primary.main, 0.2)}`,
+                      color: '#121212',
+                      '& svg': { fontSize: 26 },
+                    }}
+                  >
+                    {typeIcon}
+                  </Box>
+
+                  <Typography
+                    sx={{
+                      fontSize: '1.25rem',
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      mb: 0.75,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {expense.title}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      fontSize: '2rem',
+                      fontWeight: 700,
+                      color: 'primary.main',
+                      letterSpacing: '-0.02em',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {formatAmount(expense.amount_cents, currency)}
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      mt: 1,
+                      px: 1.5,
+                      py: 0.5,
+                      bgcolor: 'elevated.main',
+                      borderRadius: 100,
+                      border: '1px solid',
+                      borderColor: alpha('#fff', 0.05),
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                    }}
+                  >
+                    <EventAvailableIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        color: 'text.secondary',
+                      }}
+                    >
+                      {formatRelativeTime(expense.created_at)}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Stats Grid */}
+                <Box sx={{ mb: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      bgcolor: 'background.paper',
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: alpha('#fff', 0.1),
+                      p: 2.5,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        color: 'text.secondary',
+                        mb: 0.5,
+                      }}
+                    >
+                      Your Share
+                    </Typography>
+                    <Typography sx={{ fontSize: '1.25rem', fontWeight: 600, color: 'text.primary' }}>
+                      {myShareCents !== null ? formatAmount(myShareCents, currency) : '—'}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      bgcolor: 'background.paper',
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: alpha('#fff', 0.1),
+                      p: 2.5,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        color: 'text.secondary',
+                        mb: 0.5,
+                      }}
+                    >
+                      Settled
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                      <Typography sx={{ fontSize: '1.25rem', fontWeight: 600, color: 'primary.main' }}>
+                        {settledCount}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                        / {survivors.length} people
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* The Benefactor */}
+                <Box sx={{ mb: 2.5 }}>
+                  <Typography
+                    sx={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'text.secondary',
+                      mb: 1.5,
+                    }}
+                  >
+                    The Benefactor
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: 'elevated.main',
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: alpha('#fff', 0.1),
+                      p: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      minHeight: 48,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
+                      <Avatar
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          bgcolor: 'action.disabledBackground',
+                          border: '2px solid',
+                          borderColor: 'primary.main',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        {payerInitial}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '1rem',
+                            fontWeight: 600,
+                            color: 'text.primary',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: { xs: '140px', sm: 'none' },
+                          }}
+                        >
+                          {payerName}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                          Covered the full bill
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ textAlign: 'right', flexShrink: 0, ml: 1 }}>
+                      <Typography sx={{ fontSize: '1rem', fontWeight: 600, color: 'text.primary' }}>
+                        {formatAmount(expense.amount_cents, currency)}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '0.625rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase',
+                          color: 'primary.main',
+                          bgcolor: alpha(theme.palette.primary.main, 0.1),
+                          px: 0.5,
+                          py: 0.25,
+                          borderRadius: 0.5,
+                          display: 'inline-block',
+                        }}
+                      >
+                        Paid
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Notes from the Scene */}
+                {expense.notes && (
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: 'text.secondary',
+                        mb: 1.5,
+                      }}
+                    >
+                      Notes from the Scene
+                    </Typography>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: 'elevated.main',
+                        border: '1px solid',
+                        borderColor: alpha('#fff', 0.05),
+                        borderLeft: '3px solid',
+                        borderLeftColor: alpha(theme.palette.primary.main, 0.4),
+                      }}
+                    >
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.875rem',
+                          fontStyle: 'italic',
+                          color: 'text.secondary',
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        "{expense.notes}"
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* The Mosh Pit */}
+                <Box sx={{ mb: 2 }}>
+                  {/* Expand/collapse header - full-width touch target */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      px: 2,
+                      py: 1.5,
+                      mb: 1,
+                      borderRadius: 2,
+                      bgcolor: 'elevated.main',
+                      border: '1px solid',
+                      borderColor: pitExpanded ? alpha(theme.palette.primary.main, 0.2) : alpha('#fff', 0.06),
+                      cursor: 'pointer',
+                      minHeight: 48,
+                      transition: 'border-color 0.2s ease, background-color 0.15s ease',
+                      '&:active': {
+                        bgcolor: alpha('#fff', 0.04),
+                      },
+                    }}
+                    onClick={() => setPitExpanded(!pitExpanded)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPitExpanded(!pitExpanded); } }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        sx={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: 'text.secondary',
+                        }}
+                      >
+                        {survivors.length} in the Pit
+                      </Typography>
+                      {settledCount > 0 && (
+                        <Typography
+                          sx={{
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            color: 'primary.main',
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            px: 0.75,
+                            py: 0.25,
+                            borderRadius: 1,
+                          }}
+                        >
+                          {settledCount} settled
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        sx={{
+                          fontSize: '0.8125rem',
+                          color: 'primary.main',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {formatAmount(perPersonCents, currency)} each
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          bgcolor: alpha('#fff', 0.06),
+                          transition: 'transform 0.2s ease',
+                          transform: pitExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        }}
+                      >
+                        {pitExpanded ? <ExpandLessIcon sx={{ fontSize: 18, color: 'text.secondary' }} /> : <ExpandMoreIcon sx={{ fontSize: 18, color: 'text.secondary' }} />}
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1.5,
+                      maxHeight: pitExpanded ? 'none' : '196px',
+                      overflow: 'hidden',
+                      transition: 'max-height 0.3s ease',
+                    }}
+                  >
+                    {survivors.map((survivor) => {
+                      const progress = survivor.shareCents > 0 ? (survivor.settledCents / survivor.shareCents) * 100 : 0;
+                      const isCurrentUser = survivor.userId === currentUserId;
+
+                      return (
+                        <Box
+                          key={survivor.userId}
+                          sx={{
+                            bgcolor: '#1c1b1b',
+                            borderRadius: 2,
+                            border: '1px solid',
+                            borderColor: isCurrentUser
+                              ? alpha(theme.palette.primary.main, 0.2)
+                              : alpha('#fff', 0.05),
+                            p: 1.75,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
+                              <Avatar
+                                sx={{
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: '50%',
+                                  bgcolor: isCurrentUser ? 'primary.main' : 'action.disabledBackground',
+                                  color: isCurrentUser ? '#121212' : 'text.primary',
+                                  fontSize: '0.8125rem',
+                                  fontWeight: 700,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {survivor.name.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Typography
+                                component="span"
+                                sx={{
+                                  fontSize: '0.875rem',
+                                  color: 'text.primary',
+                                  fontWeight: isCurrentUser ? 600 : 400,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {isCurrentUser ? 'You' : survivor.name}
+                              </Typography>
+                            </Box>
+                            {survivor.isSettled ? (
+                              <Typography
+                                sx={{
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.05em',
+                                  color: 'primary.main',
+                                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                  px: 1,
+                                  py: 0.25,
+                                  borderRadius: 1,
+                                  flexShrink: 0,
+                                  ml: 1,
+                                }}
+                              >
+                                Settled
+                              </Typography>
+                            ) : survivor.isDisputed ? (
+                              <Typography
+                                sx={{
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.05em',
+                                  color: 'error.main',
+                                  textTransform: 'uppercase',
+                                  flexShrink: 0,
+                                  ml: 1,
+                                }}
+                              >
+                                Disputed
+                              </Typography>
+                            ) : (
+                              <Typography
+                                sx={{
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.03em',
+                                  color: 'text.secondary',
+                                  flexShrink: 0,
+                                  ml: 1,
+                                }}
+                              >
+                                Owes {formatAmount(survivor.shareCents - survivor.settledCents, currency)}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Box
+                            sx={{
+                              width: '100%',
+                              bgcolor: 'elevatedHighest',
+                              height: 6,
+                              borderRadius: 100,
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                height: '100%',
+                                width: `${progress}%`,
+                                bgcolor: survivor.isSettled
+                                  ? theme.palette.primary.main
+                                  : survivor.isDisputed
+                                    ? theme.palette.error.main
+                                    : alpha(theme.palette.primary.main, 0.25),
+                                borderRadius: 100,
+                                transition: 'width 0.3s ease',
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              </>
+            )}
+          </Box>
+        </Box>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          bgcolor: '#131313',
+          borderRadius: 3,
+          maxHeight: '90vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          py: 1.5,
+          borderBottom: '1px solid',
+          borderColor: alpha('#534434', 0.1),
+          bgcolor: alpha('#131313', 0.85),
+          backdropFilter: 'blur(12px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          flexShrink: 0,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '1.25rem',
+            fontWeight: 700,
+            color: 'primary.main',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Intel Log
+        </Typography>
+        <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      {/* Scrollable Content */}
+      <Box sx={{ overflow: 'auto', flex: 1 }}>
+        {content}
       </Box>
     </Dialog>
   );
