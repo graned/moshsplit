@@ -115,7 +115,6 @@ export default function MobileFeedPage() {
   const youAreOwed = userBalance?.paid_cents ?? 0;
   const netBalance = userBalance?.balance_cents ?? 0;
   const crewCount = members.length;
-  const totalSpent = stats?.total_spent_cents ?? 0;
 
   const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
   const headerBg = bannerUrl

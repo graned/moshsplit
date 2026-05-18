@@ -53,15 +53,9 @@ function AppContent() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/invitation/accept" element={<InvitationAcceptPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<UserCacheProvider />}>
-          {/* Event select - mobile shows list, desktop redirects to events */}
-          <Route path="app" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
-            <Route index element={<MobileEventSelectPage />} />
-          </Route>
-
           {/* Mobile routes: /app/:eventId/* */}
           <Route path="app/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
             <Route index element={<Navigate to="log" replace />} />
@@ -71,9 +65,6 @@ function AppContent() {
           </Route>
 
           {/* Desktop routes: /app/events/:eventId/* */}
-          <Route path="app/events" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
-            <Route index element={<Navigate to="/app" replace />} />
-          </Route>
           <Route path="app/events/:eventId" element={<DeviceProvider><DeviceLayout /></DeviceProvider>}>
             <Route index element={<EventDetailPage />} />
             <Route path="balances" element={<BalancesPage />} />

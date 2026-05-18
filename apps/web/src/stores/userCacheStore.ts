@@ -20,7 +20,6 @@ export const useUserCacheStore = create<UserCacheState>((set, get) => ({
   error: null,
 
   fetchAll: async () => {
-    // Guard against double-fetching
     if (get().isReady) return;
     if (get().isLoading) return;
 
@@ -40,8 +39,6 @@ export const useUserCacheStore = create<UserCacheState>((set, get) => ({
   },
 
   refetch: async () => {
-    // Clear state and force a fresh fetch
-    usersApi.clearCache();
     set({ users: new Map(), isLoading: false, isReady: false, error: null });
     await get().fetchAll();
   },
@@ -55,7 +52,6 @@ export const useUserCacheStore = create<UserCacheState>((set, get) => ({
   },
 
   clear: () => {
-    usersApi.clearCache();
     set({ users: new Map(), isLoading: false, isReady: false, error: null });
   },
 }));

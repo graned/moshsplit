@@ -14,7 +14,7 @@ import { i18n } from './i18n';
 import '@moshsplit/auth-react/dist/style.css';
 
 // Create QueryClient with automatic 401 handling and token refresh
-const queryClient = createSentinelQueryClient({
+export const queryClient = createSentinelQueryClient({
   afterLogout: '/login',
   verifyEmail: '/verify-email',
   changePassword: '/change-password',

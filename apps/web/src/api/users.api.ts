@@ -55,44 +55,31 @@ async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<R
   return response;
 }
 
-const userCache = new Map<string, UserInfo>();
-let fetchPromise: Promise<void> | null = null;
+async function fetchAllUsers(): Promise<UserInfo[]> {
+  const pageSize = 100;
+  let page = 1;
+  let total = Infinity;
+  const users: UserInfo[] = [];
 
-async function ensureAllUsersFetched(): Promise<void> {
-  if (fetchPromise) return fetchPromise;
+  while ((page - 1) * pageSize < total) {
+    const response = await sentinelFetch(`/v1/api/admin/users?page=${page}&page_size=${pageSize}`);
+    const result = await response.json();
+    const items = result.data?.items || [];
+    total = result.data?.total ?? items.length;
 
-  fetchPromise = (async () => {
-    const pageSize = 100;
-    let page = 1;
-    let total = Infinity;
-
-    while ((page - 1) * pageSize < total) {
-      const response = await sentinelFetch(`/v1/api/admin/users?page=${page}&page_size=${pageSize}`);
-      const result = await response.json();
-      const items = result.data?.items || [];
-      total = result.data?.total ?? items.length;
-
-      items.forEach((user: any) => {
-        const id = user.user_id;
-        if (!userCache.has(id)) {
-          userCache.set(id, {
-            id,
-            firstName: user.first_name || '',
-            lastName: user.last_name || '',
-            email: user.email || '',
-          });
-        }
+    items.forEach((user: any) => {
+      users.push({
+        id: user.user_id,
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        email: user.email || '',
       });
+    });
 
-      page++;
-    }
-  })();
-
-  try {
-    await fetchPromise;
-  } finally {
-    fetchPromise = null;
+    page++;
   }
+
+  return users;
 }
 
 export const usersApi = {
@@ -105,13 +92,12 @@ export const usersApi = {
   },
 
   listAll: async (): Promise<UserInfo[]> => {
-    await ensureAllUsersFetched();
-    return Array.from(userCache.values());
+    return fetchAllUsers();
   },
 
   list: async (): Promise<UserListItem[]> => {
-    await ensureAllUsersFetched();
-    return Array.from(userCache.values()).map((u) => ({
+    const users = await fetchAllUsers();
+    return users.map((u) => ({
       id: u.id,
       email: u.email,
       name: `${u.firstName} ${u.lastName}`.trim() || u.email || 'Unknown',
@@ -119,24 +105,19 @@ export const usersApi = {
   },
 
   get: async (userId: string): Promise<UserInfo> => {
-    await ensureAllUsersFetched();
-    const user = userCache.get(userId);
+    const users = await fetchAllUsers();
+    const user = users.find((u) => u.id === userId);
     if (!user) throw new Error(`User ${userId} not found`);
     return user;
   },
 
   getMany: async (userIds: string[]): Promise<Record<string, UserInfo>> => {
-    await ensureAllUsersFetched();
+    const users = await fetchAllUsers();
     const result: Record<string, UserInfo> = {};
     userIds.forEach((id) => {
-      const cached = userCache.get(id);
-      if (cached) result[id] = cached;
+      const found = users.find((u) => u.id === id);
+      if (found) result[id] = found;
     });
     return result;
-  },
-
-  clearCache: () => {
-    userCache.clear();
-    fetchPromise = null;
   },
 };
