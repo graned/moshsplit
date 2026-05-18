@@ -5,11 +5,9 @@ import { LoginForm } from './LoginForm';
 import { InvitationOnlyNotice } from './InvitationOnlyNotice';
 import type { LoginCredentials } from '../pages/auth/types';
 import { authApi } from '../api/auth.api';
-import { groupsApi } from '../api/groups.api';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
 import { useNavigate } from 'react-router';
-import { useDevice } from '../providers/DeviceProvider';
 
 // Shared key with ProtectedRoute.tsx and LoginPage.tsx — all files must agree on the storage key.
 const RETURN_TO_KEY = 'moshsplit_return_to';
@@ -36,7 +34,6 @@ interface LoginCardProps {
 const DEFAULT_EMAIL = 'anayamaster@gmail.com';
 
 export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
-  const { isMobile } = useDevice();
   const [externalLoading, setExternalLoading] = useState(false);
   const [externalError, setExternalError] = useState<string | null>(null);
   const [devEmail, setDevEmail] = useState('');

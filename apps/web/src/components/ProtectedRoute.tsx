@@ -8,9 +8,10 @@ function ProtectedRoute() {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    // Store the current path so LoginPage can redirect back after login.
-    // This preserves eventId so the user lands on their Battle Log, not the event picker.
-    sessionStorage.setItem(RETURN_TO_KEY, location.pathname);
+    const currentStored = sessionStorage.getItem(RETURN_TO_KEY);
+    if (currentStored !== location.pathname) {
+      sessionStorage.setItem(RETURN_TO_KEY, location.pathname);
+    }
     return <Navigate to="/login" replace />;
   }
 

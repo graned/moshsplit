@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Typography, Container } from '@mui/material';
 import { useNavigate } from 'react-router';
 import { LoginCard } from '../../components/LoginCard';
@@ -24,18 +24,23 @@ function getReturnTo(): string | null {
 
 function LoginPage() {
   const setSession = useAuthStore((state) => state.setSession);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const hasNavigated = useRef(false);
 
-  // On mount, check for return URL and navigate back if present
+  // Only redirect on mount if user is already authenticated (e.g. returning from login elsewhere)
   useEffect(() => {
-    const returnTo = getReturnTo();
-    if (returnTo) {
-      clearReturnTo();
-      navigate(returnTo, { replace: true });
+    if (isAuthenticated && !hasNavigated.current) {
+      const returnTo = getReturnTo();
+      if (returnTo) {
+        hasNavigated.current = true;
+        clearReturnTo();
+        navigate(returnTo, { replace: true });
+      }
     }
-  }, [navigate]);
+  }, []);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
