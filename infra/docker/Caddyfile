@@ -59,12 +59,11 @@
 
     # ── Sentinel UI (Management Dashboard) ───────────────────────────────────
     # Routes: /sentinel-ui/* -> sentinel-ui:80
-    # Strips /sentinel-ui prefix before forwarding
+    # Does NOT strip prefix - nginx handles it
     @sentinel-ui {
         path /sentinel-ui/*
     }
     handle @sentinel-ui {
-        uri strip_prefix /sentinel-ui
         reverse_proxy sentinel-ui:80 {
             header_up Host {host}
             header_up X-Real-IP {remote}
