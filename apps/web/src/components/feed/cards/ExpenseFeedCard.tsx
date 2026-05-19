@@ -4,20 +4,13 @@ import { ExpenseActivity } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
 import { FeedCard } from './FeedCard';
 
-import foodIcon from '../../../../assets/food-icon.png';
-import beerIcon from '../../../../assets/beer-icon.png';
-import tankIcon from '../../../../assets/tank-icon.png';
-import transportIcon from '../../../../assets/transport-icon.png';
-import merchIcon from '../../../../assets/merch-icon.png';
-import campingIcon from '../../../../assets/camping-icon.png';
-
 const EXPENSE_TYPE_ICONS: Record<string, string> = {
-  food: foodIcon,
-  beer: beerIcon,
-  gas: tankIcon,
-  transport: transportIcon,
-  merch: merchIcon,
-  camping: campingIcon,
+  food: '/moshsplit/assets/food-icon.png',
+  beer: '/moshsplit/assets/beer-icon.png',
+  gas: '/moshsplit/assets/tank-icon.png',
+  transport: '/moshsplit/assets/transport-icon.png',
+  merch: '/moshsplit/assets/merch-icon.png',
+  camping: '/moshsplit/assets/camping-icon.png',
 };
 
 const formatAmount = (cents: number, currency = 'EUR') => {
