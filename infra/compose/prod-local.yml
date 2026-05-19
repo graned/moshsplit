@@ -1,29 +1,15 @@
-# MoshSplit — Production Docker Compose with Caddy Reverse Proxy
+# MoshSplit — Production Docker Compose with Local Build
 # ===============================================================
-# This compose file uses pre-built images from GitHub Container Registry
-# with Caddy as the front-facing reverse proxy for automatic HTTPS.
+# Builds images locally instead of pulling from GHCR.
+# Use this for testing before pushing to GHCR.
 #
 # Usage:
-#   1. Create .env file with required variables (see .env.example)
-#   2. Set MOSHSPLIT_URL=moshsplit.example.com in .env
-#   3. docker compose -f infra/compose/prod-caddy.yml up -d
-#
-# Access:
-#   - Web Frontend: https://moshsplit.example.com/moshsplit/
-#   - Pitboss API:  https://moshsplit.example.com/pitboss/
-#   - Sentinel UI:  https://moshsplit.example.com/auth/
-#   - Sentinel API: https://moshsplit.example.com/sentinel/
-#
-# Images:
-#   - ghcr.io/graned/moshsplit/pitboss-api:<tag>
-#   - ghcr.io/graned/moshsplit/web:<tag>
-#   - Sentinel uses official image: ghcr.io/graned/sentinel-core:v1.1.0
+#   1. Create .env file with required variables
+#   2. docker compose -f infra/compose/prod-local.yml up -d
 
 services:
 
   # ── Caddy Reverse Proxy (Front-facing) ─────────────────────────────────────
-  # Only service exposed to the outside world (ports 80/443)
-  # Handles automatic HTTPS, SSL termination, and path-based routing
   caddy:
     image: caddy:2.8-alpine
     ports:
@@ -46,16 +32,17 @@ services:
       - app-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/config/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 10s
 
-  # ── pitboss-api migrations (run as postgres superuser) ──────────────────────
-  # Runs Diesel migrations before pitboss-api starts
+  # ── pitboss-api migrations ──────────────────────────────────────────────────
   pitboss-api-migrations:
-    image: ghcr.io/graned/moshsplit/pitboss-api:${MOSHSPLIT_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: infra/docker/pitboss-api.Dockerfile
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/moshsplit
       RUST_LOG: info
@@ -70,7 +57,6 @@ services:
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    # No ports exposed - only accessible via internal network
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -90,15 +76,15 @@ services:
 
   # ── pitboss-api (Rust / Axum) ──────────────────────────────────────────────
   pitboss-api:
-    image: ghcr.io/graned/moshsplit/pitboss-api:${MOSHSPLIT_VERSION:-latest}
-    # No ports exposed - accessed via Caddy
+    build:
+      context: ../../
+      dockerfile: infra/docker/pitboss-api.Dockerfile
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       PGOPTIONS: "-c search_path=app"
       RUST_LOG: ${RUST_LOG:-info}
       SENTINEL_URL: http://sentinel:8000
       SENTINEL_PUBLIC_KEY: ${SENTINEL_PUBLIC_KEY}
-      # CORS: Allow requests from Caddy (same origin after proxy)
       CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
     depends_on:
       postgres:
@@ -120,16 +106,13 @@ services:
   # ── Sentinel (auth service) ───────────────────────────────────────────────
   sentinel:
     image: ghcr.io/graned/sentinel-core:v1.2.0
-    # No ports exposed - accessed via Caddy
     environment:
       DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
       PGOPTIONS: "-c search_path=auth"
       HEX_KEY: ${HEX_KEY:?HEX_KEY is required}
       CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:?CONFIG_ENCRYPTION_KEY is required}
       RUST_LOG: ${RUST_LOG:-info}
-      # OIDC issuer URL now uses the public URL
       OIDC_ISSUER_URL: https://${MOSHSPLIT_URL}/sentinel
-      # Frontend URL for redirects
       FRONTEND_URL: https://${MOSHSPLIT_URL}/moshsplit
       CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
       APP_HOST: 0.0.0.0
@@ -147,14 +130,12 @@ services:
       retries: 3
       start_period: 60s
 
-  # ── Sentinel UI (management dashboard) ─────────────────────────────────────
+  # ── Sentinel UI ─────────────────────────────────────────────────────────────
   sentinel-ui:
     image: ghcr.io/graned/sentinel-ui:v1.2.0
-    # No ports exposed - accessed via Caddy
     volumes:
-      - ./sentinel-ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../docker/sentinel-ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
-      # Internal API URL for proxying
       API_URL: http://sentinel:8000
     depends_on:
       sentinel:
@@ -165,16 +146,16 @@ services:
 
   # ── Web (React PWA) ─────────────────────────────────────────────────────────
   web:
-    image: ghcr.io/graned/moshsplit/web:${MOSHSPLIT_VERSION:-latest}
-    # No ports exposed - accessed via Caddy
+    build:
+      context: ../../
+      dockerfile: infra/docker/web.Dockerfile
     environment:
-      # Build-time variables (baked into image)
-      # For runtime configuration, consider runtime env injection
       VITE_API_BASE_URL: /pitboss
       VITE_SENTINEL_URL: /sentinel
     depends_on:
       - pitboss-api
     networks:
+      - proxy-net
       - app-net
     restart: unless-stopped
 
@@ -185,10 +166,7 @@ volumes:
   caddy_logs:
 
 networks:
-  # Proxy network - Caddy only
   proxy-net:
     driver: bridge
-  # App network - internal services only
   app-net:
     driver: bridge
-    internal: false  # Caddy needs to reach these

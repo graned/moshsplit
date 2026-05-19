@@ -57,6 +57,23 @@
         }
     }
 
+    # ── Sentinel UI (Management Dashboard) ───────────────────────────────────
+    # Routes: /sentinel-ui/* -> sentinel-ui:80
+    # Strips /sentinel-ui prefix before forwarding
+    @sentinel-ui {
+        path /sentinel-ui/*
+    }
+    handle @sentinel-ui {
+        uri strip_prefix /sentinel-ui
+        reverse_proxy sentinel-ui:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
     # ── Web Frontend (MoshSplit) ───────────────────────────────────────────
     # Routes: /moshsplit/* -> web:80
     # Strips /moshsplit prefix before forwarding

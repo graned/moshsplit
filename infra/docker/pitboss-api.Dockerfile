@@ -56,6 +56,7 @@ FROM debian:bookworm-slim AS prod
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libpq5 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from the builder stage.

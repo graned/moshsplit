@@ -1,9 +1,9 @@
 -- =============================================================================
 -- MoshSplit — PostgreSQL Initialisation
 -- =============================================================================
--- This script runs once on first container start via
--- docker-entrypoint-initdb.d.  It creates the application schemas,
--- application roles, and grants appropriate permissions.
+-- Single database, multiple schemas:
+--   - moshsplit database: app schema (pitboss-api)
+--   - sentinel_auth database: auth schema (Sentinel)
 --
 -- Idempotent — safe to run multiple times.
 -- =============================================================================
@@ -11,8 +11,6 @@
 -- ── Roles (idempotent) ───────────────────────────────────────────────────────
 
 -- pitboss: used by the pitboss-api service (Rust / Axum)
--- Password: override via environment variable PITBOSS_PASSWORD at deployment.
---           Dev default: password
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'pitboss') THEN
@@ -22,7 +20,6 @@ END
 $$;
 
 -- sentinel: used by the Sentinel auth service
--- Password: sentinel_dev (matches dev.yml DATABASE_URL)
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'sentinel') THEN
@@ -34,34 +31,33 @@ $$;
 -- Create sentinel_auth database if not exists
 SELECT 'CREATE DATABASE sentinel_auth' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'sentinel_auth')\gexec
 
--- ── Schemas (idempotent) ─────────────────────────────────────────────────────
+-- ── Schemas in moshsplit database ─────────────────────────────────────────────
 
+\c moshsplit
+
+CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION postgres;
+
+-- ── Schemas in sentinel_auth database ─────────────────────────────────────────
+
+\c sentinel_auth
+
+-- Create auth schema first
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION postgres;
-CREATE SCHEMA IF NOT EXISTS app  AUTHORIZATION postgres;
 
--- ── Schema permissions ───────────────────────────────────────────────────────
+-- Create pgcrypto extension IN auth schema (needed for gen_random_uuid, crypt, gen_salt)
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA auth;
 
--- === auth schema → sentinel ===
--- The auth schema is for Sentinel tables
-GRANT USAGE ON SCHEMA auth TO sentinel;
-GRANT CREATE ON SCHEMA auth TO sentinel;
+-- Grant execute on pgcrypto functions to sentinel
+GRANT EXECUTE ON FUNCTION auth.crypt(text, text) TO sentinel;
+GRANT EXECUTE ON FUNCTION auth.gen_salt(text) TO sentinel;
+GRANT EXECUTE ON FUNCTION auth.gen_salt(text, integer) TO sentinel;
+GRANT EXECUTE ON FUNCTION auth.gen_random_uuid() TO sentinel;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
-    GRANT ALL PRIVILEGES ON TABLES    TO sentinel;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
-    GRANT ALL PRIVILEGES ON SEQUENCES TO sentinel;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
-    GRANT ALL PRIVILEGES ON FUNCTIONS TO sentinel;
+-- ── Grants in moshsplit database ──────────────────────────────────────────────
 
-GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel;
-
--- Set default search_path for sentinel user to auth schema
-ALTER ROLE sentinel SET search_path TO auth;
+\c moshsplit
 
 -- === app schema → pitboss ===
--- The app schema is managed by pitboss-api (Diesel migrations).
 GRANT USAGE ON SCHEMA app TO pitboss;
 GRANT CREATE ON SCHEMA app TO pitboss;
 
@@ -76,10 +72,37 @@ GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA app TO pitboss;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA app TO pitboss;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA app TO pitboss;
 
--- ── Default search_path for roles ────────────────────────────────────────────
--- Ensures bare table references resolve in the correct order.
-ALTER ROLE postgres SET search_path TO app, auth, public;
-ALTER ROLE pitboss  SET search_path TO app, public;
+-- Default search_path for pitboss
+ALTER ROLE pitboss SET search_path TO app, public;
 
--- Diesel stores its __diesel_schema_migrations tracking table in public.
+-- Diesel stores __diesel_schema_migrations in public
 GRANT ALL ON SCHEMA public TO pitboss;
+GRANT ALL ON SCHEMA public TO postgres;
+
+-- ── Grants in sentinel_auth database ──────────────────────────────────────────
+
+\c sentinel_auth
+
+-- Create pgcrypto extension (needed for gen_random_uuid())
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- === auth schema → sentinel ===
+GRANT USAGE ON SCHEMA auth TO sentinel;
+GRANT CREATE ON SCHEMA auth TO sentinel;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
+    GRANT ALL PRIVILEGES ON TABLES    TO sentinel;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
+    GRANT ALL PRIVILEGES ON SEQUENCES TO sentinel;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
+    GRANT ALL PRIVILEGES ON FUNCTIONS TO sentinel;
+
+GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel;
+
+-- Set default search_path for sentinel to auth schema
+ALTER ROLE sentinel SET search_path TO auth;
+
+-- Return to postgres database
+\c postgres
