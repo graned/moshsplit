@@ -22,7 +22,7 @@ if [ -f ".env" ]; then
 fi
 
 export SENTINEL_VERSION="${SENTINEL_VERSION:-v1.2.0}"
-export DATABASE_URL="${DATABASE_URL:?DATABASE_URL is required in .env}"
+export DATABASE_URL="${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required in .env}"
 
 echo "Database: $DATABASE_URL"
 echo "Sentinel version: $SENTINEL_VERSION"
