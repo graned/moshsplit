@@ -68,7 +68,7 @@ function ForgotPasswordPage() {
             maxWidth: 420,
             background: `
               linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
-              url('/assets/bg-texture-1.svg')
+              url('/moshsplit/assets/bg-texture-1.svg')
             `,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -141,7 +141,7 @@ function ForgotPasswordPage() {
           maxWidth: 420,
           background: `
             linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
-            url('/assets/bg-texture-1.svg')
+            url('/moshsplit/assets/bg-texture-1.svg')
           `,
           backgroundSize: 'cover',
           backgroundPosition: 'center',

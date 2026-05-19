@@ -93,7 +93,7 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
         <Tooltip title="MoshSplit" placement="right">
           <Box
             component="img"
-            src="/assets/logo.svg"
+            src="/moshsplit/assets/logo.svg"
             alt="MoshSplit"
             sx={{
               height: 32,
@@ -111,7 +111,7 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
         </Tooltip>
         <Box
           component="img"
-          src="/assets/long-logo.svg"
+          src="/moshsplit/assets/long-logo.svg"
           alt="MoshSplit"
           sx={{
             height: 110,
