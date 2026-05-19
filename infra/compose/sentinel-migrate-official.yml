@@ -1,0 +1,62 @@
+# MoshSplit — Sentinel Migrations (Using Official Dockerfile)
+# ================================================================
+# This file builds Sentinel's official Dockerfile.migrate from the Sentinel repo.
+# Run this ONCE before deploying Sentinel.
+#
+# Usage:
+#   docker compose -f sentinel-migrate.yml up --build
+#
+# What it does:
+#   - Clones Sentinel repo
+#   - Builds official migrate image
+#   - Runs diesel migration run
+#   - Exits when complete
+#
+# Reusable: Will always use latest migrations from Sentinel repo
+
+services:
+
+  # ── Sentinel Migrations ──────────────────────────────────────────────────────
+  # Builds and runs Sentinel's official Dockerfile.migrate
+  sentinel-migrate:
+    build:
+      context: /tmp/sentinel-migrate
+      dockerfile: Dockerfile
+    container_name: moshsplit-sentinel-migrate
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      PGOPTIONS: "-c search_path=auth"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+    restart: "no"
+
+  # ── PostgreSQL (optional - comment out if already running) ──────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: moshsplit-migrate-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-moshsplit}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - with-db
+
+volumes:
+  pgdata:
+
+networks:
+  app-net:
+    driver: bridge
