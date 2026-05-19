@@ -61,26 +61,29 @@ echo ""
 echo "Step 3: Running migrations..."
 cd /tmp/sentinel
 
-# Create a temporary docker-compose for migrations
-cat > /tmp/sentinel-migrate-compose.yml << 'EOF'
-services:
-  migrate:
-    build:
-      context: .
-      dockerfile: apps/sentinel-core/Dockerfile.migrate
-    command: sh -c "cd apps/sentinel-core && diesel migration run"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-    networks:
-      - host
-networks:
-  host:
-    external: true
-    name: moshsplit_app-net
+# Create custom Dockerfile that includes migrations
+cat > /tmp/Dockerfile.migrate << 'EOF'
+FROM rust:1.91-slim AS builder
+RUN apt-get update && apt-get install -y libpq-dev pkg-config && rm -rf /var/lib/apt/lists/*
+RUN cargo install diesel_cli --no-default-features --features postgres
+
+FROM rust:1.91-slim
+RUN rm -rf /usr/local/rustup /usr/local/cargo/registry /usr/local/cargo/git && \
+    apt-get update && apt-get install -y --no-install-recommends libpq5 && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/local/cargo/bin/diesel /usr/local/bin/diesel
+COPY apps/sentinel-core/migrations /app/migrations
+WORKDIR /app
 EOF
 
 # Build and run
-DATABASE_URL="$DATABASE_URL" docker compose -f /tmp/sentinel-migrate-compose.yml up --build
+docker build -t sentinel-migrate:test -f /tmp/Dockerfile.migrate /tmp/sentinel
+
+docker run --rm \
+  --network moshsplit_app-net \
+  -e DATABASE_URL="$DATABASE_URL" \
+  sentinel-migrate:test \
+  diesel migration run
 
 echo ""
 echo "====================================="
