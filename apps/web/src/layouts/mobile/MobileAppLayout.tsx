@@ -38,7 +38,7 @@ function MobileAppLayout() {
           pb: hasEvent ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
           background: `
             linear-gradient(180deg, rgba(18, 18, 18, 0.75) 0%, rgba(26, 26, 26, 0.75) 50%, rgba(18, 18, 18, 0.75) 100%),
-            url('/assets/background-moshsplit.webp')
+            url('/moshsplit/assets/background-moshsplit.webp')
           `,
           backgroundSize: 'cover',
           backgroundPosition: 'center',

@@ -40,7 +40,7 @@ function ForgotPasswordPage() {
           p: 2,
           background: `
             linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
-            url('/assets/background-moshsplit.webp')
+            url('/moshsplit/assets/background-moshsplit.webp')
           `,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -113,7 +113,7 @@ function ForgotPasswordPage() {
         p: 2,
         background: `
           linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
-          url('/assets/background-moshsplit.webp')
+          url('/moshsplit/assets/background-moshsplit.webp')
         `,
         backgroundSize: 'cover',
         backgroundPosition: 'center',

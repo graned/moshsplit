@@ -127,7 +127,7 @@ function AppShell() {
           }),
           background: `
             linear-gradient(180deg, rgba(18, 18, 18, 0.75) 0%, rgba(26, 26, 26, 0.75) 50%, rgba(18, 18, 18, 0.75) 100%),
-            url('/assets/background-moshsplit.webp')
+            url('/moshsplit/assets/background-moshsplit.webp')
           `,
           backgroundSize: 'cover',
           backgroundPosition: 'center',

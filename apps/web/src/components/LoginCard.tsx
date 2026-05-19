@@ -99,7 +99,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         maxWidth: 420,
         background: `
           linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
-          url('/assets/background-moshsplit.webp')
+          url('/moshsplit/assets/background-moshsplit.webp')
         `,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
