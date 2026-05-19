@@ -14,8 +14,8 @@
 #   /            -> Web frontend (default)
 
 # ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────
-# Access at: https://sentinel.split.viralatas.org/
-sentinel.{$MOSHSPLIT_URL} {
+# Access at: https://sentinel.viralatas.org/
+sentinel.viralatas.org {
     encode gzip zstd
     
     log {
