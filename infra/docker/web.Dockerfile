@@ -99,6 +99,9 @@ FROM nginx:alpine AS prod
 
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
+# Copy runtime config template (will be overridden by volume in production)
+COPY apps/web/public/config.js /usr/share/nginx/html/config.js
+
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

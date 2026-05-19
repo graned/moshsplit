@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt'],
+      includeAssets: ['favicon.svg', 'robots.txt', 'config.js'],
       manifest: {
         name: 'MoshSplit',
         short_name: 'MoshSplit',

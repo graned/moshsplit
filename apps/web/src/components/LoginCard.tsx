@@ -45,8 +45,10 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
     setExternalError(null);
 
     try {
-      const apiToken = import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
-      const testEmail = devEmail.trim() || import.meta.env.VITE_TEST_USER_EMAIL || DEFAULT_EMAIL;
+      // Use runtime config if available, fallback to env vars
+      const runtimeConfig = (window as any).__MOSHSPLIT_CONFIG__ || {};
+      const apiToken = runtimeConfig.VITE_TEST_API_TOKEN || import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
+      const testEmail = devEmail.trim() || runtimeConfig.VITE_TEST_USER_EMAIL || import.meta.env.VITE_TEST_USER_EMAIL || DEFAULT_EMAIL;
 
       const exchangeResult = await authApi.externalLogin({
         api_token: apiToken,
