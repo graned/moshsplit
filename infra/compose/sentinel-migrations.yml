@@ -1,0 +1,86 @@
+# MoshSplit — Sentinel Migrations
+# ================================================================
+# Run this ONCE before deploying Sentinel to initialize the database.
+# This file is reusable and will work with future Sentinel updates.
+#
+# Usage:
+#   1. Ensure .env file exists with DATABASE_URL set
+#   2. docker compose -f sentinel-migrations.yml up --pull always
+#   3. Wait for "migrations completed successfully"
+#   4. docker compose -f sentinel-migrations.yml down
+#   5. Deploy main services: docker compose up -d
+#
+# What it does:
+#   - Starts PostgreSQL (if not running)
+#   - Runs Diesel migrations inside Sentinel container
+#   - Creates 'auth' schema and all required tables
+#   - Exits automatically when complete
+
+services:
+
+  # ── PostgreSQL (if not already running) ─────────────────────────────────────
+  # This service is optional - comment out if you already have postgres running
+  postgres:
+    image: postgres:16-alpine
+    container_name: moshsplit-migrate-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-moshsplit}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - with-db  # Only starts if you use --profile with-db
+
+  # ── Sentinel Migrations ──────────────────────────────────────────────────────
+  # Runs Diesel migrations using the official Sentinel image
+  # This is a one-time run service (restart: "no")
+  sentinel-migrate:
+    image: ghcr.io/graned/sentinel-core:${SENTINEL_VERSION:-v1.2.0}
+    container_name: moshsplit-sentinel-migrate
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for database to be ready..."
+        until pg_isready -h postgres -U postgres > /dev/null 2>&1; do
+          sleep 2
+        done
+        echo "Database is ready!"
+        echo ""
+        echo "Running Diesel migrations..."
+        
+        # Create auth schema if not exists
+        psql "$$DATABASE_URL" -c "CREATE SCHEMA IF NOT EXISTS auth;" || true
+        
+        # Run migrations using diesel
+        # The sentinel-core image includes diesel_cli
+        cd /app/apps/sentinel-core
+        diesel migration run
+        
+        echo ""
+        echo "Migrations completed successfully!"
+        echo "You can now deploy Sentinel with: docker compose up -d sentinel"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      PGOPTIONS: "-c search_path=auth"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+    restart: "no"
+
+volumes:
+  pgdata:
+
+networks:
+  app-net:
+    driver: bridge
