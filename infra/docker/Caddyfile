@@ -7,11 +7,32 @@
 #   {$MOSHSPLIT_URL} - Your domain (e.g., moshsplit.example.com)
 #
 # Routing:
-#   /auth/*      -> Sentinel (auth service)
+#   sentinel.{$MOSHSPLIT_URL} -> Sentinel UI (management dashboard)
+#   /auth/*      -> Sentinel API (auth service)
 #   /pitboss/*   -> Pitboss API (backend API)
 #   /moshsplit/* -> Web frontend (React PWA)
 #   /            -> Web frontend (default)
 
+# ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────
+# Access at: https://sentinel.split.viralatas.org/
+sentinel.{$MOSHSPLIT_URL} {
+    encode gzip zstd
+    
+    log {
+        output stdout
+        format json
+    }
+    
+    reverse_proxy sentinel-ui:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}
+
+# ── Main Application ──────────────────────────────────────────────────────────
 {$MOSHSPLIT_URL} {
     # Enable compression
     encode gzip zstd
@@ -49,22 +70,6 @@
     handle @pitboss {
         uri strip_prefix /pitboss
         reverse_proxy pitboss-api:8080 {
-            header_up Host {host}
-            header_up X-Real-IP {remote}
-            header_up X-Forwarded-For {remote}
-            header_up X-Forwarded-Proto {scheme}
-            header_up X-Forwarded-Host {host}
-        }
-    }
-
-    # ── Sentinel UI (Management Dashboard) ───────────────────────────────────
-    # Routes: /sentinel-ui/* -> sentinel-ui:80
-    # Does NOT strip prefix - nginx handles it
-    @sentinel-ui {
-        path /sentinel-ui/*
-    }
-    handle @sentinel-ui {
-        reverse_proxy sentinel-ui:80 {
             header_up Host {host}
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
