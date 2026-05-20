@@ -117,9 +117,6 @@ const moshSplitTheme = {
   copyright: '© 2026 MoshSplit. All rights reserved.',
   primaryColor: '#F59E0B',
   secondaryColor: '#1F2937',
-import logoWithBackground from './assets/viralatas-moshsplit.png';
-
-// ... later in the file
   logo: (
     <img
       src={logoWithBackground}
