@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
-import logoWithBackground from '../assets/viralatas-moshsplit.png';
 import {
   SentinelAuthProvider,
   VerifyEmailPage,

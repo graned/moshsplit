@@ -1,5 +1,5 @@
-import logo from '../../../assets/logo.svg';
-import longLogo from '../../../assets/long-logo.svg';
+
+
 import {
   Box,
   Typography,
@@ -95,7 +95,7 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
         <Tooltip title="MoshSplit" placement="right">
           <Box
             component="img"
-            src={logo}
+            src='/assets/logo.svg'
             alt="MoshSplit"
             sx={{
               height: 32,
@@ -113,7 +113,7 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
         </Tooltip>
         <Box
           component="img"
-          src={longLogo}
+          src='/assets/long-logo.svg'
           alt="MoshSplit"
           sx={{
             height: 110,

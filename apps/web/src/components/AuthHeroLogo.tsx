@@ -1,5 +1,5 @@
 import { Box, Typography } from '@mui/material';
-import logo from '../assets/logo.svg';
+
 
 interface AuthHeroLogoProps {
   title: string;
@@ -20,7 +20,7 @@ export function AuthHeroLogo({ title: _title, subtitle }: AuthHeroLogoProps) {
         }}
       >
         <img
-          src={logo}
+          src='/assets/logo.svg'
           alt="MoshSplit Logo"
           style={{
             width: '100%',
