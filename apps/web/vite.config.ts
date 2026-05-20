@@ -3,9 +3,11 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:9000';
+const isDev = process.env.NODE_ENV !== 'production';
 
 export default defineConfig({
-  base: '/moshsplit/',
+  // Only use /moshsplit/ base in production
+  base: isDev ? '/' : '/moshsplit/',
   plugins: [
     react(),
     VitePWA({

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
+import logoWithBackground from './assets/viralatas-moshsplit.png';
 import {
   SentinelAuthProvider,
   VerifyEmailPage,
@@ -116,9 +117,12 @@ const moshSplitTheme = {
   copyright: '© 2026 MoshSplit. All rights reserved.',
   primaryColor: '#F59E0B',
   secondaryColor: '#1F2937',
+import logoWithBackground from './assets/viralatas-moshsplit.png';
+
+// ... later in the file
   logo: (
     <img
-      src="/moshsplit/assets/viralatas-moshsplit.png"
+      src={logoWithBackground}
       alt="MoshSplit Logo"
       style={{
         height: '120px',
