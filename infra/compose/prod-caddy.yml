@@ -167,6 +167,9 @@ services:
   web:
     image: ghcr.io/graned/moshsplit/web:${MOSHSPLIT_VERSION:-latest}
     # No ports exposed - accessed via Caddy
+    volumes:
+      # Runtime config - override build-time env vars
+      - ./config.js:/usr/share/nginx/html/config.js:ro
     environment:
       # Build-time variables (baked into image)
       # For runtime configuration, consider runtime env injection
