@@ -119,7 +119,7 @@ const moshSplitTheme = {
   secondaryColor: '#1F2937',
   logo: (
     <img
-      src={logoWithBackground}
+      src="/assets/viralatas-moshsplit.png"
       alt="MoshSplit Logo"
       style={{
         height: '120px',
