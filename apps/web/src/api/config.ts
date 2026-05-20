@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
     forgotPassword: '/api/v1/auth/forgot-password',
     resetPassword: '/api/v1/auth/reset-password',
     externalLogin: '/v1/auth/external-login',
+    refresh: '/v1/auth/refresh',
   },
   users: {
     profile: '/api/v1/users/profile',

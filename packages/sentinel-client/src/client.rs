@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 pub use crate::errors::{SentinelError, SentinelErrorCode, Result};
 pub use crate::types::{
-    AuthenticatedUser, LoginRequest, LoginResponse, SentinelConfig, TokenExchangeRequest,
-    TokenExchangeResponse,
+    AuthenticatedUser, LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse,
+    SentinelConfig, TokenExchangeRequest, TokenExchangeResponse,
 };
 
 /// Sentinel client for communicating with Sentinel Auth service.
@@ -182,6 +182,67 @@ impl SentinelClient {
 
         if status.is_success() {
             let envelope: crate::types::ApiEnvelope<crate::types::TokenExchangeResponse> =
+                serde_json::from_str(&body).map_err(SentinelError::Parse)?;
+
+            if !envelope.success {
+                let error = envelope.error.ok_or_else(|| {
+                    SentinelError::Api {
+                        message: "Unknown error".to_string(),
+                        code: crate::errors::SentinelErrorCode::Unknown,
+                        status: status.as_u16(),
+                        request_id: Some(envelope.request_id.clone()),
+                    }
+                })?;
+                return Err(SentinelError::Api {
+                    message: error.message,
+                    code: crate::errors::SentinelErrorCode::from_status(status.as_u16()),
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id),
+                });
+            }
+
+            envelope.data.ok_or_else(|| {
+                SentinelError::Api {
+                    message: "No data in response".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id),
+                }
+            })
+        } else {
+            Err(SentinelError::from_response(
+                status.as_u16(),
+                &body,
+                None,
+            ))
+        }
+    }
+
+    /// Refresh an access token using a refresh token.
+    ///
+    /// POST /v1/api/auth/token/refresh
+    pub async fn refresh_token(&self, _user_id: &str, refresh_token: &str) -> Result<RefreshTokenResponse> {
+        let url = format!("{}/v1/api/auth/token/refresh", self.inner.base_url);
+
+        let request = RefreshTokenRequest {
+            refresh_token: refresh_token.to_string(),
+        };
+
+        let response = self
+            .inner
+            .http_client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&request)
+            .send()
+            .await
+            .map_err(SentinelError::Network)?;
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+
+        if status.is_success() {
+            let envelope: crate::types::ApiEnvelope<crate::types::RefreshTokenResponse> =
                 serde_json::from_str(&body).map_err(SentinelError::Parse)?;
 
             if !envelope.success {

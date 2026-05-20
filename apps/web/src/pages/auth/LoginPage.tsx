@@ -48,7 +48,7 @@ function LoginPage() {
       setLocalError(null);
       try {
         const result = await authApi.login(credentials);
-        setSession(result.user.id, result.token, '', true, false);
+        setSession(result.user.id, result.token, result.refreshToken, true, false);
 
         // Check for return URL before default redirect
         const returnTo = getReturnTo();

@@ -102,9 +102,6 @@ services:
       start_period: 30s
 
   # ── Sentinel UI (management dashboard) ──────────────────────────────────────
-  # Note: VITE_API_URL is baked into the JS bundle at build time.
-  # The pre-built image expects sentinel-core at http://localhost:9000.
-  # For custom URLs, build your own image with --build-arg VITE_API_URL=<your-url>
   sentinel-ui:
     image: ghcr.io/graned/sentinel-ui:v1.2.0
     container_name: moshsplit-sentinel-ui
@@ -118,29 +115,38 @@ services:
     networks:
       - app-net
 
-  # ── Web (React PWA / Vite) ─────────────────────────────────────────────────
+  # ── Web (React PWA / Vite) - DEV MODE ───────────────────────────────────────
+  # Runs Vite dev server directly (not nginx) for hot module replacement
   web:
-    build:
-      context: ../../
-      dockerfile: infra/docker/web.Dockerfile
-      target: dev
+    image: node:20-alpine
     container_name: moshsplit-web
+    working_dir: /app
     ports:
       - "5173:5173"
     volumes:
-      # Mount the full web app directory for Vite HMR.
+      # Mount entire web app for HMR
       - ../../apps/web:/app/apps/web
       # Mount packages for HMR
       - ../../packages/sentinel-sdk:/app/packages/sentinel-sdk
       - ../../packages/sentinel-auth-react:/app/packages/sentinel-auth-react
+      # Mount root workspace files
+      - ../../package.json:/app/package.json
+      - ../../pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ../../pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ../../.npmrc:/app/.npmrc
     environment:
-      # Use localhost for browser access - Vite proxies /api to pitboss-api
+      # Vite dev server config
       VITE_API_BASE_URL: http://localhost:8080
-      # Also use localhost for Sentinel (port 9000 exposed)
       VITE_SENTINEL_URL: http://localhost:9000
-      # External app integration
-      VITE_EXTERNAL_APP_URL: http://localhost:3000
-      VITE_EXTERNAL_APP_NAME: Pitboss
+    command: >
+      sh -c "
+        corepack enable &&
+        corepack prepare pnpm@latest --activate &&
+        pnpm install --frozen-lockfile &&
+        pnpm --filter @moshsplit/sentinel-sdk build &&
+        pnpm --filter @moshsplit/auth-react build &&
+        pnpm --filter web dev --host 0.0.0.0
+      "
     depends_on:
       pitboss-api:
         condition: service_started

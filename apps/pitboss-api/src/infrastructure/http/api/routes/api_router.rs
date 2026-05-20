@@ -56,7 +56,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let public_routes = Router::new()
         .route("/health", get(system_handlers::health_check))
         .route("/livez", get(system_handlers::livez))
-        .route("/v1/auth/external-login", post(auth_handlers::external_login));
+        .route("/v1/auth/external-login", post(auth_handlers::external_login))
+        .route("/v1/auth/refresh", post(auth_handlers::refresh_token));
 
     // ── Protected API routes (require Sentinel auth) ──────────────────
 

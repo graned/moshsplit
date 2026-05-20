@@ -60,8 +60,8 @@ pub use errors::{SentinelError, SentinelErrorCode, Result};
 pub use middleware::AuthMiddleware;
 pub use types::{
     ApiEnvelope, ApiError, AuthenticatedUser, AuthenticateAndAuthorizeRequest,
-    AuthenticateAndAuthorizeResponse, SentinelConfig, TokenExchangeRequest,
-    TokenExchangeResponse, UserRole,
+    AuthenticateAndAuthorizeResponse, RefreshTokenRequest, RefreshTokenResponse, SentinelConfig,
+    TokenExchangeRequest, TokenExchangeResponse, UserRole,
 };
 
 /// Current version of the crate.

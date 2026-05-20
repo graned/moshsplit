@@ -12,6 +12,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   user: User;
 }
 
@@ -52,6 +53,18 @@ export interface InvitationAcceptResponse {
   user: User;
 }
 
+export interface RefreshTokenRequest {
+  user_id: string;
+  refresh_token: string;
+}
+
+export interface RefreshTokenResponse {
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  expires_at: string;
+}
+
 export interface ExternalLoginRequest {
   api_token: string;
   email: string;
@@ -74,6 +87,7 @@ export const authApi = {
     // Successfully got a session
     return {
       token: result.session.accessToken,
+      refreshToken: result.session.refreshToken,
       user: {
         id: result.session.userId,
         email: data.email,
@@ -126,6 +140,22 @@ export const authApi = {
 
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || 'External login failed');
+    }
+
+    return response.data;
+  },
+
+  refreshToken: async (data: RefreshTokenRequest): Promise<RefreshTokenResponse> => {
+    const response = await apiClient.post<{
+      success: boolean;
+      data: RefreshTokenResponse | null;
+      error: { code: string; message: string } | null;
+      timestamp: string;
+      request_id: string;
+    }>(API_ENDPOINTS.auth.refresh, data);
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || 'Token refresh failed');
     }
 
     return response.data;

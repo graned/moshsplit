@@ -33,10 +33,14 @@ export async function refreshTokens(): Promise<boolean> {
 
   const p = (async () => {
     try {
-      const { refreshToken, emailVerified, mustChangePassword } = useAuthStore.getState();
-      console.log('[tokenRefresh] Got state, refreshToken exists:', !!refreshToken);
+      const { userId, refreshToken, emailVerified, mustChangePassword } = useAuthStore.getState();
+      console.log('[tokenRefresh] Got state, refreshToken exists:', !!refreshToken, 'userId:', userId);
+      if (!userId || !refreshToken) {
+        console.log('[tokenRefresh] Missing userId or refreshToken, cannot refresh');
+        return false;
+      }
       console.log('[tokenRefresh] Calling _client.refreshSession...');
-      const session = await _client!.refreshSession(refreshToken!);
+      const session = await _client!.refreshSession({ userId, refreshToken });
       console.log('[tokenRefresh] refreshSession succeeded, session:', session);
       useAuthStore.getState().setSession(
         session.userId,
