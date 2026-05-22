@@ -225,6 +225,170 @@ apt update && apt upgrade -y
 
 ---
 
+## Sentinel Database Setup
+
+### Quick Start (Fresh Installation)
+
+Use the automated setup script to initialize Sentinel database:
+
+```bash
+# Local development
+cd /data/projects/moshsplit
+export POSTGRES_PASSWORD=your_password
+./scripts/setup-sentinel-db.sh
+
+# Production (on Droplet)
+cd /opt/moshsplit
+./scripts/setup-sentinel-db.sh
+```
+
+This script will:
+1. ✅ Create `sentinel_auth` database
+2. ✅ Create `auth` schema
+3. ✅ Create required roles (`sentinel`, `pitboss`)
+4. ✅ Grant all permissions
+5. ✅ Create `pgcrypto` extension
+6. ✅ Run Sentinel migrations
+
+### Advanced Options
+
+```bash
+# Use specific .env file
+./scripts/setup-sentinel-db.sh --env .env.prod
+
+# Custom database name
+./scripts/setup-sentinel-db.sh --database my_auth_db
+
+# Migrate only (skip database setup)
+./scripts/setup-sentinel-db.sh --migrate-only
+
+# Test run (see what would happen)
+./scripts/setup-sentinel-db.sh --dry-run
+
+# Show help
+./scripts/setup-sentinel-db.sh --help
+```
+
+### Running Migrations Only
+
+To update Sentinel (e.g., v1.2.0 → v1.3.0) without full setup:
+
+```bash
+# Default (uses AUTH_DATABASE_URL from .env)
+./scripts/run-sentinel-migrations.sh
+
+# Specific version
+./scripts/run-sentinel-migrations.sh --version v1.3.0
+
+# Custom .env file
+./scripts/run-sentinel-migrations.sh --env .env.prod
+
+# Dry run
+./scripts/run-sentinel-migrations.sh --dry-run
+```
+
+### Environment Variables for Sentinel Scripts
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `POSTGRES_PASSWORD` | ✅ | - | PostgreSQL password |
+| `POSTGRES_USER` | ❌ | `postgres` | PostgreSQL username |
+| `POSTGRES_HOST` | ❌ | `localhost` | PostgreSQL host |
+| `POSTGRES_PORT` | ❌ | `5432` | PostgreSQL port |
+| `AUTH_DATABASE_URL` | ⚠️ | Auto-built | Sentinel database URL |
+| `SENTINEL_VERSION` | ❌ | `v1.3.0` | Version to migrate |
+
+### Manual Setup (Alternative)
+
+If you prefer manual setup:
+
+```bash
+# 1. Create database and schema
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE sentinel_auth;"
+docker compose exec postgres psql -U postgres -d sentinel_auth -c "CREATE SCHEMA auth;"
+
+# 2. Create pgcrypto extension
+docker compose exec postgres psql -U postgres -d sentinel_auth -c "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA auth;"
+
+# 3. Run migrations
+./scripts/run-sentinel-migrations.sh
+```
+
+### Verify Installation
+
+```bash
+# Check tables exist
+docker compose exec postgres psql -U postgres -d sentinel_auth -c '\dt auth.*'
+
+# Expected output (~10 tables):
+# auth.users
+# auth.sessions
+# auth.user_identities
+# auth.email_verifications
+# auth.api_tokens
+# auth.roles
+# auth.user_roles
+# auth.mfa_factors
+# auth.password_resets
+# auth.email_verification
+```
+
+### Create API Token
+
+After setup, create an API token for external login:
+
+```bash
+# Option 1: Use Sentinel UI
+# Visit https://sentinel.viralatas.org/ and create token
+
+# Option 2: Use Sentinel CLI
+docker compose exec sentinel ./sentinel-core api-token create --name 'test_token'
+
+# Option 3: Direct SQL (for testing only)
+docker compose exec postgres psql -U postgres -d sentinel_auth << 'EOF'
+INSERT INTO auth.api_tokens (token_id, name, token_hash, is_active, created_at)
+VALUES (
+  'sat_test_token',
+  'Test Token',
+  crypt('sat_test_token', gen_salt('bf')),
+  true,
+  NOW()
+);
+EOF
+```
+
+### Troubleshooting Sentinel
+
+**Migration fails:**
+```bash
+# Check database connection
+echo $AUTH_DATABASE_URL
+
+# Verify database exists
+docker compose exec postgres psql -U postgres -c '\l' | grep sentinel_auth
+
+# Check pgcrypto extension
+docker compose exec postgres psql -U postgres -d sentinel_auth -c '\dx' | grep pgcrypto
+```
+
+**Sentinel won't start:**
+```bash
+# Check logs
+docker compose logs sentinel
+
+# Verify schema permissions
+docker compose exec postgres psql -U postgres -d sentinel_auth -c '\dn+ auth'
+```
+
+**Reset and start over:**
+```bash
+# WARNING: Deletes all Sentinel data!
+docker compose exec postgres psql -U postgres -c "DROP DATABASE IF EXISTS sentinel_auth;"
+./scripts/setup-sentinel-db.sh
+```
+
+---
+
 ## Support
 
 For issues or questions:
