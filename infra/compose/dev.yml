@@ -74,13 +74,13 @@ services:
 
   # ── Sentinel (auth service) ─────────────────────────────────────────────────
   sentinel:
-    image: ghcr.io/graned/sentinel-core:v1.3.1
+    image: ghcr.io/graned/sentinel-core:v1.3.2
     container_name: moshsplit-sentinel
     ports:
       - "9000:8000"
     environment:
       DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
-      PGOPTIONS: "-c search_path=auth"
+      PGOPTIONS: "-c search_path=auth,public"
       HEX_KEY: 32a8c0fc962ce0299e8f5dedb1ff75b7e8789416db8f6836fb91c6e7bd2e58fe
       CONFIG_ENCRYPTION_KEY: 02b96ece27c893f176d52139c17ef97db53283a3b0a75e185c2a9da7c1855db5
       RUST_LOG: debug

@@ -44,14 +44,16 @@ CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION postgres;
 -- Create auth schema first
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION postgres;
 
--- Create pgcrypto extension IN auth schema (needed for gen_random_uuid, crypt, gen_salt)
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA auth;
+-- Create pgcrypto extension in public schema (needed for gen_random_uuid, crypt, gen_salt)
+-- NOTE: Migrations run as postgres with default search_path including public.
+--       Sentinel runtime uses search_path=auth,public so it can also find these.
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 -- Grant execute on pgcrypto functions to sentinel
-GRANT EXECUTE ON FUNCTION auth.crypt(text, text) TO sentinel;
-GRANT EXECUTE ON FUNCTION auth.gen_salt(text) TO sentinel;
-GRANT EXECUTE ON FUNCTION auth.gen_salt(text, integer) TO sentinel;
-GRANT EXECUTE ON FUNCTION auth.gen_random_uuid() TO sentinel;
+GRANT EXECUTE ON FUNCTION public.crypt(text, text) TO sentinel;
+GRANT EXECUTE ON FUNCTION public.gen_salt(text) TO sentinel;
+GRANT EXECUTE ON FUNCTION public.gen_salt(text, integer) TO sentinel;
+GRANT EXECUTE ON FUNCTION public.gen_random_uuid() TO sentinel;
 
 -- ── Grants in moshsplit database ──────────────────────────────────────────────
 
@@ -83,9 +85,6 @@ GRANT ALL ON SCHEMA public TO postgres;
 
 \c sentinel_auth
 
--- Create pgcrypto extension (needed for gen_random_uuid())
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 -- === auth schema → sentinel ===
 GRANT USAGE ON SCHEMA auth TO sentinel;
 GRANT CREATE ON SCHEMA auth TO sentinel;
@@ -101,8 +100,8 @@ GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel;
 
--- Set default search_path for sentinel to auth schema
-ALTER ROLE sentinel SET search_path TO auth;
+-- Set default search_path for sentinel (public needed for pgcrypto functions)
+ALTER ROLE sentinel SET search_path TO auth, public;
 
 -- Return to postgres database
 \c postgres
