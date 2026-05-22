@@ -5,28 +5,19 @@ import {
   Button,
   Avatar,
   alpha,
-  Collapse,
   IconButton,
-  Divider,
   Chip,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import {
-  ExpandMore as ExpandMoreIcon,
-  LocalBar as BeerIcon,
-  LocalGasStation as GasIcon,
-  Restaurant as FoodIcon,
-  DirectionsBus as TransportIcon,
-  ShoppingBag as MerchIcon,
-  Receipt as DefaultIcon,
-  Forest as CampingIcon,
   TrendingUp as IncomingIcon,
   TrendingDown as OutgoingIcon,
   Pending as PendingIcon,
   CheckCircle as ConfirmIcon,
   SwapHoriz as SettleIcon,
   Payment as PaymentIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useUserCache, useUser } from '../../../hooks/useUserCache';
 import { UserInfo } from '../../../api/users.api';
@@ -36,15 +27,7 @@ import { GroupMember } from '../../../api/groups.api';
 import { RestoreHonorModal } from '../../settlements/RestoreHonorModal';
 import { SettlementReviewPanel } from '../../settlements/SettlementReviewPanel';
 import { MobileCard } from '../../shared/cards/MobileCard';
-
-const EXPENSE_ICONS: Record<string, React.ReactNode> = {
-  beer: <BeerIcon sx={{ fontSize: 14 }} />,
-  gas: <GasIcon sx={{ fontSize: 14 }} />,
-  food: <FoodIcon sx={{ fontSize: 14 }} />,
-  transport: <TransportIcon sx={{ fontSize: 14 }} />,
-  merch: <MerchIcon sx={{ fontSize: 14 }} />,
-  camping: <CampingIcon sx={{ fontSize: 14 }} />,
-};
+import { RelationshipDetailDrawer } from '../mobile/RelationshipDetailDrawer';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Math.abs(cents) / 100);
@@ -105,7 +88,10 @@ export function SettlementCards({
       setInternalTab(tab);
     }
   };
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  
+  // Drawer state for mobile - replaces inline expansion
+  const [drawerRelationship, setDrawerRelationship] = useState<RelationshipSummary | null>(null);
+  
   const { getAllUsers } = useUserCache();
   const allUsers = getAllUsers();
   const userMap = useMemo(() => {
@@ -303,14 +289,13 @@ export function SettlementCards({
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {displayList.map((rel) => {
-                const isExpanded = expandedUserId === rel.userId;
                 const name = getMemberName(rel.userId);
                 const isCurrentUser = rel.userId === currentUserId;
 
                 return (
                   <MobileCard
                     key={rel.userId}
-                    onClick={() => setExpandedUserId(isExpanded ? null : rel.userId)}
+                    onClick={() => setDrawerRelationship(rel)}
                     accentColor={rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main}
                   >
                     {/* Header row */}
@@ -385,184 +370,34 @@ export function SettlementCards({
                         sx={{
                           color: 'text.secondary',
                           flexShrink: 0,
-                          transition: 'transform 0.2s ease',
-                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                         }}
                       >
-                        <ExpandMoreIcon />
+                        <ChevronRightIcon />
                       </IconButton>
                     </Box>
-
-                    {/* Expanded breakdown */}
-                    <Collapse in={isExpanded}>
-                      <Divider sx={{ borderColor: alpha('#fff', 0.05) }} />
-                      <Box
-                        sx={{
-                          p: 2,
-                          pt: 1.5,
-                          maxHeight: isMobile ? 280 : 'none',
-                          overflowY: isMobile ? 'auto' : 'visible',
-                          pb: isMobile ? 'calc(2 + env(safe-area-inset-bottom, 0px))' : 2,
-                          '&::-webkit-scrollbar': {
-                            width: 4,
-                          },
-                          '&::-webkit-scrollbar-track': {
-                            background: 'transparent',
-                          },
-                          '&::-webkit-scrollbar-thumb': {
-                            background: alpha(theme.palette.primary.main, 0.2),
-                            borderRadius: 2,
-                          },
-                        }}
-                      >
-                        {/* Expense transactions */}
-                        {rel.expenses.length > 0 && (
-                          <>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                              Expenses
-                            </Typography>
-                            {rel.expenses.map((exp, i) => (
-                              <ExpenseRow
-                                key={i}
-                                expense={exp}
-                                currency={currency}
-                                isIncoming={rel.isIncoming}
-                              />
-                            ))}
-                          </>
-                        )}
-
-                        {/* Settlement transactions */}
-                        {rel.settlements.length > 0 && (
-                          <>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mt: 1.5, mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                              Settlements
-                            </Typography>
-                            {rel.settlements.map((stl, i) => (
-                              <SettlementRow
-                                key={i}
-                                settlement={stl}
-                                currency={currency}
-                              />
-                            ))}
-                          </>
-                        )}
-
-                        {/* Payment transactions */}
-                        {rel.payments.length > 0 && (
-                          <>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mt: 1.5, mb: 0.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                              Payments
-                            </Typography>
-                            {rel.payments.map((pmt, i) => (
-                              <PaymentRow
-                                key={i}
-                                payment={pmt}
-                                currency={currency}
-                              />
-                            ))}
-                          </>
-                        )}
-
-                        {/* Net calculation summary */}
-                        {(rel.rawExpenseCents !== 0 || rel.rawSettlementCents !== 0 || rel.rawPaymentCents !== 0) && (
-                          <Box
-                            sx={{
-                              mt: 2,
-                              pt: 1.5,
-                              borderTop: `1px solid ${alpha('#fff', 0.1)}`,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 0.5,
-                            }}
-                          >
-                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                              Net Calculation
-                            </Typography>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography variant="body2" color="text.secondary">
-                                Expenses
-                              </Typography>
-                              <Typography variant="body2" fontWeight={600}>
-                                {rel.rawExpenseCents >= 0 ? '+' : ''}{formatAmount(rel.rawExpenseCents, currency)}
-                              </Typography>
-                            </Box>
-                            {rel.rawSettlementCents !== 0 && (
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2" color="text.secondary">
-                                  Settlements
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>
-                                  {rel.rawSettlementCents >= 0 ? '+' : ''}{formatAmount(rel.rawSettlementCents, currency)}
-                                </Typography>
-                              </Box>
-                            )}
-                            {rel.rawPaymentCents !== 0 && (
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2" color="text.secondary">
-                                  Payments
-                                </Typography>
-                                <Typography variant="body2" fontWeight={600}>
-                                  {rel.rawPaymentCents >= 0 ? '+' : ''}{formatAmount(rel.rawPaymentCents, currency)}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
-                        )}
-
-                        {/* Total row */}
-                        <Box
-                          sx={{
-                            mt: 1.5,
-                            pt: 1.5,
-                            borderTop: `1px solid ${alpha('#fff', 0.1)}`,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <Typography variant="body2" fontWeight={700} color="text.secondary">
-                            Net Total:
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            fontWeight={800}
-                            sx={{
-                              color: rel.isIncoming ? 'primary.main' : 'error.main',
-                            }}
-                          >
-                            {rel.isIncoming ? '+' : '-'}{formatAmount(rel.totalCents, currency)}
-                          </Typography>
-                        </Box>
-
-                        {/* Restore Honor button (only for outgoing) */}
-                        {!rel.isIncoming && rel.totalCents > 0 && (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenRestoreHonor(rel.userId, rel.totalCents);
-                            }}
-                            sx={{
-                              mt: 2,
-                              bgcolor: 'primary.main',
-                              color: '#121212',
-                              fontWeight: 700,
-                              '&:hover': { bgcolor: 'primary.dark' },
-                            }}
-                          >
-                            Restore Honor {formatAmount(rel.totalCents, currency)}
-                          </Button>
-                        )}
-                        </Box>
-                      </Collapse>
-                    </MobileCard>
-                  );
-                })}
+                  </MobileCard>
+                );
+              })}
             </Box>
+
           )}
         </>
+      )}
+
+      {/* Relationship Detail Drawer (mobile) */}
+      {drawerRelationship && (
+        <RelationshipDetailDrawer
+          open={!!drawerRelationship}
+          onClose={() => setDrawerRelationship(null)}
+          relationship={drawerRelationship}
+          currency={currency}
+          counterpartyName={getMemberName(drawerRelationship.userId)}
+          counterpartyInitial={getMemberInitial(drawerRelationship.userId)}
+          onRestoreHonor={() => {
+            setDrawerRelationship(null);
+            handleOpenRestoreHonor(drawerRelationship.userId, drawerRelationship.totalCents);
+          }}
+        />
       )}
 
       {/* Restore Honor Modal */}
@@ -665,207 +500,6 @@ function TabButton({
       >
         {formatAmount(total, currency)}
       </Typography>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Expense Row
-// ---------------------------------------------------------------------------
-
-function ExpenseRow({
-  expense,
-  currency,
-  isIncoming,
-}: {
-  expense: ExpenseBreakdown;
-  currency: string;
-  isIncoming: boolean;
-}) {
-  const icon = expense.expense_type
-    ? EXPENSE_ICONS[expense.expense_type] ?? <DefaultIcon sx={{ fontSize: 14 }} />
-    : <DefaultIcon sx={{ fontSize: 14 }} />;
-
-  const amountCents = isIncoming ? expense.share_cents : expense.share_cents;
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        py: 1.5,
-      }}
-    >
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          bgcolor: alpha('#F59E0B', 0.15),
-          color: 'primary.main',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-          {expense.title}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {expense.amount_cents > 0
-            ? `Total: ${formatAmount(expense.amount_cents, currency)}`
-            : 'Expense'}
-        </Typography>
-      </Box>
-      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={{ color: isIncoming ? 'primary.main' : 'error.main' }}
-        >
-          {formatAmount(amountCents, currency)}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          share
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Settlement Row
-// ---------------------------------------------------------------------------
-
-function SettlementRow({
-  settlement,
-  currency,
-}: {
-  settlement: SettlementBreakdown;
-  currency: string;
-}) {
-  const createdDate = new Date(settlement.created_at).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        py: 1.5,
-      }}
-    >
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          bgcolor: alpha('#10b981', 0.15),
-          color: '#10b981',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <SettleIcon sx={{ fontSize: 14 }} />
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-            {settlement.note || 'Settlement'}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary">
-          {createdDate} • {settlement.status}
-        </Typography>
-      </Box>
-      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={{ color: '#10b981' }}
-        >
-          {formatAmount(settlement.amount_cents, currency)}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          settled
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Payment Row
-// ---------------------------------------------------------------------------
-
-function PaymentRow({
-  payment,
-  currency,
-}: {
-  payment: PaymentBreakdown;
-  currency: string;
-}) {
-  const recordedDate = new Date(payment.recorded_at).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        py: 1.5,
-      }}
-    >
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          bgcolor: alpha('#8b5cf6', 0.15),
-          color: '#8b5cf6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <PaymentIcon sx={{ fontSize: 14 }} />
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-            {payment.description || 'Payment'}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary">
-          {recordedDate}
-        </Typography>
-      </Box>
-      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={{ color: '#8b5cf6' }}
-        >
-          {formatAmount(payment.amount_cents, currency)}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          paid
-        </Typography>
-      </Box>
     </Box>
   );
 }
