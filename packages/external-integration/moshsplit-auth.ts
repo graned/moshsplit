@@ -42,6 +42,8 @@ interface MoshsplitConfig {
 interface ExternalLoginRequest {
   api_token: string;
   email: string;
+  display_name: string;
+  avatar_url?: string;
 }
 
 interface ExternalLoginResponse {
@@ -110,8 +112,10 @@ export const moshsplit = {
   async login(opts: {
     apiToken: string;
     email: string;
+    displayName: string;
+    avatarUrl?: string;
   }): Promise<LoginResult> {
-    const { apiToken, email } = opts;
+    const { apiToken, email, displayName, avatarUrl } = opts;
     const c = cfg();
 
     // ── Step 1: token exchange ──────────────────────────────────────────
@@ -123,6 +127,8 @@ export const moshsplit = {
         body: JSON.stringify({
           api_token: apiToken,
           email,
+          display_name: displayName,
+          avatar_url: avatarUrl,
         } satisfies ExternalLoginRequest),
       },
     );

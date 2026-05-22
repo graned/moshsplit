@@ -159,11 +159,21 @@ impl SentinelClient {
     ///
     /// The API token must belong to an admin user.
     /// The target user's email is used to generate the session.
-    pub async fn exchange_token(&self, api_token: &str, email: &str) -> Result<TokenExchangeResponse> {
+    /// 
+    /// Sentinel v1.3.0+: Requires display_name and optionally avatar_url for federated user creation.
+    pub async fn exchange_token(
+        &self,
+        api_token: &str,
+        email: &str,
+        display_name: &str,
+        avatar_url: Option<&str>,
+    ) -> Result<TokenExchangeResponse> {
         let url = format!("{}/v1/api/auth/token/exchange", self.inner.base_url);
 
         let request = TokenExchangeRequest {
             email: email.to_string(),
+            display_name: display_name.to_string(),
+            avatar_url: avatar_url.map(|s| s.to_string()),
         };
 
         let response = self

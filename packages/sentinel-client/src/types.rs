@@ -104,9 +104,13 @@ pub struct LoginRequest {
 }
 
 // Token exchange types (POST /v1/api/auth/token/exchange)
+// Sentinel v1.3.0+: Requires display_name, avatar_url is optional but recommended
 #[derive(Debug, Clone, Serialize)]
 pub struct TokenExchangeRequest {
     pub email: String,
+    pub display_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
