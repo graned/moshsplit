@@ -83,7 +83,7 @@ fi
 # Auto-detect: If running inside Docker, use 'postgres' hostname
 # If running from host, use 'localhost'
 if [ -z "$POSTGRES_HOST" ]; then
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "moshsplit-postgres"; then
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "moshsplit-db"; then
         # Running on host, but Docker container exists
         POSTGRES_HOST="localhost"
         echo -e "${BLUE}Auto-detected: Using localhost (Docker container running)${NC}"
@@ -108,6 +108,13 @@ if [ -z "$AUTH_DATABASE_URL" ]; then
     echo "Or export it:"
     echo "  export AUTH_DATABASE_URL='postgres://...'"
     exit 1
+fi
+
+# Extract database name from AUTH_DATABASE_URL
+DATABASE_NAME="${SENTINEL_DB_NAME:-sentinel_auth}"
+# Also try to extract from URL if not explicitly set
+if echo "$AUTH_DATABASE_URL" | grep -q '/'; then
+    DATABASE_NAME=$(echo "$AUTH_DATABASE_URL" | sed 's|.*/||' | sed 's/?.*//')
 fi
 
 echo ""
@@ -166,15 +173,15 @@ else
     
     echo -e "${YELLOW}Running migrations...${NC}"
 
-# Pre-check: Create pgcrypto if it doesn't exist (needed for migrations)
-echo "  → Ensuring pgcrypto extension exists..."
-if docker ps --format '{{.Names}}' | grep -q "moshsplit-postgres"; then
-    docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
-      "CREATE EXTENSION IF NOT EXISTS pgcrypto;" 2>/dev/null || true
-else
-    PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
-      "CREATE EXTENSION IF NOT EXISTS pgcrypto;" 2>/dev/null || true
-fi
+    # Pre-check: Create pgcrypto in public schema if it doesn't exist (needed for migrations)
+    echo "  → Ensuring pgcrypto extension exists in public schema..."
+    if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
+        docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
+          "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;" 2>/dev/null || true
+    else
+        PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
+          "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;" 2>/dev/null || true
+    fi
     
     # Determine network and host
     if docker network ls --format '{{.Name}}' | grep -q "moshsplit"; then

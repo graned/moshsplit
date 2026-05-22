@@ -138,16 +138,16 @@ echo ""
 run_sql() {
     local sql="$1"
     local db="${2:-postgres}"
-    
+
     if [ "$DRY_RUN" = true ]; then
         echo -e "${YELLOW}[DRY-RUN] Would execute SQL on $db:${NC}"
         echo "$sql"
         return 0
     fi
-    
-    # Check if running in Docker context
-    if docker ps --format '{{.Names}}' | grep -q "moshsplit-postgres"; then
-        docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$db" -c "$sql"
+
+    # Check if running in Docker context — use docker exec directly (no compose file needed)
+    if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
+        docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d "$db" -c "$sql"
     else
         PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$db" -c "$sql"
     fi
@@ -159,11 +159,18 @@ run_sql() {
 
 if [ "$MIGRATE_ONLY" = false ]; then
     echo -e "${YELLOW}Step 1: Creating database...${NC}"
-    
-    # Check if database exists
-    DB_EXISTS=$(run_sql "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';" postgres 2>/dev/null || echo "")
-    
-    if [ -z "$DB_EXISTS" ]; then
+
+    if [ "$DRY_RUN" = false ]; then
+        if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
+            DB_EXISTS=$(docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d postgres -tA -c "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';" 2>/dev/null)
+        else
+            DB_EXISTS=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -tA -c "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';" 2>/dev/null)
+        fi
+    else
+        DB_EXISTS=""
+    fi
+
+    if [ -z "$DB_EXISTS" ] || [ "$DB_EXISTS" != "1" ]; then
         echo "  → Creating database: ${DATABASE_NAME}"
         run_sql "CREATE DATABASE ${DATABASE_NAME};" postgres
         echo -e "  ${GREEN}✓ Database created${NC}"
@@ -171,131 +178,64 @@ if [ "$MIGRATE_ONLY" = false ]; then
         echo -e "  ${GREEN}✓ Database already exists${NC}"
     fi
     echo ""
-    
+
     # =============================================================================
     # STEP 2: Create auth Schema
     # =============================================================================
-    
+
     echo -e "${YELLOW}Step 2: Creating auth schema...${NC}"
-    
+
     run_sql "CREATE SCHEMA IF NOT EXISTS auth;" "$DATABASE_NAME"
     echo -e "  ${GREEN}✓ Schema created${NC}"
     echo ""
-    
+
     # =============================================================================
     # STEP 3: Create Roles (if needed)
     # =============================================================================
-    
+
     echo -e "${YELLOW}Step 3: Creating roles...${NC}"
-    
+
     # Create sentinel role
     run_sql "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'sentinel') THEN CREATE ROLE sentinel LOGIN PASSWORD 'sentinel_dev'; END IF; END \$\$;" "$DATABASE_NAME"
     echo "  → Created 'sentinel' role"
-    
-    # Create pitboss role (optional, for cross-schema access)
-    run_sql "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'pitboss') THEN CREATE ROLE pitboss LOGIN PASSWORD 'password'; END IF; END \$\$;" "$DATABASE_NAME"
-    echo "  → Created 'pitboss' role"
-    
+
     echo -e "  ${GREEN}✓ Roles created${NC}"
     echo ""
-    
+
     # =============================================================================
     # STEP 4: Grant Permissions
     # =============================================================================
-    
+
     echo -e "${YELLOW}Step 4: Granting permissions...${NC}"
-    
+
     # Grant schema permissions to sentinel
     run_sql "GRANT USAGE ON SCHEMA auth TO sentinel;" "$DATABASE_NAME"
     run_sql "GRANT CREATE ON SCHEMA auth TO sentinel;" "$DATABASE_NAME"
     run_sql "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth GRANT ALL ON TABLES TO sentinel;" "$DATABASE_NAME"
     run_sql "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth GRANT ALL ON SEQUENCES TO sentinel;" "$DATABASE_NAME"
     run_sql "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth GRANT ALL ON FUNCTIONS TO sentinel;" "$DATABASE_NAME"
-    
-    # Set search_path for sentinel user
-    run_sql "ALTER ROLE sentinel SET search_path TO auth;" "$DATABASE_NAME"
-    
+
+    # Set search_path for sentinel user (public needed for pgcrypto functions)
+    run_sql "ALTER ROLE sentinel SET search_path TO auth, public;" "$DATABASE_NAME"
+
     echo -e "  ${GREEN}✓ Permissions granted${NC}"
     echo ""
-    
+
     # =============================================================================
     # STEP 5: Create pgcrypto Extension
     # =============================================================================
-    
+
     echo -e "${YELLOW}Step 5: Creating pgcrypto extension...${NC}"
-    
-    run_sql "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA auth;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION auth.crypt(text, text) TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION auth.gen_salt(text) TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION auth.gen_salt(text, integer) TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION auth.gen_random_uuid() TO sentinel;" "$DATABASE_NAME"
-    
+
+    # Move pgcrypto to public schema if it exists elsewhere, otherwise create it
+    run_sql "DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto' AND extnamespace != (SELECT oid FROM pg_namespace WHERE nspname = 'public')) THEN ALTER EXTENSION pgcrypto SET SCHEMA public; ELSE CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public; END IF; END \$\$;" "$DATABASE_NAME"
+    run_sql "GRANT EXECUTE ON FUNCTION public.crypt(text, text) TO sentinel;" "$DATABASE_NAME"
+    run_sql "GRANT EXECUTE ON FUNCTION public.gen_salt(text) TO sentinel;" "$DATABASE_NAME"
+    run_sql "GRANT EXECUTE ON FUNCTION public.gen_salt(text, integer) TO sentinel;" "$DATABASE_NAME"
+    run_sql "GRANT EXECUTE ON FUNCTION public.gen_random_uuid() TO sentinel;" "$DATABASE_NAME"
+
     echo -e "  ${GREEN}✓ Extension created and permissions granted${NC}"
     echo ""
-fi
-
-# =============================================================================
-# STEP 6: Run Sentinel Migrations
-# =============================================================================
-
-echo -e "${YELLOW}Step 6: Running Sentinel migrations...${NC}"
-echo "  Version: ${SENTINEL_VERSION}"
-echo "  Database URL: ${AUTH_DATABASE_URL}"
-echo ""
-
-# Clone Sentinel repo if not exists
-if [ ! -d "/tmp/sentinel" ]; then
-    echo "  → Cloning Sentinel repository..."
-    git clone --depth 1 --branch "$SENTINEL_VERSION" https://github.com/graned/sentinel.git /tmp/sentinel 2>/dev/null || \
-    git clone --depth 1 https://github.com/graned/sentinel.git /tmp/sentinel
-    echo -e "  ${GREEN}✓ Repository cloned${NC}"
-else
-    echo "  → Updating existing clone..."
-    cd /tmp/sentinel
-    git fetch --tags
-    git checkout "$SENTINEL_VERSION" 2>/dev/null || git checkout "main"
-    cd - > /dev/null
-    echo -e "  ${GREEN}✓ Repository updated${NC}"
-fi
-
-# Build migration Docker image
-echo "  → Building migration container..."
-cd /tmp/sentinel
-
-cat > /tmp/Dockerfile.migrate << 'EOF'
-FROM rust:1.91-slim AS builder
-RUN apt-get update && apt-get install -y libpq-dev pkg-config && rm -rf /var/lib/apt/lists/*
-RUN cargo install diesel_cli --no-default-features --features postgres
-
-FROM rust:1.91-slim
-RUN rm -rf /usr/local/rustup /usr/local/cargo/registry /usr/local/cargo/git && \
-    apt-get update && apt-get install -y --no-install-recommends libpq5 && \
-    rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/local/cargo/bin/diesel /usr/local/bin/diesel
-COPY apps/sentinel-core/migrations /app/migrations
-WORKDIR /app
-EOF
-
-if [ "$DRY_RUN" = true ]; then
-    echo -e "${YELLOW}[DRY-RUN] Would build Docker image and run migrations${NC}"
-else
-    docker build -t sentinel-migrate:test -f /tmp/Dockerfile.migrate /tmp/sentinel > /dev/null 2>&1
-    
-    # Determine network (Docker compose or host)
-    if docker network ls --format '{{.Name}}' | grep -q "moshsplit_app-net"; then
-        NETWORK="--network moshsplit_app-net"
-    else
-        NETWORK=""
-    fi
-    
-    # Run migrations
-    docker run --rm \
-      $NETWORK \
-      -e DATABASE_URL="$AUTH_DATABASE_URL" \
-      sentinel-migrate:test \
-      diesel migration run
-    
-    echo -e "  ${GREEN}✓ Migrations completed${NC}"
 fi
 
 echo ""
