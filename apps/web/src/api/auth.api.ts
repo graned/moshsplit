@@ -68,6 +68,8 @@ export interface RefreshTokenResponse {
 export interface ExternalLoginRequest {
   api_token: string;
   email: string;
+  display_name: string;
+  avatar_url?: string;
 }
 
 export interface ExternalLoginResponse {

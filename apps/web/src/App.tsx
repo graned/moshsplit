@@ -58,6 +58,8 @@ function MobilePostLoginRedirect() {
 
   const events = data?.data || [];
 
+  console.log('[MoshSplit] Fetched events:', JSON.stringify(events, null, 2));
+
   useEffect(() => {
     if (events.length === 1) {
       if (isMobile) {
