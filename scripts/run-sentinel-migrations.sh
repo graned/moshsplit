@@ -74,6 +74,28 @@ fi
 # Load environment
 if [ -n "$ENV_FILE" ]; then
     export $(grep -v '^#' "$ENV_FILE" | xargs)
+elif [ -f ".env.local" ]; then
+    export $(grep -v '^#' .env.local | xargs)
+elif [ -f ".env" ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Auto-detect: If running inside Docker, use 'postgres' hostname
+# If running from host, use 'localhost'
+if [ -z "$POSTGRES_HOST" ]; then
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "moshsplit-postgres"; then
+        # Running on host, but Docker container exists
+        POSTGRES_HOST="localhost"
+        echo -e "${BLUE}Auto-detected: Using localhost (Docker container running)${NC}"
+    elif docker inspect "$(hostname)" &>/dev/null && grep -q "moshsplit" /etc/resolv.conf 2>/dev/null; then
+        # Running inside Docker container
+        POSTGRES_HOST="postgres"
+        echo -e "${BLUE}Auto-detected: Running inside Docker network${NC}"
+    else
+        # Default to localhost
+        POSTGRES_HOST="localhost"
+        echo -e "${BLUE}Auto-detected: Using localhost${NC}"
+    fi
 fi
 
 # Validate
@@ -143,11 +165,43 @@ else
     fi
     
     echo -e "${YELLOW}Running migrations...${NC}"
-    docker run --rm \
-      $NETWORK \
-      -e DATABASE_URL="$AUTH_DATABASE_URL" \
-      sentinel-migrate:test \
-      diesel migration run
+
+# Pre-check: Create pgcrypto if it doesn't exist (needed for migrations)
+echo "  → Ensuring pgcrypto extension exists..."
+if docker ps --format '{{.Names}}' | grep -q "moshsplit-postgres"; then
+    docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
+      "CREATE EXTENSION IF NOT EXISTS pgcrypto;" 2>/dev/null || true
+else
+    PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
+      "CREATE EXTENSION IF NOT EXISTS pgcrypto;" 2>/dev/null || true
+fi
+    
+    # Determine network and host
+    if docker network ls --format '{{.Name}}' | grep -q "moshsplit"; then
+        # Use host.docker.internal to reach host machine from container
+        # On Linux, need to use special DNS or host network mode
+        if [ "$(uname)" = "Linux" ]; then
+            # Linux: Use host network mode
+            docker run --rm \
+              --network host \
+              -e DATABASE_URL="$AUTH_DATABASE_URL" \
+              sentinel-migrate:test \
+              diesel migration run
+        else
+            # macOS/Windows: host.docker.internal works
+            docker run --rm \
+              -e DATABASE_URL="$AUTH_DATABASE_URL" \
+              sentinel-migrate:test \
+              diesel migration run
+        fi
+    else
+        # No network, try host mode
+        docker run --rm \
+          --network host \
+          -e DATABASE_URL="$AUTH_DATABASE_URL" \
+          sentinel-migrate:test \
+          diesel migration run
+    fi
 fi
 
 echo ""
