@@ -53,9 +53,15 @@ use crate::infrastructure::http::AppState;
 ///   Layers added LAST wrap everything (outermost).
 pub fn build_router(state: Arc<AppState>) -> Router {
     // ── Public routes (no auth required) ───────────────────────────────
+    // Note: These must be kept separate from protected routes to avoid
+    // the AuthMiddleware being applied to token-exchange endpoints
     let public_routes = Router::new()
         .route("/health", get(system_handlers::health_check))
-        .route("/livez", get(system_handlers::livez))
+        .route("/livez", get(system_handlers::livez));
+
+    // ── Public auth routes (no auth required, but under /v1/) ─────────
+    // These endpoints exchange tokens, so they cannot require a Bearer token
+    let public_auth_routes = Router::new()
         .route("/v1/auth/external-login", post(auth_handlers::external_login))
         .route("/v1/auth/refresh", post(auth_handlers::refresh_token));
 
@@ -202,6 +208,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     // Build the complete router with all layers
     let api_routes = Router::new()
         .merge(public_routes) // Public - no auth
+        .merge(public_auth_routes) // Public auth endpoints - no auth required
         .merge(protected_routes) // Protected - requires Sentinel auth
         // ── Innermost (closest to handler) ──────────────────────
         .layer(middleware::from_fn(

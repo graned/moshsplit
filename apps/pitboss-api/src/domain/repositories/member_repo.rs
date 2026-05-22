@@ -81,6 +81,21 @@ impl EventMemberRepository {
         Ok(count)
     }
 
+    /// Check if a user has ANY membership records across all events (active or inactive).
+    /// Used to determine if this is a user's first login.
+    pub fn has_any_membership(&self, user_id: Uuid) -> Result<bool, RepositoryError> {
+        use diesel::dsl::exists;
+
+        let mut conn = self.db_client.get_conn()?;
+        let result = diesel::select(exists(
+            event_member::table
+                .filter(event_member::user_id.eq(user_id)),
+        ))
+        .first::<bool>(&mut conn)
+        .map_err(RepositoryError::from)?;
+        Ok(result)
+    }
+
     /// Check if a user is an active member of an event.
     pub fn is_active_member(&self, event_id: Uuid, user_id: Uuid) -> Result<bool, RepositoryError> {
         use diesel::dsl::exists;

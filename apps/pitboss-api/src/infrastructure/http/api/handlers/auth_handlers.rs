@@ -3,13 +3,20 @@
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use uuid::Uuid;
 
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::infrastructure::http::AppState;
+use crate::services::member_service::MemberService;
 
 #[derive(Debug, Deserialize)]
 pub struct ExternalLoginRequest {
     pub api_token: String,
     pub email: String,
+    pub display_name: String,
+    #[serde(default)]
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,19 +49,44 @@ pub async fn external_login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ExternalLoginRequest>,
 ) -> Result<Json<ExternalLoginResponse>, (StatusCode, Json<serde_json::Value>)> {
+    // Use provided display_name and avatar_url from request, fallback to defaults
+    let display_name = if payload.display_name.is_empty() {
+        "Eduardo Anaya"
+    } else {
+        &payload.display_name
+    };
+    let avatar_url = payload.avatar_url.or_else(|| Some("https://lh3.googleusercontent.com/pw/AP1GczMPVP7BLZ7fKXXLPHayHHvK7FaOd1N_jPqod7q3pCaPoUAPIW37PLFQtYPTHeHmx6dT6S9N0j1QNbGdK70dMK_yYz_9rI5A9IBBt8OkLxkDdVq2wTXEL0z2jgPfbaL1ULukmNnGmzhummJ0tK45L1waNg=w1082-h1441-s-no-gm?authuser=0".to_string()));
+
     let result = state
         .sentinel_client
-        .exchange_token(&payload.api_token, &payload.email)
+        .exchange_token(&payload.api_token, &payload.email, display_name, avatar_url.as_deref())
         .await;
 
     match result {
-        Ok(response) => Ok(Json(ExternalLoginResponse {
-            user_id: response.user_id,
-            access_token: response.access_token,
-            refresh_token: response.refresh_token,
-            expires_at: response.expires_at,
-            email_verified: true,
-        })),
+        Ok(response) => {
+            // On first login, auto-join the user to the first active event.
+            // This is best-effort — failures (e.g., no event exists yet) are
+            // logged but do not prevent login.
+            if let Ok(user_id) = Uuid::parse_str(&response.user_id) {
+                let svc = MemberService::new(
+                    EventRepository::new(state.db_client.clone()),
+                    EventMemberRepository::new(state.db_client.clone()),
+                );
+                match svc.auto_join_first_event(user_id) {
+                    Ok(true) => tracing::info!("Auto-joined user {user_id} to first active event"),
+                    Ok(false) => { /* already a member — no-op */ }
+                    Err(e) => tracing::warn!("Failed to auto-join user {user_id}: {e}"),
+                }
+            }
+
+            Ok(Json(ExternalLoginResponse {
+                user_id: response.user_id,
+                access_token: response.access_token,
+                refresh_token: response.refresh_token,
+                expires_at: response.expires_at,
+                email_verified: true,
+            }))
+        }
         Err(e) => {
             let (code, status, message) = match &e {
                 sentinel_client::SentinelError::Api { code, message, status, .. } => {

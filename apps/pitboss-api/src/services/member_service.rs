@@ -89,6 +89,43 @@ impl MemberService {
         })
     }
 
+    /// Auto-join a first-time user to the first active event.
+    ///
+    /// Checks if the user has any existing membership records. If none exist,
+    /// finds the first active event (ordered by `created_at`) and adds the
+    /// user as a regular member. This is idempotent — subsequent calls are no-ops.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ServiceError::NotFound` if no active event exists in the system.
+    /// Returns repository errors on database failures.
+    pub fn auto_join_first_event(&self, user_id: Uuid) -> Result<bool, ServiceError> {
+        // Check if user already has any membership (across all events)
+        if self.member_repo.has_any_membership(user_id)? {
+            return Ok(false);
+        }
+
+        // Find the first active event
+        let event = self
+            .event_repo
+            .find_first_active()?
+            .ok_or_else(|| ServiceError::NotFound("No active event found to join".into()))?;
+
+        let now = Utc::now();
+        let member = EventMember {
+            id: Uuid::new_v4(),
+            event_id: event.id,
+            user_id,
+            role: EventMemberRole::Member,
+            joined_at: now,
+            left_at: None,
+        };
+
+        self.member_repo.create(&member)?;
+
+        Ok(true)
+    }
+
     /// Remove a member from an event (soft-delete by setting left_at).
     pub fn remove_member(&self, event_id: Uuid, user_id: Uuid) -> Result<(), ServiceError> {
         // Verify event exists

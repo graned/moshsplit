@@ -159,6 +159,22 @@ impl EventRepository {
         Ok(result)
     }
 
+    /// Find the first active event ordered by creation date (oldest first).
+    /// Used to auto-join new users to the default event.
+    pub fn find_first_active(&self) -> Result<Option<Event>, RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        let result = event::table
+            .into_boxed()
+            .filter(event::status.eq(EventStatus::Active))
+            .order_by(event::created_at.asc())
+            .first::<Event>(&mut conn)
+            .optional()
+            .map_err(RepositoryError::from)?;
+        Ok(result)
+    }
+
     /// Partial update — only provided fields are changed.
     /// Returns the number of affected rows.
     pub fn patch(
