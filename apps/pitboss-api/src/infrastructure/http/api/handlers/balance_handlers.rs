@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
-    BalancesResponse, ExplainBalanceResponse, SimplifiedDebtsResponse, UserBalanceResponse,
+    BalancesResponse, ExplainBalanceResponse, ExternalBalanceItem,
+    ExternalBalanceSummaryRequest, ExternalBalanceSummaryResponse, SimplifiedDebtsResponse,
+    UserBalanceResponse,
 };
 use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::infrastructure::http::AppState;
@@ -158,4 +160,67 @@ pub async fn balance_stats(
 
     let stats = svc.get_stats(event_id, query.user_id)?;
     Ok(Json(stats))
+}
+
+/// POST /v1/balances/external-summary — per-expense balance summary for a user by email.
+///
+/// Requires a valid API token (Bearer auth) and an email in the request body.
+/// Resolves the email to a user via Sentinel, then computes the user's per-expense
+/// balance for their first active event.
+#[utoipa::path(
+    post,
+    path = "/v1/balances/external-summary",
+    request_body = ExternalBalanceSummaryRequest,
+    responses(
+        (status = 200, description = "External balance summary", body = ExternalBalanceSummaryResponse),
+        (status = 400, description = "Invalid request body"),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "User or event not found"),
+    ),
+    tag = "External"
+)]
+pub async fn external_summary(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<ExternalBalanceSummaryRequest>,
+) -> Result<Json<ExternalBalanceSummaryResponse>, ServiceError> {
+    let email = payload.email.trim().to_lowercase();
+
+    if email.is_empty() {
+        return Err(ServiceError::Validation("Email is required".into()));
+    }
+
+    // Resolve email -> user_id via Sentinel auth database
+    let user_id = state
+        .sentinel_auth_client
+        .find_user_id_by_email(&email)
+        .map_err(|e| ServiceError::Database(format!("Failed to look up user: {e}")))?
+        .ok_or_else(|| ServiceError::NotFound(format!("No user found with email {email}")))?;
+
+    // Compute per-expense breakdown
+    let balance_repo = BalanceRepository::new(state.db_client.clone());
+    let (event_name, rows) = balance_repo
+        .external_expense_breakdown(user_id)
+        .map_err(ServiceError::from)?;
+
+    if event_name.is_empty() {
+        return Err(ServiceError::NotFound(
+            "User is not a member of any active event".into(),
+        ));
+    }
+
+    let items: Vec<ExternalBalanceItem> = rows
+        .into_iter()
+        .map(|r| ExternalBalanceItem {
+            title: r.title,
+            amount_cents: r.amount_cents,
+        })
+        .collect();
+
+    let total_balance_cents: i32 = items.iter().map(|i| i.amount_cents).sum();
+
+    Ok(Json(ExternalBalanceSummaryResponse {
+        event_name,
+        total_balance_cents,
+        items,
+    }))
 }

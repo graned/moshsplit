@@ -90,6 +90,17 @@ pub struct SettlementBreakdownRow {
     pub note: Option<String>,
 }
 
+/// A per-expense balance row for the external-summary endpoint.
+#[derive(Debug, Clone, QueryableByName)]
+pub struct ExternalExpenseBalanceRow {
+    #[diesel(sql_type = Text)]
+    pub event_name: String,
+    #[diesel(sql_type = Text)]
+    pub title: String,
+    #[diesel(sql_type = Integer)]
+    pub amount_cents: i32,
+}
+
 #[derive(Clone, Debug)]
 pub struct BalanceRepository {
     db_client: DbClient,
@@ -316,6 +327,63 @@ impl BalanceRepository {
             .map_err(RepositoryError::from)?;
 
         Ok(results)
+    }
+
+    /// Get per-expense balance summary for a user in their first active event.
+    ///
+    /// Returns the event name and a list of (title, amount_cents) for each expense
+    /// where the user's net balance is non-zero.
+    pub fn external_expense_breakdown(
+        &self,
+        user_id: Uuid,
+    ) -> Result<(String, Vec<ExternalExpenseBalanceRow>), RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        // Find the user's first active event (by creation date) and compute per-expense balances
+        let sql = r#"
+            WITH user_event AS (
+                SELECT e.id, e.name
+                FROM app.event e
+                JOIN app.event_member em ON em.event_id = e.id
+                WHERE em.user_id = $1
+                  AND em.left_at IS NULL
+                  AND e.status = 'active'
+                ORDER BY e.created_at ASC
+                LIMIT 1
+            ),
+            latest_versions AS (
+                SELECT DISTINCT ON (ev.expense_id) ev.id, ev.title,
+                    ev.amount_cents, ev.paid_by
+                FROM app.expense_version ev
+                JOIN app.expense e ON e.id = ev.expense_id
+                JOIN user_event ue ON ue.id = e.event_id
+                WHERE e.deleted_at IS NULL
+                ORDER BY ev.expense_id, ev.version_number DESC
+            )
+            SELECT
+                ue.name AS event_name,
+                lv.title,
+                (CASE WHEN lv.paid_by = $1 THEN lv.amount_cents ELSE 0 END - COALESCE(sh.share_cents, 0))::INTEGER AS amount_cents
+            FROM user_event ue
+            JOIN latest_versions lv ON ue.id IS NOT NULL
+            LEFT JOIN app.expense_version_share sh
+                ON sh.expense_version_id = lv.id AND sh.user_id = $1
+            WHERE (CASE WHEN lv.paid_by = $1 THEN lv.amount_cents ELSE 0 END - COALESCE(sh.share_cents, 0)) != 0
+            ORDER BY lv.title
+        "#;
+
+        let results = sql_query(sql)
+            .bind::<DUuid, _>(user_id)
+            .load::<ExternalExpenseBalanceRow>(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        // Extract the event name from the first row (all rows share the same event name)
+        let event_name = results
+            .first()
+            .map(|r| r.event_name.clone())
+            .unwrap_or_default();
+
+        Ok((event_name, results))
     }
 
     /// Get settlement breakdown for a user.

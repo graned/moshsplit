@@ -8,6 +8,7 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel::sql_query;
 use diesel::RunQueryDsl;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use uuid::Uuid;
 
 /// The embedded Diesel migrations (discovered at compile time from
 /// the `migrations/` directory).
@@ -83,5 +84,31 @@ impl SentinelAuthClient {
             .execute(&mut conn)
             .ok();
         Ok(conn)
+    }
+
+    /// Look up a user's UUID by their email in the Sentinel auth database.
+    ///
+    /// Returns `Ok(Some(user_id))` if found, `Ok(None)` if no user with that email exists.
+    pub fn find_user_id_by_email(&self, email: &str) -> Result<Option<Uuid>, crate::errors::RepositoryError> {
+        use diesel::OptionalExtension;
+        use diesel::deserialize::QueryableByName;
+        let mut conn = self.get_conn().map_err(|e| {
+            crate::errors::RepositoryError::Database(format!("Connection pool error: {}", e))
+        })?;
+
+        #[derive(Debug, QueryableByName)]
+        struct IdRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            pub id: Uuid,
+        }
+
+        let sql = "SELECT id FROM auth.users WHERE email = $1";
+        let result: Option<IdRow> = sql_query(sql)
+            .bind::<diesel::sql_types::Text, _>(email)
+            .get_result(&mut conn)
+            .optional()
+            .map_err(|e| crate::errors::RepositoryError::Database(e.to_string()))?;
+
+        Ok(result.map(|r| r.id))
     }
 }

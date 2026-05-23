@@ -153,6 +153,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/balances/{user_id}/explain",
             get(balance_handlers::explain_balance),
+        )
+        .route(
+            "/v1/balances/external-summary",
+            post(balance_handlers::external_summary),
         );
 
     // ── Activity (Battle Log) ──────────────────────────────────────────

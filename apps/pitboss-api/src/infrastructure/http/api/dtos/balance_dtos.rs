@@ -1,7 +1,7 @@
 //! DTOs for Balance-related endpoints.
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -91,4 +91,27 @@ pub struct ExplainBalanceResponse {
     pub expenses: Vec<ExpenseBreakdown>,
     pub payments: Vec<PaymentBreakdown>,
     pub settlements: Vec<SettlementBreakdown>,
+}
+
+// ── External Balance Summary ──────────────────────────────────────────────────
+
+/// Request body for the external balance summary endpoint.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ExternalBalanceSummaryRequest {
+    pub email: String,
+}
+
+/// A single per-expense balance item.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct ExternalBalanceItem {
+    pub title: String,
+    pub amount_cents: i32,
+}
+
+/// Response for the external balance summary endpoint.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct ExternalBalanceSummaryResponse {
+    pub event_name: String,
+    pub total_balance_cents: i32,
+    pub items: Vec<ExternalBalanceItem>,
 }
