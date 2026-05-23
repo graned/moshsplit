@@ -671,10 +671,10 @@ async fn test_p0_explain_balance() {
 // P1 — Important tests
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// P1.1: Payer NOT in split — the backend validates that paid_by must be
-/// in the split members, so this should return a validation error.
+/// P1.1: Payer NOT in split — F4 fix allows payer outside the split member list.
+/// This now succeeds instead of returning an error.
 #[tokio::test]
-async fn test_p1_payer_not_in_split_returns_error() {
+async fn test_p1_payer_not_in_split_now_allowed() {
     let mut s = ScenarioBuilder::new(&unique_name("p1-payer-not-in-split")).await;
     let _a = s.add_member("A").await;
     let _b = s.add_member("B").await;
@@ -697,8 +697,21 @@ async fn test_p1_payer_not_in_split_returns_error() {
     )
     .await;
 
-    assert!(!status.is_success(), "expected error when payer is not in split");
-    assert_valid_envelope(&body, false);
+    assert!(
+        status.is_success(),
+        "F4: payer not in split should now be allowed, got status {}",
+        status
+    );
+    assert_valid_envelope(&body, true);
+
+    // Verify balances: A paid 3000, split B=1500, C=1500
+    // A: paid=3000, owes=0, bal=+3000
+    // B: paid=0, owes=1500, bal=-1500
+    // C: paid=0, owes=1500, bal=-1500
+    s.assert_user_balance("A", 3000, 0, 3000).await;
+    s.assert_user_balance("B", 0, 1500, -1500).await;
+    s.assert_user_balance("C", 0, 1500, -1500).await;
+    s.assert_conservation().await;
 }
 
 /// P1.2: Expense versioning — create expense, update amount, verify balance recomputes.
@@ -805,11 +818,11 @@ async fn test_p1_payment_impacts_balance() {
     // B sends 300 to A
     s.add_payment("B", "A", 300).await;
 
-    // After payment:
-    // A: paid=2000, owes=1000, pmts_in=300 → bal = 2000-1000+0+300 = +1300
-    // B: paid=0, owes=1000, pmts_out=300 → bal = 0-1000-300+0 = -1300
-    s.assert_user_balance("A", 2000, 1000, 1300).await;
-    s.assert_user_balance("B", 0, 1000, -1300).await;
+    // After payment (F6 fixed formula):
+    // A: paid=2000, owes=1000, pmts_in=300 → bal = 2000-1000+0-300 = +700
+    // B: paid=0, owes=1000, pmts_out=300 → bal = 0-1000+300-0 = -700
+    s.assert_user_balance("A", 2000, 1000, 700).await;
+    s.assert_user_balance("B", 0, 1000, -700).await;
     s.assert_conservation().await;
 }
 
@@ -841,11 +854,11 @@ async fn test_p2_settlement_impacts_balance() {
     // Confirm settlement
     s.confirm_settlement(&settlement_id).await;
 
-    // After confirmed settlement:
-    // A: +1000 - 0 + 0 + 500 = +1500
-    // B: 0 - 1000 - 500 + 0 = -1500
-    s.assert_user_balance("A", 2000, 1000, 1500).await;
-    s.assert_user_balance("B", 0, 1000, -1500).await;
+    // After confirmed settlement (F6 fixed formula):
+    // A: 2000 - 1000 + 0 - 500 = +500
+    // B: 0 - 1000 + 500 - 0 = -500
+    s.assert_user_balance("A", 2000, 1000, 500).await;
+    s.assert_user_balance("B", 0, 1000, -500).await;
     s.assert_conservation().await;
 }
 
@@ -952,6 +965,148 @@ async fn test_p2_single_member_no_expenses() {
     );
     assert_eq!(balances[0]["paid_cents"].as_i64().unwrap(), 0);
     assert_eq!(balances[0]["owes_cents"].as_i64().unwrap(), 0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F5: Reject min split
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// F5: Amount too small to split equally — should return validation error.
+#[tokio::test]
+async fn test_f5_min_split_rejected() {
+    let mut s = ScenarioBuilder::new(&unique_name("f5-min-split")).await;
+    let _a = s.add_member("A").await;
+    let _b = s.add_member("B").await;
+    let _c = s.add_member("C").await;
+
+    // 2 cents split 3 ways: 2 < 3, should be rejected
+    let shares: Vec<String> = vec![
+        s.members["A"].clone(),
+        s.members["B"].clone(),
+        s.members["C"].clone(),
+    ];
+
+    let (status, body) = post_json_with_auth(
+        &format!("/v1/events/{}/expenses", s.event_id),
+        &json!({
+            "title": "Too small",
+            "amount_cents": 2,
+            "paid_by": s.members["A"],
+            "split_type": "equal",
+            "split_data": {"shares": shares}
+        }),
+        &s.token,
+    )
+    .await;
+
+    assert!(!status.is_success(), "F5: min split should be rejected");
+    assert_valid_envelope(&body, false);
+    assert_eq!(
+        body["error"]["code"], "VALIDATION_ERROR",
+        "F5: should return VALIDATION_ERROR"
+    );
+}
+
+/// F5: Amount equal to number of people should succeed (1¢ each).
+#[tokio::test]
+async fn test_f5_min_split_boundary_succeeds() {
+    let mut s = ScenarioBuilder::new(&unique_name("f5-min-boundary")).await;
+    let _a = s.add_member("A").await;
+    let _b = s.add_member("B").await;
+    let _c = s.add_member("C").await;
+
+    // 3 cents split 3 ways: 3 >= 3, should succeed → each gets 1¢
+    s.add_equal_expense("Boundary", 3, "A", &["A", "B", "C"])
+        .await;
+
+    s.assert_user_balance("A", 3, 1, 2).await;
+    s.assert_user_balance("B", 0, 1, -1).await;
+    s.assert_user_balance("C", 0, 1, -1).await;
+    s.assert_conservation().await;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F2: Member removal → redistribute expenses
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// F2: When a member is removed, their share should be redistributed
+/// among the remaining participants.
+#[tokio::test]
+async fn test_f2_member_removal_redistributes_expenses() {
+    let mut s = ScenarioBuilder::new(&unique_name("f2-removal")).await;
+    let _a = s.add_member("A").await;
+    let _b = s.add_member("B").await;
+    let _c = s.add_member("C").await;
+
+    // A pays 3000, split equally among A, B, C → each owes 1000
+    s.add_equal_expense("Dinner", 3000, "A", &["A", "B", "C"])
+        .await;
+
+    // Before removal: A=+2000, B=-1000, C=-1000
+    s.assert_user_balance("A", 3000, 1000, 2000).await;
+    s.assert_user_balance("B", 0, 1000, -1000).await;
+    s.assert_user_balance("C", 0, 1000, -1000).await;
+    s.assert_conservation().await;
+
+    // C is removed, their 1000 share is redistributed equally to A and B
+    let (del_status, _) = delete_json_with_auth(
+        &format!("/v1/events/{}/members/{}", s.event_id, s.members["C"]),
+        &s.token,
+    )
+    .await;
+    assert_eq!(del_status, StatusCode::NO_CONTENT);
+
+    // After removal: 3000 split between A and B → each owes 1500
+    // A: paid=3000, owes=1500, bal=+1500
+    // B: paid=0, owes=1500, bal=-1500
+    s.assert_user_balance("A", 3000, 1500, 1500).await;
+    s.assert_user_balance("B", 0, 1500, -1500).await;
+    s.assert_conservation().await;
+}
+
+/// F2: Redistribution with existing payment — A pays 30 split A/B/C,
+/// B pays A 10, then C removed.
+#[tokio::test]
+async fn test_f2_member_removal_with_payment() {
+    let mut s = ScenarioBuilder::new(&unique_name("f2-removal-pmt")).await;
+    let _a = s.add_member("A").await;
+    let _b = s.add_member("B").await;
+    let _c = s.add_member("C").await;
+
+    // A pays 30, split equally A/B/C → each owes 10
+    s.add_equal_expense("Snacks", 30, "A", &["A", "B", "C"])
+        .await;
+
+    // Before payment: A=+20, B=-10, C=-10
+    s.assert_user_balance("A", 30, 10, 20).await;
+    s.assert_user_balance("B", 0, 10, -10).await;
+    s.assert_user_balance("C", 0, 10, -10).await;
+
+    // B pays A 10
+    s.add_payment("B", "A", 10).await;
+
+    // After payment (F6 formula):
+    // A: paid=30, owes=10, pmts_in=10 → 30-10+0-10 = 10
+    // B: paid=0, owes=10, pmts_out=10 → 0-10+10-0 = 0
+    // C: paid=0, owes=10 → -10
+    s.assert_user_balance("A", 30, 10, 10).await;
+    s.assert_user_balance("B", 0, 10, 0).await;
+    s.assert_user_balance("C", 0, 10, -10).await;
+
+    // C is removed, their 10 share is redistributed equally to A and B (5 each)
+    let (del_status, _) = delete_json_with_auth(
+        &format!("/v1/events/{}/members/{}", s.event_id, s.members["C"]),
+        &s.token,
+    )
+    .await;
+    assert_eq!(del_status, StatusCode::NO_CONTENT);
+
+    // After removal: 30 split between A and B → each owes 15
+    // A: paid=30, owes=15, pmts_in=10 → 30-15+0-10 = 5
+    // B: paid=0, owes=15, pmts_out=10 → 0-15+10-0 = -5
+    s.assert_user_balance("A", 30, 15, 5).await;
+    s.assert_user_balance("B", 0, 15, -5).await;
+    s.assert_conservation().await;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
