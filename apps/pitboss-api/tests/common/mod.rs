@@ -51,6 +51,50 @@ pub async fn post_json(path: &str, body: &Value) -> (StatusCode, Value) {
     (status, body)
 }
 
+/// POST JSON body with an Authorization: Bearer header and deserialize the response.
+pub async fn post_json_with_auth(path: &str, body: &Value, bearer_token: &str) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .post(format!("{BASE_URL}{path}"))
+        .header("Authorization", format!("Bearer {bearer_token}"))
+        .json(body)
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
+/// POST JSON body with an Authorization: Bearer header. Returns the raw
+/// `reqwest::Response` (useful when the response is not JSON, e.g. HTML).
+pub async fn post_raw_with_auth(path: &str, body: &Value, bearer_token: &str) -> reqwest::Response {
+    let client = test_client();
+    client
+        .post(format!("{BASE_URL}{path}"))
+        .header("Authorization", format!("Bearer {bearer_token}"))
+        .json(body)
+        .send()
+        .await
+        .expect("HTTP request failed")
+}
+
+/// GET a path with an Authorization: Bearer header. Returns the raw
+/// `reqwest::Response`.
+pub async fn get_raw_with_auth(path: &str, bearer_token: &str) -> reqwest::Response {
+    let client = test_client();
+    client
+        .get(format!("{BASE_URL}{path}"))
+        .header("Authorization", format!("Bearer {bearer_token}"))
+        .send()
+        .await
+        .expect("HTTP request failed")
+}
+
 /// PATCH JSON body and deserialize the response.
 pub async fn patch_json(path: &str, body: &Value) -> (StatusCode, Value) {
     let client = test_client();
