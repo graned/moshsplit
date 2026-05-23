@@ -1,5 +1,6 @@
 //! BalanceService — computes per-user balances and simplifies debts.
 
+use moshsplit_balance_engine::{compute_balance, simplified_debts, UserBalance};
 use uuid::Uuid;
 
 use crate::errors::ServiceError;
@@ -34,7 +35,12 @@ impl BalanceService {
                 user_id: r.user_id,
                 paid_cents: r.paid_cents,
                 owes_cents: r.owes_cents,
-                balance_cents: r.balance_cents,
+                balance_cents: compute_balance(
+                    r.paid_cents,
+                    r.owes_cents,
+                    r.payments_out_cents + r.settlements_out_cents,
+                    r.payments_in_cents + r.settlements_in_cents,
+                ),
             })
             .collect();
 
@@ -56,14 +62,16 @@ impl BalanceService {
             user_id: row.user_id,
             paid_cents: row.paid_cents,
             owes_cents: row.owes_cents,
-            balance_cents: row.balance_cents,
+            balance_cents: compute_balance(
+                row.paid_cents,
+                row.owes_cents,
+                row.payments_out_cents + row.settlements_out_cents,
+                row.payments_in_cents + row.settlements_in_cents,
+            ),
         })
     }
 
     /// Compute the minimal set of debt transfers using a greedy algorithm.
-    ///
-    /// Sorts balances descending, then repeatedly matches the largest
-    /// creditor with the largest debtor until all are settled.
     pub fn simplified_debts(&self, event_id: Uuid) -> Result<SimplifiedDebtsResponse, ServiceError> {
         self.event_repo
             .find_by_id(event_id)?
@@ -71,51 +79,33 @@ impl BalanceService {
 
         let rows = self.balance_repo.all_balances_for_event(event_id)?;
 
-        // Separate debtors (negative balance) and creditors (positive balance)
-        let mut debtors: Vec<(Uuid, i32)> = Vec::new(); // people who owe money (balance < 0)
-        let mut creditors: Vec<(Uuid, i32)> = Vec::new(); // people who are owed money (balance > 0)
+        let engine_balances: Vec<UserBalance> = rows
+            .iter()
+            .map(|r| UserBalance {
+                user_id: r.user_id,
+                paid_cents: r.paid_cents,
+                owes_cents: r.owes_cents,
+                balance_cents: compute_balance(
+                    r.paid_cents,
+                    r.owes_cents,
+                    r.payments_out_cents + r.settlements_out_cents,
+                    r.payments_in_cents + r.settlements_in_cents,
+                ),
+            })
+            .collect();
 
-        for row in &rows {
-            if row.balance_cents > 0 {
-                creditors.push((row.user_id, row.balance_cents));
-            } else if row.balance_cents < 0 {
-                debtors.push((row.user_id, -row.balance_cents)); // positive amount owed
-            }
-        }
+        let transfers = simplified_debts(&engine_balances);
 
-        // Sort by amount descending
-        creditors.sort_by(|a, b| b.1.cmp(&a.1));
-        debtors.sort_by(|a, b| b.1.cmp(&a.1));
+        let debt_transfers: Vec<DebtTransfer> = transfers
+            .into_iter()
+            .map(|t| DebtTransfer {
+                from_user: t.from_user,
+                to_user: t.to_user,
+                amount_cents: t.amount_cents,
+            })
+            .collect();
 
-        let mut transfers = Vec::new();
-        let mut ci = 0; // creditor index
-        let mut di = 0; // debtor index
-
-        while ci < creditors.len() && di < debtors.len() {
-            let credit_amount = creditors[ci].1;
-            let debt_amount = debtors[di].1;
-            let transfer_amount = std::cmp::min(credit_amount, debt_amount);
-
-            if transfer_amount > 0 {
-                transfers.push(DebtTransfer {
-                    from_user: debtors[di].0,
-                    to_user: creditors[ci].0,
-                    amount_cents: transfer_amount,
-                });
-            }
-
-            creditors[ci].1 -= transfer_amount;
-            debtors[di].1 -= transfer_amount;
-
-            if creditors[ci].1 == 0 {
-                ci += 1;
-            }
-            if debtors[di].1 == 0 {
-                di += 1;
-            }
-        }
-
-        Ok(SimplifiedDebtsResponse { transfers })
+        Ok(SimplifiedDebtsResponse { transfers: debt_transfers })
     }
 
     /// Explain a single user's balance in detail.
@@ -181,7 +171,12 @@ impl BalanceService {
             user_id: balance.user_id,
             paid_cents: balance.paid_cents,
             owes_cents: balance.owes_cents,
-            balance_cents: balance.balance_cents,
+            balance_cents: compute_balance(
+                balance.paid_cents,
+                balance.owes_cents,
+                balance.payments_out_cents + balance.settlements_out_cents,
+                balance.payments_in_cents + balance.settlements_in_cents,
+            ),
             expenses,
             payments,
             settlements,

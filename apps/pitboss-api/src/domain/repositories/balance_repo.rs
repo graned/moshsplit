@@ -16,7 +16,10 @@ use uuid::Uuid;
 use crate::errors::RepositoryError;
 use crate::infrastructure::clients::DbClient;
 
-/// Per-user balance row.
+/// Per-user raw balance components.
+///
+/// Balance computation is done in the service layer via
+/// `moshsplit_balance_engine::compute_balance`.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct UserBalanceRow {
     #[diesel(sql_type = DUuid)]
@@ -26,7 +29,13 @@ pub struct UserBalanceRow {
     #[diesel(sql_type = Integer)]
     pub owes_cents: i32,
     #[diesel(sql_type = Integer)]
-    pub balance_cents: i32,
+    pub payments_out_cents: i32,
+    #[diesel(sql_type = Integer)]
+    pub payments_in_cents: i32,
+    #[diesel(sql_type = Integer)]
+    pub settlements_out_cents: i32,
+    #[diesel(sql_type = Integer)]
+    pub settlements_in_cents: i32,
 }
 
 /// An individual expense breakdown entry for the "explain" endpoint.
@@ -170,10 +179,10 @@ impl BalanceRepository {
                 m.user_id,
                 COALESCE(ep.amount, 0)::INTEGER AS paid_cents,
                 COALESCE(es.amount, 0)::INTEGER AS owes_cents,
-                (COALESCE(ep.amount, 0) - COALESCE(es.amount, 0)
-                 + COALESCE(po.amount, 0) - COALESCE(pi.amount, 0)
-                 + COALESCE(so.amount, 0) - COALESCE(si.amount, 0)
-                )::INTEGER AS balance_cents
+                COALESCE(po.amount, 0)::INTEGER AS payments_out_cents,
+                COALESCE(pi.amount, 0)::INTEGER AS payments_in_cents,
+                COALESCE(so.amount, 0)::INTEGER AS settlements_out_cents,
+                COALESCE(si.amount, 0)::INTEGER AS settlements_in_cents
             FROM active_members m
             LEFT JOIN expense_paid ep ON ep.user_id = m.user_id
             LEFT JOIN expense_shares es ON es.user_id = m.user_id
@@ -213,10 +222,10 @@ impl BalanceRepository {
                 $2::uuid AS user_id,
                 COALESCE(paid.amount, 0)::INTEGER AS paid_cents,
                 COALESCE(shares.amount, 0)::INTEGER AS owes_cents,
-                (COALESCE(paid.amount, 0) - COALESCE(shares.amount, 0)
-                 + COALESCE(pmts_out.amount, 0) - COALESCE(pmts_in.amount, 0)
-                 + COALESCE(stlmts_out.amount, 0) - COALESCE(stlmts_in.amount, 0)
-                )::INTEGER AS balance_cents
+                COALESCE(pmts_out.amount, 0)::INTEGER AS payments_out_cents,
+                COALESCE(pmts_in.amount, 0)::INTEGER AS payments_in_cents,
+                COALESCE(stlmts_out.amount, 0)::INTEGER AS settlements_out_cents,
+                COALESCE(stlmts_in.amount, 0)::INTEGER AS settlements_in_cents
             FROM (SELECT $2::uuid AS user_id) m
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
