@@ -39,6 +39,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
   const [devEmail, setDevEmail] = useState('');
   const [devDisplayName, setDevDisplayName] = useState('');
   const [devAvatarUrl, setDevAvatarUrl] = useState('');
+  const [devApiToken, setDevApiToken] = useState('');
   const setSession = useAuthStore((state) => state.setSession);
   const navigate = useNavigate();
 
@@ -49,8 +50,16 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
     try {
       // Use runtime config if available, fallback to env vars
       const runtimeConfig = (window as any).__MOSHSPLIT_CONFIG__ || {};
-      const apiToken = runtimeConfig.VITE_TEST_API_TOKEN || import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
+      const apiToken = devApiToken.trim()
+        || runtimeConfig.VITE_TEST_API_TOKEN
+        || import.meta.env.VITE_TEST_API_TOKEN
+        || '';
       const displayName = devDisplayName.trim() || runtimeConfig.VITE_TEST_DISPLAY_NAME || import.meta.env.VITE_TEST_DISPLAY_NAME;
+      if (!apiToken) {
+        setExternalError('API token is required');
+        setExternalLoading(false);
+        return;
+      }
       if (!displayName) {
         setExternalError('Display name is required');
         setExternalLoading(false);
@@ -242,6 +251,38 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
               },
               '& .MuiOutlinedInput-input': {
                 color: 'text.primary',
+                '&::placeholder': {
+                  color: 'text.secondary',
+                  opacity: 0.7,
+                },
+              },
+            }}
+          />
+
+          <TextField
+            value={devApiToken}
+            onChange={(e) => setDevApiToken(e.target.value)}
+            placeholder="API Token (sat_...)"
+            fullWidth
+            size="small"
+            autoComplete="off"
+            sx={{
+              mb: 1.5,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.3)',
+                },
+              },
+              '& .MuiOutlinedInput-input': {
+                color: 'text.primary',
+                fontSize: '0.8rem',
                 '&::placeholder': {
                   color: 'text.secondary',
                   opacity: 0.7,

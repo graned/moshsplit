@@ -182,6 +182,30 @@ else
         PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
           "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;" 2>/dev/null || true
     fi
+
+    # Pre-check: Grant public schema permissions to sentinel (migrations create tables in public, not auth)
+    echo "  → Ensuring sentinel role has public schema grants..."
+    if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
+        docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c "
+            GRANT USAGE ON SCHEMA public TO sentinel;
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sentinel;
+            GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sentinel;
+            GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO sentinel;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON TABLES TO sentinel;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON SEQUENCES TO sentinel;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON FUNCTIONS TO sentinel;
+        " 2>/dev/null || true
+    else
+        PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c "
+            GRANT USAGE ON SCHEMA public TO sentinel;
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sentinel;
+            GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sentinel;
+            GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO sentinel;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON TABLES TO sentinel;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON SEQUENCES TO sentinel;
+            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON FUNCTIONS TO sentinel;
+        " 2>/dev/null || true
+    fi
     
     # Determine network and host
     if docker network ls --format '{{.Name}}' | grep -q "moshsplit"; then
