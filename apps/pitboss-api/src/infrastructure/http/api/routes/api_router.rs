@@ -20,6 +20,8 @@ use sentinel_client::AuthMiddleware;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::infrastructure::http::api::handlers::activity_handlers;
 use crate::infrastructure::http::api::handlers::auth_handlers;
@@ -34,6 +36,7 @@ use crate::infrastructure::http::api::handlers::stats_handlers;
 use crate::infrastructure::http::api::handlers::system_handlers;
 use crate::infrastructure::http::api::middlewares::request_id_middleware;
 use crate::infrastructure::http::api::middlewares::response_wrapper;
+use crate::infrastructure::http::api::openapi::{ApiDoc, ExternalApiDoc};
 use crate::infrastructure::http::api::routes::admin_router;
 use crate::infrastructure::http::AppState;
 
@@ -57,7 +60,9 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     // the AuthMiddleware being applied to token-exchange endpoints
     let public_routes = Router::new()
         .route("/health", get(system_handlers::health_check))
-        .route("/livez", get(system_handlers::livez));
+        .route("/livez", get(system_handlers::livez))
+        .merge(SwaggerUi::new("/docs/internal").url("/api-docs/internal/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/docs/external").url("/api-docs/external/openapi.json", ExternalApiDoc::openapi()));
 
     // ── Public auth routes (no auth required, but under /v1/) ─────────
     // These endpoints exchange tokens, so they cannot require a Bearer token

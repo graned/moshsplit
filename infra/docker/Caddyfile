@@ -8,7 +8,7 @@
 #
 # Routing:
 #   sentinel.{$MOSHSPLIT_URL} -> Sentinel UI (management dashboard)
-#   /auth/*      -> Sentinel API (auth service)
+#   /sentinel/*      -> Sentinel API (auth service)
 #   /pitboss/*   -> Pitboss API (backend API)
 #   /moshsplit/* -> Web frontend (React PWA)
 #   /            -> Web frontend (default)
@@ -17,12 +17,12 @@
 # Access at: https://sentinel.viralatas.org/
 sentinel.viralatas.org {
     encode gzip zstd
-    
+
     log {
         output stdout
         format json
     }
-    
+
     reverse_proxy sentinel-ui:80 {
         header_up Host {host}
         header_up X-Real-IP {remote}
@@ -47,10 +47,10 @@ sentinel.viralatas.org {
     # Routes: /auth/* -> sentinel:8000
     # Strips /auth prefix before forwarding
     @sentinel {
-        path /auth/*
+        path /sentinel/*
     }
     handle @sentinel {
-        uri strip_prefix /auth
+        uri strip_prefix /sentinel
         reverse_proxy sentinel:8000 {
             # Pass original host and scheme
             header_up Host {host}
@@ -75,6 +75,8 @@ sentinel.viralatas.org {
             header_up X-Forwarded-For {remote}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Host {host}
+            # Preserve Authorization header (hop-by-hop, Caddy strips by default)
+            header_up Authorization {header.Authorization}
         }
     }
 
@@ -99,7 +101,7 @@ sentinel.viralatas.org {
     # All other requests go to the web frontend
     # This allows the React router to handle client-side routing
     @default {
-        not path /auth/*
+        not path /sentinel/*
         not path /pitboss/*
         not path /moshsplit/*
     }
