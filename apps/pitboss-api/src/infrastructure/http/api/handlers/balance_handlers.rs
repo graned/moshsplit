@@ -177,6 +177,9 @@ pub async fn balance_stats(
         (status = 401, description = "Authentication required"),
         (status = 404, description = "User or event not found"),
     ),
+    security(
+        ("bearer_auth" = [])
+    ),
     tag = "External"
 )]
 pub async fn external_summary(

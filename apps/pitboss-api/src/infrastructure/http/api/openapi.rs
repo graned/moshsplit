@@ -4,6 +4,9 @@
 //! component schemas needed to describe the API response envelope.
 
 use serde::Serialize;
+use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
+use utoipa::openapi::{ComponentsBuilder, OpenApi};
+use utoipa::Modify;
 use utoipa::ToSchema;
 
 /// The standard JSON envelope returned by every API response.
@@ -171,6 +174,28 @@ pub struct ApiDoc;
 /// Includes only the endpoints meant for external consumers:
 /// - `POST /v1/auth/external-login`
 /// - `POST /v1/balances/external-summary`
+/// Adds a Bearer JWT security scheme to the external OpenAPI spec.
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut OpenApi) {
+        let components = openapi.components.get_or_insert_with(|| {
+            ComponentsBuilder::new().build()
+        });
+
+        components.add_security_scheme(
+            "bearer_auth",
+            SecurityScheme::Http(
+                HttpBuilder::new()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .bearer_format("JWT")
+                    .description(Some("API token used as Bearer token in Authorization header"))
+                    .build(),
+            ),
+        );
+    }
+}
+
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(
@@ -184,6 +209,7 @@ pub struct ApiDoc;
         super::dtos::balance_dtos::ExternalBalanceSummaryResponse,
         super::dtos::balance_dtos::ExternalBalanceItem,
     )),
+    modifiers(&SecurityAddon),
     tags(
         (name = "External", description = "External-facing endpoints for third-party consumers"),
     ),
