@@ -12,7 +12,11 @@ use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, Memb
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
 use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::expense_repo::ExpenseRepository;
+use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
+use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::services::expense_service::ExpenseService;
 use crate::services::member_service::MemberService;
 
 /// GET /v1/events/:id/members — list active members.
@@ -88,12 +92,22 @@ pub async fn add_member(
 pub async fn remove_member(
     State(state): State<Arc<AppState>>,
     Path((event_id, user_id)): Path<(Uuid, Uuid)>,
+    CurrentUser(actor_id): CurrentUser,
 ) -> Result<StatusCode, ServiceError> {
-    let svc = MemberService::new(
+    // F2: Redistribute expenses before removing the member
+    let expense_svc = ExpenseService::new(
+        EventRepository::new(state.db_client.clone()),
+        ExpenseRepository::new(state.db_client.clone()),
+        ExpenseVersionRepository::new(state.db_client.clone()),
+        ExpenseVersionShareRepository::new(state.db_client.clone()),
+    );
+    expense_svc.redistribute_expenses_for_member_removal(event_id, user_id, actor_id)?;
+
+    let member_svc = MemberService::new(
         EventRepository::new(state.db_client.clone()),
         EventMemberRepository::new(state.db_client.clone()),
     );
 
-    svc.remove_member(event_id, user_id)?;
+    member_svc.remove_member(event_id, user_id)?;
     Ok(StatusCode::NO_CONTENT)
 }

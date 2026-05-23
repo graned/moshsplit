@@ -244,4 +244,69 @@ impl ExpenseRepository {
             .map_err(RepositoryError::from)?;
         Ok(affected)
     }
+
+    /// Find all expense IDs in an event where the given user is a participant
+    /// (appears in the latest version's shares).
+    pub fn find_expense_ids_by_participant(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<Uuid>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            SELECT e.id
+            FROM app.expense e
+            JOIN app.expense_version ev ON ev.id = e.current_version_id
+            JOIN app.expense_version_share sh ON sh.expense_version_id = ev.id
+            WHERE e.event_id = $1
+              AND e.deleted_at IS NULL
+              AND sh.user_id = $2
+        "#;
+
+        let results = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(event_id)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .load::<ExpenseIdRow>(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results.into_iter().map(|r| r.id).collect())
+    }
+
+    /// Find an expense paid by the given user in an event, if any.
+    /// Returns the most recently created one (by created_at).
+    pub fn find_paid_by_expense(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<Uuid>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            SELECT e.id
+            FROM app.expense e
+            JOIN app.expense_version ev ON ev.id = e.current_version_id
+            WHERE e.event_id = $1
+              AND e.deleted_at IS NULL
+              AND ev.paid_by = $2
+            ORDER BY e.created_at DESC
+            LIMIT 1
+        "#;
+
+        let result = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(event_id)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<ExpenseIdRow>(&mut conn)
+            .optional()
+            .map_err(RepositoryError::from)?;
+
+        Ok(result.map(|r| r.id))
+    }
+}
+
+/// Helper row for simple expense ID queries.
+#[derive(Debug, Clone, QueryableByName)]
+struct ExpenseIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
 }

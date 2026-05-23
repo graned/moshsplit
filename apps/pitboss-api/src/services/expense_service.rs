@@ -15,6 +15,7 @@ use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::schema_enums::{ExpenseType, SplitType};
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
+use moshsplit_balance_engine::redistribute_shares;
 
 pub struct ExpenseService {
     event_repo: EventRepository,
@@ -129,6 +130,12 @@ impl ExpenseService {
 
         let result: Vec<(Uuid, i32)> = match split_type {
             SplitType::Equal => {
+                if amount_cents < n as i32 {
+                    return Err(ServiceError::Validation(format!(
+                        "Amount ({}¢) is too small to split equally among {} people. Minimum {}¢ required.",
+                        amount_cents, n, n
+                    )));
+                }
                 let base = amount_cents / n as i32;
                 let remainder = amount_cents % n as i32;
                 member_ids
@@ -257,12 +264,8 @@ impl ExpenseService {
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
-        // Validate paid_by is in the split members
-        if !member_ids.contains(&req.paid_by) {
-            return Err(ServiceError::Validation(
-                "paid_by user must be one of the members in the split".into(),
-            ));
-        }
+        // F4: Allow payer not in split — paid_by can be any event member
+        // The paid_by user does not need to be in the split member list.
 
         // Compute shares
         let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
@@ -348,13 +351,7 @@ impl ExpenseService {
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
-        // Validate paid_by is in the split members
-        if !member_ids.contains(&req.paid_by) {
-            return Err(ServiceError::Validation(
-                "paid_by user must be one of the members in the split".into(),
-            ));
-        }
-
+        // F4: Allow payer not in split
         // Compute shares
         let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
 
@@ -554,5 +551,106 @@ impl ExpenseService {
 
         self.expense_repo.soft_delete(expense_id, Utc::now())?;
         Ok(())
+    }
+
+    /// When a member is removed from an event, redistribute their share
+    /// of each expense they participate in among the remaining participants.
+    ///
+    /// For each expense where the departing user is a participant, a new
+    /// version is created with the user removed from the split and the
+    /// total amount redistributed equally among the rest.
+    ///
+    /// Returns the number of expenses that were redistributed.
+    pub fn redistribute_expenses_for_member_removal(
+        &self,
+        event_id: Uuid,
+        departing_user_id: Uuid,
+        actor_id: Uuid,
+    ) -> Result<usize, ServiceError> {
+        // Find all expense IDs where the departing user is a participant
+        let expense_ids = self
+            .expense_repo
+            .find_expense_ids_by_participant(event_id, departing_user_id)?;
+
+        let now = Utc::now();
+        let mut redistributed = 0usize;
+
+        for expense_id in &expense_ids {
+            // Get current version info
+            let current = self
+                .version_repo
+                .find_by_expense_id(*expense_id)?;
+
+            // Get the latest version (highest version_number)
+            let latest_version = current.into_iter().max_by_key(|v| v.version_number);
+            let version = match latest_version {
+                Some(v) => v,
+                None => continue,
+            };
+
+            // Get current shares
+            let shares = self.share_repo.find_by_expense_version_id(version.id)?;
+
+            // Filter out the departing user, keep remaining participants
+            let remaining: Vec<(Uuid, i32)> = shares
+                .iter()
+                .filter(|s| s.user_id != departing_user_id)
+                .map(|s| (s.user_id, s.share_cents))
+                .collect();
+
+            if remaining.is_empty() {
+                // All participants are leaving — nothing to redistribute
+                continue;
+            }
+
+            // Compute new shares using the balance-engine
+            let new_shares = redistribute_shares(&remaining, version.amount_cents);
+
+            // Create new version
+            let next_version = self.version_repo.next_version_number(*expense_id)?;
+            let version_id = Uuid::new_v4();
+
+            let new_version = ExpenseVersion {
+                id: version_id,
+                expense_id: *expense_id,
+                version_number: next_version,
+                title: version.title,
+                description: version.description,
+                amount_cents: version.amount_cents,
+                paid_by: version.paid_by,
+                split_type: version.split_type,
+                split_data: version.split_data,
+                notes: version.notes,
+                created_by: actor_id,
+                created_at: now,
+                expense_type: version.expense_type,
+            };
+            self.version_repo.create(&new_version)?;
+
+            // Create new share rows
+            let share_rows: Vec<ExpenseVersionShare> = new_shares
+                .into_iter()
+                .map(|(user_id, share_cents)| ExpenseVersionShare {
+                    id: Uuid::new_v4(),
+                    expense_version_id: version_id,
+                    user_id,
+                    share_cents,
+                })
+                .collect();
+            let affected = self.share_repo.bulk_insert(&share_rows)?;
+            if affected != share_rows.len() {
+                return Err(ServiceError::Internal(format!(
+                    "Failed to insert all shares during redistribution: expected {}, got {}",
+                    share_rows.len(),
+                    affected
+                )));
+            }
+
+            // Update expense's current version
+            self.expense_repo.set_current_version(*expense_id, version_id)?;
+            redistributed += 1;
+        }
+
+        Ok(redistributed)
     }
 }

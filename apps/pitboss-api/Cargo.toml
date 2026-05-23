@@ -19,6 +19,9 @@ diesel_migrations = { version = "2.2", features = ["postgres"] }
 
 r2d2 = "0.8"
 
+# MoshSplit packages
+moshsplit-balance-engine = { path = "../../packages/moshsplit-balance-engine" }
+
 # Sentinel Auth
 sentinel-client = { path = "../../packages/sentinel-client" }
 
