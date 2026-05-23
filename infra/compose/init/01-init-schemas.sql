@@ -100,6 +100,12 @@ GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA auth TO sentinel;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA auth TO sentinel;
 GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO sentinel;
 
+-- === auth schema → pitboss (read-only, for email→user_id lookups) ===
+GRANT USAGE ON SCHEMA auth TO pitboss;
+GRANT SELECT ON ALL TABLES IN SCHEMA auth TO pitboss;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth
+    GRANT SELECT ON TABLES TO pitboss;
+
 -- Set default search_path for sentinel (public needed for pgcrypto functions)
 ALTER ROLE sentinel SET search_path TO auth, public;
 

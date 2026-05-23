@@ -89,6 +89,11 @@ impl SentinelAuthClient {
     /// Look up a user's UUID by their email in the Sentinel auth database.
     ///
     /// Returns `Ok(Some(user_id))` if found, `Ok(None)` if no user with that email exists.
+    ///
+    /// Note: The Sentinel auth service stores its tables in the `public` schema
+    /// of the `sentinel_auth` database. The `users` table holds user metadata
+    /// (user_id, display_name, etc.) and `user_identities` maps emails to users.
+    /// We join both to resolve email → user_id.
     pub fn find_user_id_by_email(&self, email: &str) -> Result<Option<Uuid>, crate::errors::RepositoryError> {
         use diesel::OptionalExtension;
         use diesel::deserialize::QueryableByName;
@@ -102,7 +107,12 @@ impl SentinelAuthClient {
             pub id: Uuid,
         }
 
-        let sql = "SELECT id FROM auth.users WHERE email = $1";
+        let sql = "\
+            SELECT u.user_id AS id \
+            FROM public.users u \
+            JOIN public.user_identities ui ON u.user_id = ui.user_id \
+            WHERE ui.email = $1 AND ui.is_primary = true \
+            LIMIT 1";
         let result: Option<IdRow> = sql_query(sql)
             .bind::<diesel::sql_types::Text, _>(email)
             .get_result(&mut conn)
