@@ -165,3 +165,27 @@ pub struct FieldErrorSchema {
     ),
 )]
 pub struct ApiDoc;
+
+/// OpenAPI documentation for the external-facing API.
+///
+/// Includes only the endpoints meant for external consumers:
+/// - `POST /v1/auth/external-login`
+/// - `POST /v1/balances/external-summary`
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    paths(
+        super::handlers::auth_handlers::external_login,
+        super::handlers::balance_handlers::external_summary,
+    ),
+    components(schemas(
+        super::handlers::auth_handlers::ExternalLoginRequest,
+        super::handlers::auth_handlers::ExternalLoginResponse,
+        super::dtos::balance_dtos::ExternalBalanceSummaryRequest,
+        super::dtos::balance_dtos::ExternalBalanceSummaryResponse,
+        super::dtos::balance_dtos::ExternalBalanceItem,
+    )),
+    tags(
+        (name = "External", description = "External-facing endpoints for third-party consumers"),
+    ),
+)]
+pub struct ExternalApiDoc;

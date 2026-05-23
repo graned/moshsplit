@@ -3,6 +3,7 @@
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::domain::repositories::event_repo::EventRepository;
@@ -10,7 +11,7 @@ use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::infrastructure::http::AppState;
 use crate::services::member_service::MemberService;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ExternalLoginRequest {
     pub api_token: String,
     pub email: String,
@@ -19,7 +20,7 @@ pub struct ExternalLoginRequest {
     pub avatar_url: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ExternalLoginResponse {
     pub user_id: String,
     pub access_token: String,
@@ -45,6 +46,18 @@ pub struct RefreshTokenResponse {
 /// External login — exchange API token for session via Sentinel.
 /// The `ResponseWrapper` middleware wraps the returned data in the standard
 /// `ApiResponse` envelope.
+#[utoipa::path(
+    post,
+    path = "/v1/auth/external-login",
+    request_body = ExternalLoginRequest,
+    responses(
+        (status = 200, description = "Login successful, returns session tokens", body = ExternalLoginResponse),
+        (status = 400, description = "Invalid request body"),
+        (status = 401, description = "Authentication required — invalid or missing API token"),
+        (status = 502, description = "Auth service unavailable"),
+    ),
+    tag = "External"
+)]
 pub async fn external_login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ExternalLoginRequest>,

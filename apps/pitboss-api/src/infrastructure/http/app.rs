@@ -11,7 +11,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::infrastructure::clients::{DbClient, SentinelAuthClient};
-use crate::infrastructure::http::api::openapi::ApiDoc;
+use crate::infrastructure::http::api::openapi::{ApiDoc, ExternalApiDoc};
 use crate::infrastructure::http::api::routes::api_router;
 use crate::infrastructure::http::AppState;
 
@@ -80,9 +80,17 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     // ── Router ───────────────────────────────────────────────────────
     // Swagger UI is mounted outside the API middleware stack so the
     // ResponseWrapper doesn't JSON-encode the Swagger assets.
+    //
+    // Two separate doc sites are served:
+    //   /docs/internal — all internal API endpoints
+    //   /docs/external — only the external-facing endpoints
     let router = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui")
-            .url("/api-docs/openapi.json", ApiDoc::openapi()))
+        // Internal API docs (all endpoints)
+        .merge(SwaggerUi::new("/docs/internal")
+            .url("/api-docs/internal/openapi.json", ApiDoc::openapi()))
+        // External API docs (external-login + external-summary)
+        .merge(SwaggerUi::new("/docs/external")
+            .url("/api-docs/external/openapi.json", ExternalApiDoc::openapi()))
         .merge(api_router::build_router(state));
 
     Ok(router)
