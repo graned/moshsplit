@@ -83,7 +83,8 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
         const firstName = (profile as any).first_name || (profile as any).firstName || '';
         const lastName = (profile as any).last_name || (profile as any).lastName || '';
         const email = (profile as any).email || '';
-        setUserProfile(email, firstName, lastName);
+        const avatarUrl = (profile as any).avatar_url || (profile as any).avatarUrl || undefined;
+        setUserProfile(email, firstName, lastName, avatarUrl);
       } catch (profileErr) {
         console.error('[ExternalLogin] Failed to fetch user profile:', profileErr);
       }

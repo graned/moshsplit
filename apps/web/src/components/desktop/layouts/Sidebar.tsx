@@ -37,7 +37,7 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { firstName, lastName, userEmail } = useAuthStore();
+  const { firstName, lastName, userEmail, avatarUrl } = useAuthStore();
 
   const navItems: NavItem[] = [
     { path: `/app/web/events/${eventId}/feed`, label: 'Battle Log', icon: <FeedIcon /> },
@@ -219,10 +219,11 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
         <Tooltip title={collapsed ? displayName : undefined} placement="right" disableHoverListener={!collapsed}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, justifyContent: collapsed ? 'center' : 'flex-start' }}>
             <Avatar
+              src={avatarUrl || undefined}
               sx={{
                 width: collapsed ? 36 : 40,
                 height: collapsed ? 36 : 40,
-                bgcolor: 'action.disabledBackground',
+                bgcolor: avatarUrl ? 'transparent' : 'action.disabledBackground',
                 color: 'text.primary',
                 fontSize: collapsed ? '0.875rem' : '1rem',
                 fontWeight: 700,
@@ -234,7 +235,7 @@ function Sidebar({ eventId, collapsed = false }: SidebarProps) {
                 }),
               }}
             >
-              {initials}
+              {!avatarUrl && initials}
             </Avatar>
             <Box
               sx={{

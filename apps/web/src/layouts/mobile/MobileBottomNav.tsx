@@ -25,7 +25,7 @@ function MobileBottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { eventId } = useParams<{ eventId: string }>();
-  const { firstName, lastName, userEmail, clearTokens } = useAuthStore();
+  const { firstName, lastName, userEmail, avatarUrl, clearTokens } = useAuthStore();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -141,16 +141,17 @@ function MobileBottomNav() {
             label="Profile"
             icon={
               <Avatar
+                src={avatarUrl || undefined}
                 sx={{
                   width: 26,
                   height: 26,
-                  bgcolor: 'primary.main',
+                  bgcolor: avatarUrl ? 'transparent' : 'primary.main',
                   color: '#121212',
                   fontSize: '0.6875rem',
                   fontWeight: 700,
                 }}
               >
-                {initials}
+                {!avatarUrl && initials}
               </Avatar>
             }
           />
