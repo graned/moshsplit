@@ -95,6 +95,64 @@ pub async fn get_raw_with_auth(path: &str, bearer_token: &str) -> reqwest::Respo
         .expect("HTTP request failed")
 }
 
+/// PATCH JSON body with an Authorization: Bearer header and deserialize the response.
+pub async fn patch_json_with_auth(path: &str, body: &Value, bearer_token: &str) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .patch(format!("{BASE_URL}{path}"))
+        .header("Authorization", format!("Bearer {bearer_token}"))
+        .json(body)
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
+/// DELETE and deserialize the response with an Authorization: Bearer header.
+pub async fn delete_json_with_auth(path: &str, bearer_token: &str) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .delete(format!("{BASE_URL}{path}"))
+        .header("Authorization", format!("Bearer {bearer_token}"))
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    if status == StatusCode::NO_CONTENT {
+        return (status, Value::Null);
+    }
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
+/// GET JSON with an Authorization: Bearer header and deserialize the response.
+pub async fn get_json_with_auth(path: &str, bearer_token: &str) -> (StatusCode, Value) {
+    let client = test_client();
+    let resp = client
+        .get(format!("{BASE_URL}{path}"))
+        .header("Authorization", format!("Bearer {bearer_token}"))
+        .send()
+        .await
+        .expect("HTTP request failed");
+
+    let status = resp.status();
+    let body: Value = resp
+        .json()
+        .await
+        .expect("Response body is not valid JSON");
+    (status, body)
+}
+
 /// PATCH JSON body and deserialize the response.
 pub async fn patch_json(path: &str, body: &Value) -> (StatusCode, Value) {
     let client = test_client();
