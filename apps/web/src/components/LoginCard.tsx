@@ -37,6 +37,8 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
   const [externalLoading, setExternalLoading] = useState(false);
   const [externalError, setExternalError] = useState<string | null>(null);
   const [devEmail, setDevEmail] = useState('');
+  const [devDisplayName, setDevDisplayName] = useState('');
+  const [devAvatarUrl, setDevAvatarUrl] = useState('');
   const setSession = useAuthStore((state) => state.setSession);
   const navigate = useNavigate();
 
@@ -49,12 +51,14 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       const runtimeConfig = (window as any).__MOSHSPLIT_CONFIG__ || {};
       const apiToken = runtimeConfig.VITE_TEST_API_TOKEN || import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
       const testEmail = devEmail.trim() || runtimeConfig.VITE_TEST_USER_EMAIL || import.meta.env.VITE_TEST_USER_EMAIL || DEFAULT_EMAIL;
+      const displayName = devDisplayName.trim() || runtimeConfig.VITE_TEST_DISPLAY_NAME || import.meta.env.VITE_TEST_DISPLAY_NAME || '';
+      const avatarUrl = devAvatarUrl.trim() || runtimeConfig.VITE_TEST_AVATAR_URL || import.meta.env.VITE_TEST_AVATAR_URL || undefined;
 
       const exchangeResult = await authApi.externalLogin({
         api_token: apiToken,
         email: testEmail,
-        display_name: runtimeConfig.VITE_TEST_DISPLAY_NAME || import.meta.env.VITE_TEST_DISPLAY_NAME || 'Eduardo Anaya',
-        avatar_url: runtimeConfig.VITE_TEST_AVATAR_URL || import.meta.env.VITE_TEST_AVATAR_URL || '',
+        display_name: displayName,
+        avatar_url: avatarUrl,
       });
 
       setSession(
@@ -157,6 +161,66 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
             fullWidth
             size="small"
             autoComplete="email"
+            sx={{
+              mb: 1.5,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.3)',
+                },
+              },
+              '& .MuiOutlinedInput-input': {
+                color: 'text.primary',
+                '&::placeholder': {
+                  color: 'text.secondary',
+                  opacity: 0.7,
+                },
+              },
+            }}
+          />
+
+          <TextField
+            value={devDisplayName}
+            onChange={(e) => setDevDisplayName(e.target.value)}
+            placeholder="Display name (optional)"
+            fullWidth
+            size="small"
+            autoComplete="name"
+            sx={{
+              mb: 1.5,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.3)',
+                },
+              },
+              '& .MuiOutlinedInput-input': {
+                color: 'text.primary',
+                '&::placeholder': {
+                  color: 'text.secondary',
+                  opacity: 0.7,
+                },
+              },
+            }}
+          />
+
+          <TextField
+            value={devAvatarUrl}
+            onChange={(e) => setDevAvatarUrl(e.target.value)}
+            placeholder="Avatar URL (optional)"
+            fullWidth
+            size="small"
+            autoComplete="url"
             sx={{
               mb: 1.5,
               '& .MuiOutlinedInput-root': {
