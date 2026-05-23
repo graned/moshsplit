@@ -33,9 +33,15 @@ export interface UpdateProfileResponse {
 }
 
 const SENTINEL_URL = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+const SENTINEL_API_TOKEN = import.meta.env.VITE_SENTINEL_API_TOKEN;
 
 async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<Response> {
-  const token = useAuthStore.getState().accessToken;
+  let token: string | undefined;
+  if (endpoint.startsWith('/v1/api/admin')) {
+    token = SENTINEL_API_TOKEN || useAuthStore.getState().accessToken;
+  } else {
+    token = useAuthStore.getState().accessToken;
+  }
   if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${SENTINEL_URL}${endpoint}`, {
