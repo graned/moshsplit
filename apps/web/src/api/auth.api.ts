@@ -132,34 +132,20 @@ export const authApi = {
   },
 
   externalLogin: async (data: ExternalLoginRequest): Promise<ExternalLoginResponse> => {
-    const response = await apiClient.post<{
-      success: boolean;
-      data: ExternalLoginResponse | null;
-      error: { code: string; message: string } | null;
-      timestamp: string;
-      request_id: string;
-    }>(API_ENDPOINTS.auth.externalLogin, data);
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || 'External login failed');
+    try {
+        const response = await apiClient.post<ExternalLoginResponse>(API_ENDPOINTS.auth.externalLogin, data);
+        return response;
+    } catch (err: any) {
+        throw new Error(err?.message || 'External login failed');
     }
-
-    return response.data;
   },
 
   refreshToken: async (data: RefreshTokenRequest): Promise<RefreshTokenResponse> => {
-    const response = await apiClient.post<{
-      success: boolean;
-      data: RefreshTokenResponse | null;
-      error: { code: string; message: string } | null;
-      timestamp: string;
-      request_id: string;
-    }>(API_ENDPOINTS.auth.refresh, data);
-
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || 'Token refresh failed');
+    try {
+      const response = await apiClient.post<RefreshTokenResponse>(API_ENDPOINTS.auth.refresh, data);
+      return response;
+    } catch (err: any) {
+      throw new Error(err?.message || 'Token refresh failed');
     }
-
-    return response.data;
   },
 };
