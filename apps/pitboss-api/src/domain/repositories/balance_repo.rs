@@ -171,8 +171,8 @@ impl BalanceRepository {
                 COALESCE(ep.amount, 0)::INTEGER AS paid_cents,
                 COALESCE(es.amount, 0)::INTEGER AS owes_cents,
                 (COALESCE(ep.amount, 0) - COALESCE(es.amount, 0)
-                 - COALESCE(po.amount, 0) + COALESCE(pi.amount, 0)
-                 - COALESCE(so.amount, 0) + COALESCE(si.amount, 0)
+                 + COALESCE(po.amount, 0) - COALESCE(pi.amount, 0)
+                 + COALESCE(so.amount, 0) - COALESCE(si.amount, 0)
                 )::INTEGER AS balance_cents
             FROM active_members m
             LEFT JOIN expense_paid ep ON ep.user_id = m.user_id
@@ -214,8 +214,8 @@ impl BalanceRepository {
                 COALESCE(paid.amount, 0)::INTEGER AS paid_cents,
                 COALESCE(shares.amount, 0)::INTEGER AS owes_cents,
                 (COALESCE(paid.amount, 0) - COALESCE(shares.amount, 0)
-                 - COALESCE(pmts_out.amount, 0) + COALESCE(pmts_in.amount, 0)
-                 - COALESCE(stlmts_out.amount, 0) + COALESCE(stlmts_in.amount, 0)
+                 + COALESCE(pmts_out.amount, 0) - COALESCE(pmts_in.amount, 0)
+                 + COALESCE(stlmts_out.amount, 0) - COALESCE(stlmts_in.amount, 0)
                 )::INTEGER AS balance_cents
             FROM (SELECT $2::uuid AS user_id) m
             LEFT JOIN (
