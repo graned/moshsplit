@@ -50,8 +50,13 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       // Use runtime config if available, fallback to env vars
       const runtimeConfig = (window as any).__MOSHSPLIT_CONFIG__ || {};
       const apiToken = runtimeConfig.VITE_TEST_API_TOKEN || import.meta.env.VITE_TEST_API_TOKEN || 'sat_test_token';
+      const displayName = devDisplayName.trim() || runtimeConfig.VITE_TEST_DISPLAY_NAME || import.meta.env.VITE_TEST_DISPLAY_NAME;
+      if (!displayName) {
+        setExternalError('Display name is required');
+        setExternalLoading(false);
+        return;
+      }
       const testEmail = devEmail.trim() || runtimeConfig.VITE_TEST_USER_EMAIL || import.meta.env.VITE_TEST_USER_EMAIL || DEFAULT_EMAIL;
-      const displayName = devDisplayName.trim() || runtimeConfig.VITE_TEST_DISPLAY_NAME || import.meta.env.VITE_TEST_DISPLAY_NAME || '';
       const avatarUrl = devAvatarUrl.trim() || runtimeConfig.VITE_TEST_AVATAR_URL || import.meta.env.VITE_TEST_AVATAR_URL || undefined;
 
       const exchangeResult = await authApi.externalLogin({
@@ -187,7 +192,7 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
           <TextField
             value={devDisplayName}
             onChange={(e) => setDevDisplayName(e.target.value)}
-            placeholder="Display name (optional)"
+            placeholder="Display name"
             fullWidth
             size="small"
             autoComplete="name"
