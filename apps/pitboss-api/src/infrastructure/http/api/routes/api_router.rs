@@ -204,29 +204,33 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let sentinel_client = state.sentinel_client.clone();
     let auth_middleware = Arc::new(AuthMiddleware::new(sentinel_client));
 
-    // Apply auth middleware to all protected routes
-    // Clone the Arc inside the async block to satisfy the lifetime
-    let protected_routes = protected_api.layer(middleware::from_fn(move |req, next| {
-        let auth = auth_middleware.clone();
-        async move { auth.authenticate(req, next).await }
-    }));
-
-    // Build the complete router with all layers
-    let api_routes = Router::new()
-        .merge(public_routes) // Public - no auth
-        .merge(public_auth_routes) // Public auth endpoints - no auth required
-        .merge(protected_routes) // Protected - requires Sentinel auth
-        // ── Innermost (closest to handler) ──────────────────────
-        .layer(middleware::from_fn(
-            response_wrapper::response_wrapper_middleware,
-        ))
+    let public_api = Router::new()
+        .merge(public_routes)
+        .merge(public_auth_routes)
         .layer(TraceLayer::new_for_http())
         .layer(CatchPanicLayer::new())
         .layer(middleware::from_fn(
             request_id_middleware::request_id_middleware,
         ))
-        // ── Outermost ────────────────────────────────────────────
-        .layer(CorsLayer::permissive()); // tighten in production
+        .layer(CorsLayer::permissive());
+
+    let protected_api = protected_api.layer(middleware::from_fn(move |req, next| {
+        let auth = auth_middleware.clone();
+        async move { auth.authenticate(req, next).await }
+    }))
+    .layer(middleware::from_fn(
+        response_wrapper::response_wrapper_middleware,
+    ))
+    .layer(TraceLayer::new_for_http())
+    .layer(CatchPanicLayer::new())
+    .layer(middleware::from_fn(
+        request_id_middleware::request_id_middleware,
+    ))
+    .layer(CorsLayer::permissive());
+
+    let api_routes = Router::new()
+        .merge(public_api)
+        .merge(protected_api);
 
     // Attach shared application state.
     api_routes.with_state(state)
