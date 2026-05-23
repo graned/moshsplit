@@ -172,9 +172,9 @@ pub struct ApiDoc;
 /// OpenAPI documentation for the external-facing API.
 ///
 /// Includes only the endpoints meant for external consumers:
-/// - `POST /v1/auth/external-login`
-/// - `POST /v1/balances/external-summary`
-/// Adds a Bearer JWT security scheme to the external OpenAPI spec.
+/// - `POST /v1/auth/external-login` — uses `bearer_auth` (API token)
+/// - `POST /v1/balances/external-summary` — uses `api_token_auth` (API token)
+/// Each endpoint has its own security scheme to reflect the different auth flows.
 struct SecurityAddon;
 
 impl Modify for SecurityAddon {
@@ -183,6 +183,7 @@ impl Modify for SecurityAddon {
             ComponentsBuilder::new().build()
         });
 
+        // Bearer auth for external-login (API token)
         components.add_security_scheme(
             "bearer_auth",
             SecurityScheme::Http(
@@ -190,6 +191,18 @@ impl Modify for SecurityAddon {
                     .scheme(HttpAuthScheme::Bearer)
                     .bearer_format("JWT")
                     .description(Some("API token used as Bearer token in Authorization header"))
+                    .build(),
+            ),
+        );
+
+        // API token auth for external-summary (different key name to distinguish)
+        components.add_security_scheme(
+            "api_token_auth",
+            SecurityScheme::Http(
+                HttpBuilder::new()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .bearer_format("API Token")
+                    .description(Some("External API token (sat_...) used as Bearer token in Authorization header"))
                     .build(),
             ),
         );

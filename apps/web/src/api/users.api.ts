@@ -33,7 +33,8 @@ export interface UpdateProfileResponse {
 }
 
 const SENTINEL_URL = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
-const SENTINEL_API_TOKEN = import.meta.env.VITE_SENTINEL_API_TOKEN;
+const runtimeConfig = (window as any).__MOSHSPLIT_CONFIG__ || {};
+const SENTINEL_API_TOKEN = runtimeConfig.VITE_SENTINEL_API_TOKEN || import.meta.env.VITE_SENTINEL_API_TOKEN;
 
 async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<Response> {
   const token = endpoint.startsWith('/v1/api/admin')

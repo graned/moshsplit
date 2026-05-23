@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 pub use crate::errors::{SentinelError, SentinelErrorCode, Result};
 pub use crate::types::{
-    AuthenticatedUser, LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse,
-    SentinelConfig, TokenExchangeRequest, TokenExchangeResponse,
+    AuthenticatedUser, LoginRequest, LoginResponse, PaginatedUsersResponse, RefreshTokenRequest,
+    RefreshTokenResponse, SentinelConfig, SentinelUser, TokenExchangeRequest, TokenExchangeResponse,
 };
 
 /// Sentinel client for communicating with Sentinel Auth service.
@@ -104,6 +104,78 @@ impl SentinelClient {
                 email_verified: auth_response.email_verified,
                 roles: auth_response.roles,
                 permissions: Vec::new(), // Permissions not returned by this endpoint
+            })
+        } else {
+            Err(SentinelError::from_response(
+                status.as_u16(),
+                &body,
+                None,
+            ))
+        }
+    }
+
+    pub async fn list_users(&self, api_token: &str, page: Option<usize>, page_size: Option<usize>) -> Result<PaginatedUsersResponse> {
+        let mut url = format!("{}/v1/api/admin/users", self.inner.base_url);
+        let params: Vec<(&str, String)> = [
+            page.map(|p| ("page", p.to_string())),
+            page_size.map(|p| ("page_size", p.to_string())),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        if !params.is_empty() {
+            url.push('?');
+            for (i, (k, v)) in params.iter().enumerate() {
+                if i > 0 {
+                    url.push('&');
+                }
+                url.push_str(k);
+                url.push('=');
+                url.push_str(v);
+            }
+        }
+
+        let response = self
+            .inner
+            .http_client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", api_token))
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+            .map_err(SentinelError::Network)?;
+
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+
+        if status.is_success() {
+            let envelope: crate::types::ApiEnvelope<PaginatedUsersResponse> =
+                serde_json::from_str(&body).map_err(SentinelError::Parse)?;
+
+            if !envelope.success {
+                let error = envelope.error.ok_or_else(|| {
+                    SentinelError::Api {
+                        message: "Unknown error".to_string(),
+                        code: crate::errors::SentinelErrorCode::Unknown,
+                        status: status.as_u16(),
+                        request_id: Some(envelope.request_id.clone()),
+                    }
+                })?;
+                return Err(SentinelError::Api {
+                    message: error.message,
+                    code: crate::errors::SentinelErrorCode::from_status(status.as_u16()),
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id),
+                });
+            }
+
+            envelope.data.ok_or_else(|| {
+                SentinelError::Api {
+                    message: "No data in response".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id),
+                }
             })
         } else {
             Err(SentinelError::from_response(

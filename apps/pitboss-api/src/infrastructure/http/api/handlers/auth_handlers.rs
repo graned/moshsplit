@@ -27,6 +27,7 @@ pub struct ExternalLoginResponse {
     pub refresh_token: String,
     pub expires_at: String,
     pub email_verified: bool,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -98,6 +99,7 @@ pub async fn external_login(
                 refresh_token: response.refresh_token,
                 expires_at: response.expires_at,
                 email_verified: true,
+                avatar_url: response.avatar_url,
             }))
         }
         Err(e) => {

@@ -63,7 +63,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     // These endpoints exchange tokens, so they cannot require a Bearer token
     let public_auth_routes = Router::new()
         .route("/v1/auth/external-login", post(auth_handlers::external_login))
-        .route("/v1/auth/refresh", post(auth_handlers::refresh_token));
+        .route("/v1/auth/refresh", post(auth_handlers::refresh_token))
+        .route("/v1/balances/external-summary", post(balance_handlers::external_summary));
 
     // ── Protected API routes (require Sentinel auth) ──────────────────
 
@@ -153,10 +154,6 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/balances/{user_id}/explain",
             get(balance_handlers::explain_balance),
-        )
-        .route(
-            "/v1/balances/external-summary",
-            post(balance_handlers::external_summary),
         );
 
     // ── Activity (Battle Log) ──────────────────────────────────────────

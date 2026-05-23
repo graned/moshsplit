@@ -43,6 +43,7 @@ interface AuthState {
   userEmail: string | null;
   firstName: string | null;
   lastName: string | null;
+  avatarUrl: string | null;
   setSession: (
     userId: string,
     access: string,
@@ -51,7 +52,7 @@ interface AuthState {
     mustChangePassword?: boolean,
   ) => void;
   setIsAdmin: (isAdmin: boolean) => void;
-  setUserProfile: (email: string, firstName: string | null, lastName: string | null) => void;
+  setUserProfile: (email: string, firstName: string | null, lastName: string | null, avatarUrl?: string | null) => void;
   clearMustChangePassword: () => void;
   setMfaSetupRequired: (val: boolean) => void;
   clearMfaSetupRequired: () => void;
@@ -72,6 +73,7 @@ export const useAuthStore = create<AuthState>()(
       userEmail: null,
       firstName: null,
       lastName: null,
+      avatarUrl: null,
       setSession: (userId, access, refresh, emailVerified, mustChangePassword = false) =>
         set({
           userId,
@@ -82,7 +84,7 @@ export const useAuthStore = create<AuthState>()(
           mustChangePassword,
         }),
       setIsAdmin: (isAdmin) => set({ isAdmin }),
-      setUserProfile: (email, firstName, lastName) => set({ userEmail: email, firstName, lastName }),
+      setUserProfile: (email, firstName, lastName, avatarUrl = null) => set({ userEmail: email, firstName, lastName, avatarUrl }),
       clearMustChangePassword: () => set({ mustChangePassword: false }),
       setMfaSetupRequired: (val) => set({ mfaSetupRequired: val }),
       clearMfaSetupRequired: () => set({ mfaSetupRequired: false }),
@@ -99,6 +101,7 @@ export const useAuthStore = create<AuthState>()(
           userEmail: null,
           firstName: null,
           lastName: null,
+          avatarUrl: null,
         }),
     }),
     { name: "sentinel-auth" },

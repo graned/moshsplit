@@ -164,9 +164,10 @@ pub async fn balance_stats(
 
 /// POST /v1/balances/external-summary — per-expense balance summary for a user by email.
 ///
-/// Requires a valid API token (Bearer auth) and an email in the request body.
-/// Resolves the email to a user via Sentinel, then computes the user's per-expense
-/// balance for their first active event.
+/// External consumers pass an API token (`sat_...`) via `Authorization: Bearer <api_token>`.
+/// Pitboss-api validates the API token against Sentinel, then uses the email in the
+/// request body to look up the user and compute their per-expense balance for their
+/// first active event using `moshsplit_balance_engine::compute_balance`.
 #[utoipa::path(
     post,
     path = "/v1/balances/external-summary",
@@ -174,34 +175,84 @@ pub async fn balance_stats(
     responses(
         (status = 200, description = "External balance summary", body = ExternalBalanceSummaryResponse),
         (status = 400, description = "Invalid request body"),
-        (status = 401, description = "Authentication required"),
+        (status = 401, description = "Authentication required — invalid or missing API token"),
         (status = 404, description = "User or event not found"),
     ),
     security(
-        ("bearer_auth" = [])
+        ("api_token_auth" = [])
     ),
     tag = "External"
 )]
 pub async fn external_summary(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<ExternalBalanceSummaryRequest>,
 ) -> Result<Json<ExternalBalanceSummaryResponse>, ServiceError> {
-    let email = payload.email.trim().to_lowercase();
+    // Step 1 — extract API token from Authorization header
+    let api_token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer ").map(|s| s.to_string()))
+        .ok_or_else(|| ServiceError::Unauthorized("Missing or invalid Authorization header".into()))?;
 
+    // Step 2 — validate API token via Sentinel token exchange (ignore the session, just check validity)
+    let validation_result = state
+        .sentinel_client
+        .exchange_token(&api_token, &payload.email, "validation-only", None)
+        .await;
+
+    match validation_result {
+        Err(sentinel_client::SentinelError::Api { code, status, .. })
+            if code == sentinel_client::SentinelErrorCode::InvalidToken
+                || code == sentinel_client::SentinelErrorCode::AuthError
+                || status == 401 =>
+        {
+            return Err(ServiceError::Unauthorized(
+                "Invalid or expired API token".into(),
+            ));
+        }
+        Err(e) => {
+            tracing::warn!("Sentinel validation failed: {}", e);
+            return Err(ServiceError::Unauthorized(
+                "API token validation failed".into(),
+            ));
+        }
+        Ok(_) => {}
+    }
+
+    // Step 3 — resolve email to user_id via Sentinel admin API
+    let email = payload.email.trim().to_lowercase();
     if email.is_empty() {
         return Err(ServiceError::Validation("Email is required".into()));
     }
 
-    // Resolve email -> user_id via Sentinel auth database
-    let user_id = state
-        .sentinel_auth_client
-        .find_user_id_by_email(&email)
-        .map_err(|e| ServiceError::Database(format!("Failed to look up user: {e}")))?
-        .ok_or_else(|| ServiceError::NotFound(format!("No user found with email {email}")))?;
+    let user_id = {
+        let result = state
+            .sentinel_client
+            .list_users(&api_token, Some(1), Some(100))
+            .await;
 
-    // Compute per-expense breakdown
+        match result {
+            Ok(resp) => resp
+                .items
+                .into_iter()
+                .find(|u| u.email.to_lowercase() == email)
+                .map(|u| Uuid::parse_str(&u.user_id).ok())
+                .flatten()
+                .ok_or_else(|| ServiceError::NotFound(format!("No user found with email {email}")))?,
+            Err(e) => {
+                tracing::warn!("Failed to fetch users from Sentinel: {}", e);
+                return Err(ServiceError::Unauthorized(
+                    "Failed to validate credentials".into(),
+                ));
+            }
+        }
+    };
+
+    // Step 4 — fetch the user's first active event
     let balance_repo = BalanceRepository::new(state.db_client.clone());
-    let (event_name, rows) = balance_repo
+
+    let (event_id, event_name, rows) = balance_repo
         .external_expense_breakdown(user_id)
         .map_err(ServiceError::from)?;
 
@@ -211,6 +262,32 @@ pub async fn external_summary(
         ));
     }
 
+    // Step 5 — get the full balance row for compute_balance (paid/owes/payments/settlements)
+    let balance_row = balance_repo
+        .user_balance(event_id, user_id)
+        .map_err(ServiceError::from)?;
+
+    let (paid_cents, owes_cents, payments_out, payments_in, settlements_out, settlements_in) =
+        match balance_row {
+            Some(row) => (
+                row.paid_cents,
+                row.owes_cents,
+                row.payments_out_cents,
+                row.payments_in_cents,
+                row.settlements_out_cents,
+                row.settlements_in_cents,
+            ),
+            None => (0, 0, 0, 0, 0, 0),
+        };
+
+    let total_balance_cents = moshsplit_balance_engine::compute_balance(
+        paid_cents,
+        owes_cents,
+        payments_out + settlements_out,
+        payments_in + settlements_in,
+    );
+
+    // Step 6 — build per-expense items
     let items: Vec<ExternalBalanceItem> = rows
         .into_iter()
         .map(|r| ExternalBalanceItem {
@@ -218,8 +295,6 @@ pub async fn external_summary(
             amount_cents: r.amount_cents,
         })
         .collect();
-
-    let total_balance_cents: i32 = items.iter().map(|i| i.amount_cents).sum();
 
     Ok(Json(ExternalBalanceSummaryResponse {
         event_name,

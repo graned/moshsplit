@@ -119,6 +119,8 @@ pub struct TokenExchangeResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub expires_at: String,
+    #[serde(rename = "avatar_url", skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
 }
 
 /// Login response - either a session or MFA challenge
@@ -156,6 +158,40 @@ pub struct Session {
 // ─────────────────────────────────────────────────────────────────────────────
 // User Types
 // ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SentinelUser {
+    #[serde(rename = "user_id")]
+    pub user_id: String,
+    pub email: String,
+    #[serde(rename = "first_name")]
+    pub first_name: Option<String>,
+    #[serde(rename = "last_name")]
+    pub last_name: Option<String>,
+    #[serde(rename = "avatar_url", skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PaginatedUsersResponse {
+    #[serde(rename = "items", default)]
+    pub items: Vec<SentinelUser>,
+    #[serde(rename = "total", default)]
+    pub total: usize,
+    #[serde(rename = "page", default)]
+    pub page: usize,
+    #[serde(rename = "page_size", default)]
+    pub page_size: usize,
+}
+
+/// Paginated users list response
+#[derive(Debug, Clone, Deserialize)]
+pub struct UsersListResponse {
+    #[serde(rename = "total", default)]
+    pub total: usize,
+    #[serde(rename = "items", default)]
+    pub items: Vec<SentinelUser>,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct UpdateProfileRequest {

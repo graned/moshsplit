@@ -102,6 +102,8 @@ pub struct SettlementBreakdownRow {
 /// A per-expense balance row for the external-summary endpoint.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct ExternalExpenseBalanceRow {
+    #[diesel(sql_type = DUuid)]
+    pub event_id: Uuid,
     #[diesel(sql_type = Text)]
     pub event_name: String,
     #[diesel(sql_type = Text)]
@@ -345,7 +347,7 @@ impl BalanceRepository {
     pub fn external_expense_breakdown(
         &self,
         user_id: Uuid,
-    ) -> Result<(String, Vec<ExternalExpenseBalanceRow>), RepositoryError> {
+    ) -> Result<(Uuid, String, Vec<ExternalExpenseBalanceRow>), RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
 
         // Find the user's first active event (by creation date) and compute per-expense balances
@@ -370,6 +372,7 @@ impl BalanceRepository {
                 ORDER BY ev.expense_id, ev.version_number DESC
             )
             SELECT
+                ue.id AS event_id,
                 ue.name AS event_name,
                 lv.title,
                 (CASE WHEN lv.paid_by = $1 THEN lv.amount_cents ELSE 0 END - COALESCE(sh.share_cents, 0))::INTEGER AS amount_cents
@@ -386,13 +389,17 @@ impl BalanceRepository {
             .load::<ExternalExpenseBalanceRow>(&mut conn)
             .map_err(RepositoryError::from)?;
 
-        // Extract the event name from the first row (all rows share the same event name)
+        // Extract the event ID and name from the first row (all rows share the same event)
+        let event_id = results
+            .first()
+            .map(|r| r.event_id)
+            .unwrap_or_default();
         let event_name = results
             .first()
             .map(|r| r.event_name.clone())
             .unwrap_or_default();
 
-        Ok((event_name, results))
+        Ok((event_id, event_name, results))
     }
 
     /// Get settlement breakdown for a user.
