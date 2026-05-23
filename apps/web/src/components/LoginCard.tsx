@@ -53,8 +53,8 @@ export function LoginCard({ onSubmit, isLoading, error }: LoginCardProps) {
       const exchangeResult = await authApi.externalLogin({
         api_token: apiToken,
         email: testEmail,
-        display_name: runtimeConfig.VITE_TEST_DISPLAY_NAME || 'Eduardo Anaya',
-        avatar_url: runtimeConfig.VITE_TEST_AVATAR_URL || 'https://lh3.googleusercontent.com/pw/AP1GczMPVP7BLZ7fKXXLPHayHHvK7FaOd1N_jPqod7q3pCaPoUAPIW37PLFQtYPTHeHmx6dT6S9N0j1QNbGdK70dMK_yYz_9rI5A9IBBt8OkLxkDdVq2wTXEL0z2jgPfbaL1ULukmNnGmzhummJ0tK45L1waNg=w1082-h1441-s-no-gm?authuser=0',
+        display_name: runtimeConfig.VITE_TEST_DISPLAY_NAME || import.meta.env.VITE_TEST_DISPLAY_NAME || 'Eduardo Anaya',
+        avatar_url: runtimeConfig.VITE_TEST_AVATAR_URL || import.meta.env.VITE_TEST_AVATAR_URL || '',
       });
 
       setSession(
