@@ -80,6 +80,24 @@ sentinel.viralatas.org {
         }
     }
 
+    # ── Pitboss Direct Routes (Swagger / API / Docs) ──────────────────────────
+    # pitboss-api serves Swagger UI at /docs/external and /docs/internal,
+    # OpenAPI specs at /api-docs/..., and API endpoints at /v1/...
+    @pitbossDirect {
+        path /api-docs/*
+        path /docs/*
+        path /v1/*
+    }
+    handle @pitbossDirect {
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
     # ── Web Frontend (MoshSplit) ───────────────────────────────────────────
     # Routes: /moshsplit/* -> web:80
     # Strips /moshsplit prefix before forwarding
@@ -104,6 +122,9 @@ sentinel.viralatas.org {
         not path /sentinel/*
         not path /pitboss/*
         not path /moshsplit/*
+        not path /api-docs/*
+        not path /docs/*
+        not path /v1/*
     }
     handle @default {
         reverse_proxy web:80 {
