@@ -6,10 +6,10 @@ import { Scale as ScalesIcon, CheckCircle as SettledIcon, TrendingUp as Incoming
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi } from '../../api/groups.api';
-import { settlementsApi, SettlementListItem, IncomingBalanceItem, OutgoingBalanceItem } from '../../api/settlements.api';
+import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, type SettlementListItem } from '../../api/settlements.api';
 import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
-import { MobileCardList } from '../../components/shared/lists/MobileCardList';
+import { MobileFeedList } from '../../components/feed/mobile/MobileFeedList';
 import { MobileFeedCard } from '../../components/feed/mobile/MobileFeedCard';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
 import { MobileTransactionCard } from '../../components/feed/mobile/cards/MobileTransactionCard';
@@ -50,13 +50,13 @@ export default function MobileSettlePage() {
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   useUsers(memberUserIds);
 
-  const { data: incomingData, isLoading: incomingLoading } = useQuery({
+  const { data: incomingData } = useQuery({
     queryKey: ['settlements-incoming', eventId],
     queryFn: () => settlementsApi.getIncomingBalances(eventId!),
     enabled: !!eventId,
   });
 
-  const { data: outgoingData, isLoading: outgoingLoading } = useQuery({
+  const { data: outgoingData } = useQuery({
     queryKey: ['settlements-outgoing', eventId],
     queryFn: () => settlementsApi.getOutgoingBalances(eventId!),
     enabled: !!eventId,
@@ -67,7 +67,6 @@ export default function MobileSettlePage() {
     fetchNextPage: fetchNextRequests,
     hasNextPage: hasNextRequests,
     isFetchingNextPage: isFetchingNextRequests,
-    isLoading: requestsLoading,
   } = useInfiniteQuery({
     queryKey: ['settlements-requests', eventId],
     queryFn: ({ pageParam }) => settlementsApi.listSettlementRequests(eventId!, pageParam),
@@ -81,7 +80,6 @@ export default function MobileSettlePage() {
     fetchNextPage: fetchNextHistory,
     hasNextPage: hasNextHistory,
     isFetchingNextPage: isFetchingNextHistory,
-    isLoading: historyLoading,
   } = useInfiniteQuery({
     queryKey: ['settlements-history', eventId],
     queryFn: ({ pageParam }) => settlementsApi.getSettlementsHistory(eventId!, pageParam),
@@ -264,140 +262,133 @@ export default function MobileSettlePage() {
 
       <Box sx={{ flexGrow: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', px: 2, pt: 2, pb: 4 }}>
         {activeTabFilter === 'incoming' && (
-          <MobileCardList<IncomingBalanceItem>
-            items={incomingItems}
-            renderItem={(item) => (
+          <MobileFeedList
+            items={incomingItems.map((item) => ({ kind: 'custom' as const, id: `incoming-${item.user_id}`, node: (
               <MobileBalanceCard
-                key={item.user_id}
                 userId={item.user_id}
                 amountCents={item.amount_cents}
                 isIncoming={true}
                 currency={currency}
                 onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
               />
-            )}
-            isLoading={incomingLoading}
+            )}))}
+            userMap={{}}
             emptyState={emptyState('No one owes you. The pit is quiet.')}
-            gap={2}
           />
         )}
 
         {activeTabFilter === 'outgoing' && (
-          <MobileCardList<OutgoingBalanceItem>
-            items={outgoingItems}
-            renderItem={(item) => (
+          <MobileFeedList
+            items={outgoingItems.map((item) => ({ kind: 'custom' as const, id: `outgoing-${item.user_id}`, node: (
               <MobileBalanceCard
-                key={item.user_id}
                 userId={item.user_id}
                 amountCents={item.amount_cents}
                 isIncoming={false}
                 currency={currency}
                 onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
               />
-            )}
-            isLoading={outgoingLoading}
+            )}))}
+            userMap={{}}
             emptyState={emptyState("You don't owe anyone. Your honor is intact.")}
-            gap={2}
           />
         )}
 
         {activeTabFilter === 'requests' && (
-          <MobileCardList<SettlementListItem>
-            items={pendingRequests}
-            renderItem={(req) => {
-              const isConfirming = req.to_user === userId;
-              const otherUserId = isConfirming ? req.from_user : req.to_user;
-              const otherUser = getUserById(otherUserId);
-              const displayName = otherUser
-                ? `${otherUser.firstName} ${otherUser.lastName}`.trim() || otherUser.email
-                : otherUserId.slice(0, 8);
+          <MobileFeedList
+            items={pendingRequests.map((req) => ({
+              kind: 'custom' as const,
+              id: req.id,
+              node: (() => {
+                const isConfirming = req.to_user === userId;
+                const otherUserId = isConfirming ? req.from_user : req.to_user;
+                const otherUser = getUserById(otherUserId);
+                const displayName = otherUser
+                  ? `${otherUser.firstName} ${otherUser.lastName}`.trim() || otherUser.email
+                  : otherUserId.slice(0, 8);
 
-              const time = new Date(req.created_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              });
+                const time = new Date(req.created_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                });
 
-              const accentColor = isConfirming ? '#F59E0B' : '#8b5cf6';
+                const accentColor = isConfirming ? '#F59E0B' : '#8b5cf6';
 
-              return (
-                <MobileFeedCard
-                  key={req.id}
-                  accentColor={accentColor}
-                  icon={<Box sx={{ width: 18, height: 18 }} />}
-                  onClick={isConfirming ? () => handleOpenReviewPanel(req) : undefined}
-                  rightContent={
-                    <Box>
-                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
-                        {formatAmount(req.amount_cents, currency)}
-                      </Typography>
-                      <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
-                        {time}
-                      </Typography>
-                    </Box>
-                  }
-                >
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
-                    <Box component="span" color={accentColor}>
-                      {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
-                    </Box>
-                    {' — '}
-                    <Box component="span" color="text.primary">
-                      {displayName.split('@')[0]}
-                    </Box>
-                  </Typography>
-                  {isConfirming && (
-                    <Box
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenReviewPanel(req);
-                      }}
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: 1,
-                        bgcolor: alpha(accentColor, 0.15),
-                        border: '1px solid',
-                        borderColor: alpha(accentColor, 0.3),
-                        cursor: 'pointer',
-                        mt: 0.25,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
-                        Review
-                      </Typography>
-                    </Box>
-                  )}
-                </MobileFeedCard>
-              );
-            }}
-            isLoading={requestsLoading}
+                return (
+                  <MobileFeedCard
+                    key={req.id}
+                    accentColor={accentColor}
+                    icon={<Box sx={{ width: 18, height: 18 }} />}
+                    onClick={isConfirming ? () => handleOpenReviewPanel(req) : undefined}
+                    rightContent={
+                      <Box>
+                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
+                          {formatAmount(req.amount_cents, currency)}
+                        </Typography>
+                        <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
+                          {time}
+                        </Typography>
+                      </Box>
+                    }
+                  >
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
+                      <Box component="span" color={accentColor}>
+                        {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
+                      </Box>
+                      {' — '}
+                      <Box component="span" color="text.primary">
+                        {displayName.split('@')[0]}
+                      </Box>
+                    </Typography>
+                    {isConfirming && (
+                      <Box
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenReviewPanel(req);
+                        }}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          bgcolor: alpha(accentColor, 0.15),
+                          border: '1px solid',
+                          borderColor: alpha(accentColor, 0.3),
+                          cursor: 'pointer',
+                          mt: 0.25,
+                        }}
+                      >
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                          Review
+                        </Typography>
+                      </Box>
+                    )}
+                  </MobileFeedCard>
+                );
+              })(),
+            }))}
+            userMap={{}}
             hasNextPage={hasNextRequests}
             isFetchingNextPage={isFetchingNextRequests}
             fetchNextPage={fetchNextRequests}
             emptyState={emptyState('No pending settlement requests.')}
-            gap={2}
           />
         )}
 
         {activeTabFilter === 'history' && (
-          <MobileCardList
-            items={historyItems}
-            renderItem={(item) => (
+          <MobileFeedList
+            items={historyItems.map((item) => ({ kind: 'custom' as const, id: item.id, node: (
               <MobileTransactionCard
-                key={item.id}
                 item={item}
                 currency={currency}
               />
-            )}
-            isLoading={historyLoading}
+            )}))}
+            userMap={{}}
             hasNextPage={hasNextHistory}
             isFetchingNextPage={isFetchingNextHistory}
             fetchNextPage={fetchNextHistory}
             emptyState={emptyState('No transaction history yet.')}
-            gap={2}
           />
         )}
       </Box>

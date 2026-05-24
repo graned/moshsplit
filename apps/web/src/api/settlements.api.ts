@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { ActivityItem } from './activity.api';
 
 export interface Settlement {
   id: string;
@@ -216,3 +217,61 @@ export const settlementsApi = {
     };
   },
 };
+
+export function incomingToActivityItem(item: IncomingBalanceItem): ActivityItem {
+  return {
+    id: `incoming-${item.user_id}`,
+    type: 'expense',
+    created_at: new Date().toISOString(),
+    title: 'Incoming balance',
+    amount_cents: item.amount_cents,
+    paid_by: item.user_id,
+    participant_count: 1,
+  };
+}
+
+export function outgoingToActivityItem(item: OutgoingBalanceItem): ActivityItem {
+  return {
+    id: `outgoing-${item.user_id}`,
+    type: 'expense',
+    created_at: new Date().toISOString(),
+    title: 'Outgoing balance',
+    amount_cents: item.amount_cents,
+    paid_by: item.user_id,
+    participant_count: 1,
+  };
+}
+
+export function settlementRequestToActivityItem(item: SettlementListItem): ActivityItem {
+  return {
+    id: item.id,
+    type: 'settlement',
+    created_at: item.created_at,
+    amount_cents: item.amount_cents,
+    from_user: item.from_user,
+    to_user: item.to_user,
+  };
+}
+
+export function historyToActivityItem(item: SettlementHistoryItem): ActivityItem {
+  if (!item.is_outgoing) {
+    return {
+      id: item.id,
+      type: 'honor_restored',
+      created_at: item.created_at,
+      amount_cents: item.amount_cents,
+      from_user: item.counterparty_id,
+      to_user: '__current_user__',
+      approved_by: item.counterparty_id,
+      reviewed_at: item.created_at,
+    };
+  }
+  return {
+    id: item.id,
+    type: 'settlement',
+    created_at: item.created_at,
+    amount_cents: Math.abs(item.amount_cents),
+    from_user: '__current_user__',
+    to_user: item.counterparty_id,
+  };
+}

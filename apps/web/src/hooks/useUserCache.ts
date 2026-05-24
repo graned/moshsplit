@@ -26,6 +26,7 @@ export function useUser(userId: string | undefined): UserInfo | undefined {
 /**
  * Selector hook for multiple users, returned as a Record<id, UserInfo>.
  * Uses useMemo to maintain a stable reference and prevent infinite re-render loops.
+ * If prefetch=true, triggers a cache load if any IDs are missing.
  */
 export function useUsers(userIds: string[]): Record<string, UserInfo> {
   const users = useUserCacheStore((state) => state.users);

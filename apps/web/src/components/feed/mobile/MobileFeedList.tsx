@@ -15,6 +15,15 @@ import { MobileHonorCard } from './cards/MobileHonorCard';
 import { MobileMemberJoinCard } from './cards/MobileMemberJoinCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
 
+type FeedDisplayItem =
+  | { kind: 'day-header'; date: string }
+  | { kind: 'activity'; item: ActivityItem }
+  | { kind: 'custom'; id: string; node: React.ReactNode };
+
+type FeedListInput = ActivityItem[] | FeedDisplayItem[];
+
+export type { FeedDisplayItem, FeedListInput };
+
 function getDateLabel(dateStr: string): string {
   const d = new Date(dateStr);
   const now = new Date();
@@ -47,26 +56,8 @@ function DayHeader({ dateStr }: { dateStr: string }) {
   );
 }
 
-type FeedDisplayItem =
-  | { kind: 'day-header'; date: string }
-  | { kind: 'activity'; item: ActivityItem };
-
-function groupByDay(items: ActivityItem[]): FeedDisplayItem[] {
-  const result: FeedDisplayItem[] = [];
-  let lastDate = '';
-  for (const item of items) {
-    const date = item.created_at.slice(0, 10);
-    if (date !== lastDate) {
-      lastDate = date;
-      result.push({ kind: 'day-header', date });
-    }
-    result.push({ kind: 'activity', item });
-  }
-  return result;
-}
-
 interface MobileFeedListProps {
-  items: ActivityItem[];
+  items: FeedListInput;
   userMap: Record<string, UserInfo>;
   currency?: string;
   isLoading?: boolean;
@@ -79,16 +70,29 @@ interface MobileFeedListProps {
   onSettlementClick?: (settlementId: string) => void;
   className?: string;
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  emptyState?: React.ReactNode;
   activityType?: string;
 }
 
-/**
- * Mobile-only feed list with infinite scroll and day grouping.
- *
- * Mirrors the logic from the shared `FeedList` but renders mobile card
- * components instead of the shared/desktop ones. No `useMediaQuery`,
- * no responsive breakpoints — always uses mobile-sized layouts.
- */
+function normalizeItems(items: FeedListInput): FeedDisplayItem[] {
+  if (!items || items.length === 0) return [];
+  if (items.length > 0 && 'kind' in items[0]) {
+    return items as FeedDisplayItem[];
+  }
+  const activityItems = items as ActivityItem[];
+  const result: FeedDisplayItem[] = [];
+  let lastDate = '';
+  for (const item of activityItems) {
+    const date = item.created_at.slice(0, 10);
+    if (date !== lastDate) {
+      lastDate = date;
+      result.push({ kind: 'day-header', date });
+    }
+    result.push({ kind: 'activity', item });
+  }
+  return result;
+}
+
 export function MobileFeedList({
   items,
   userMap,
@@ -103,21 +107,26 @@ export function MobileFeedList({
   onSettlementClick,
   className,
   scrollContainerRef,
+  emptyState,
   activityType,
 }: MobileFeedListProps) {
-  const filteredItems = useMemo(() => {
-    if (!activityType) return items;
-    return items.filter((item) => item.type === activityType);
+  const normalizedItems = useMemo(() => {
+    const displayItems = normalizeItems(items);
+    if (!activityType) return displayItems;
+    return displayItems.filter(
+      (item) => item.kind !== 'day-header' && item.kind !== 'custom' && item.item.type === activityType
+    );
   }, [items, activityType]);
-
-  const displayItems = useMemo(() => groupByDay(filteredItems), [filteredItems]);
-
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
   const renderDisplayItem = useCallback(
     (displayItem: FeedDisplayItem) => {
       if (displayItem.kind === 'day-header') {
         return <DayHeader key={displayItem.date} dateStr={displayItem.date} />;
+      }
+
+      if (displayItem.kind === 'custom') {
+        return <Box key={displayItem.id}>{displayItem.node}</Box>;
       }
 
       const item = displayItem.item;
@@ -188,7 +197,7 @@ export function MobileFeedList({
     [getUser, currency, onExpenseClick, onSettlementClick]
   );
 
-  const emptyState = (
+  const defaultEmptyState = (
     <Box
       sx={{
         width: '100%',
@@ -225,12 +234,12 @@ export function MobileFeedList({
 
   return (
     <MobileCardList
-      items={displayItems}
+      items={normalizedItems}
       renderItem={renderDisplayItem}
       isLoading={isLoading}
       isError={isError}
       error={error ?? 'Failed to load activity feed'}
-      emptyState={emptyState}
+      emptyState={emptyState ?? defaultEmptyState}
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
       fetchNextPage={fetchNextPage}
