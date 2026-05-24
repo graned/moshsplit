@@ -1,12 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Button,
   Avatar,
-  alpha,
-  IconButton,
   Chip,
+  alpha,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -17,8 +15,10 @@ import {
   CheckCircle as ConfirmIcon,
   SwapHoriz as SettleIcon,
   Payment as PaymentIcon,
-  ChevronRight as ChevronRightIcon,
+  Gavel as GavelIcon,
+  HourglassEmpty as HourglassIcon,
 } from '@mui/icons-material';
+import { MobileFeedCard } from '../../feed/mobile/MobileFeedCard';
 import { useUserCache, useUser } from '../../../hooks/useUserCache';
 import { UserInfo } from '../../../api/users.api';
 import { ExpenseBreakdown, SettlementBreakdown, PaymentBreakdown } from '../../../api/balances.api';
@@ -26,7 +26,8 @@ import { SettlementListItem } from '../../../api/settlements.api';
 import { GroupMember } from '../../../api/groups.api';
 import { RestoreHonorModal } from '../../settlements/RestoreHonorModal';
 import { SettlementReviewPanel } from '../../settlements/SettlementReviewPanel';
-import { MobileCard } from '../../shared/cards/MobileCard';
+import { MobileRelationshipCard } from '../../feed/mobile/cards/MobileRelationshipCard';
+import { MobileCardList } from '../../shared/lists/MobileCardList';
 import { RelationshipDetailDrawer } from '../mobile/RelationshipDetailDrawer';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
@@ -219,55 +220,31 @@ export function SettlementCards({
 
       {/* Requests tab content */}
       {activeTab === 'requests' && (
-        <>
-          {requestsToConfirm.length === 0 && requestsISent.length === 0 ? (
+        <MobileCardList<SettlementListItem>
+          items={pendingRequests}
+          renderItem={(req) => (
+            <SettlementRequestCard
+              key={req.id}
+              settlement={req}
+              currency={currency}
+              isConfirming={req.to_user === currentUserId}
+              onReview={req.to_user === currentUserId ? () => handleOpenReviewPanel(req) : undefined}
+            />
+          )}
+          emptyState={
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <Typography variant="body1" color="text.secondary">
                 No pending settlement requests.
               </Typography>
             </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {requestsToConfirm.length > 0 && (
-                <Box>
-                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Awaiting your verdict
-                  </Typography>
-                  {requestsToConfirm.map((req) => (
-                    <SettlementRequestCard
-                      key={req.id}
-                      settlement={req}
-                      currency={currency}
-                      isConfirming
-                      onReview={() => handleOpenReviewPanel(req)}
-                    />
-                  ))}
-                </Box>
-              )}
-
-              {requestsISent.length > 0 && (
-                <Box>
-                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Sent — awaiting their verdict
-                  </Typography>
-                  {requestsISent.map((req) => (
-                    <SettlementRequestCard
-                      key={req.id}
-                      settlement={req}
-                      currency={currency}
-                      isConfirming={false}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Box>
-          )}
-        </>
+          }
+          gap={2}
+        />
       )}
 
       {/* History tab content */}
       {activeTab === 'history' && (
-        <TransactionHistory
+        <TransactionHistoryList
           relationships={relationships}
           currency={currency}
           userMap={userMap}
@@ -277,8 +254,23 @@ export function SettlementCards({
 
       {/* Incoming/Outgoing tab content */}
       {activeTab !== 'requests' && activeTab !== 'history' && (
-        <>
-          {displayList.length === 0 ? (
+        <MobileCardList<RelationshipSummary>
+          items={displayList}
+          renderItem={(rel) => {
+            const name = getMemberName(rel.userId);
+            return (
+              <Box key={rel.userId}>
+                <MobileRelationshipCard
+                  relationship={rel}
+                  displayName={name}
+                  currency={currency}
+                  currentUserId={currentUserId}
+                  onClick={() => setDrawerRelationship(rel)}
+                />
+              </Box>
+            );
+          }}
+          emptyState={
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <Typography variant="body1" color="text.secondary">
                 {activeTab === 'incoming'
@@ -286,102 +278,9 @@ export function SettlementCards({
                   : "You don't owe anyone. Your honor is intact."}
               </Typography>
             </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {displayList.map((rel) => {
-                const name = getMemberName(rel.userId);
-                const isCurrentUser = rel.userId === currentUserId;
-
-                return (
-                  <MobileCard
-                    key={rel.userId}
-                    onClick={() => setDrawerRelationship(rel)}
-                    accentColor={rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main}
-                  >
-                    {/* Header row */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Avatar
-                        sx={{
-                          width: 44,
-                          height: 44,
-                          bgcolor: rel.isIncoming ? alpha(theme.palette.primary.main, 0.15) : alpha(theme.palette.error.main, 0.15),
-                          color: rel.isIncoming ? 'primary.main' : 'error.main',
-                          fontWeight: 700,
-                          fontSize: '1rem',
-                          flexShrink: 0,
-                          border: '1px solid',
-                          borderColor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.2),
-                        }}
-                      >
-                        {getMemberInitial(rel.userId)}
-                      </Avatar>
-
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="body1"
-                          fontWeight={600}
-                          color="text.primary"
-                          noWrap
-                          sx={{ fontSize: '0.9rem' }}
-                        >
-                          {isCurrentUser ? 'You' : name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {rel.expenses.length} expense{rel.expenses.length !== 1 ? 's' : ''}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                        <Typography
-                          variant="h6"
-                          fontWeight={700}
-                          sx={{
-                            color: rel.isIncoming ? 'primary.main' : 'error.main',
-                            fontSize: '1.1rem',
-                          }}
-                        >
-                          {formatAmount(rel.totalCents, currency)}
-                        </Typography>
-                        <Chip
-                          label={rel.isIncoming ? 'Tribute owed' : 'Your tribute'}
-                          size="small"
-                          sx={{
-                            height: 18,
-                            fontSize: '0.6rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.03em',
-                            textTransform: 'uppercase',
-                            bgcolor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.12),
-                            color: rel.isIncoming ? 'primary.main' : 'error.main',
-                            border: '1px solid',
-                            borderColor: alpha(rel.isIncoming ? theme.palette.primary.main : theme.palette.error.main, 0.2),
-                          }}
-                        />
-                      </Box>
-
-                      <IconButton
-                        size="small"
-                        sx={{
-                          color: 'text.secondary',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <ChevronRightIcon />
-                      </IconButton>
-                    </Box>
-                  </MobileCard>
-                );
-              })}
-            </Box>
-
-          )}
-        </>
+          }
+          gap={2}
+        />
       )}
 
       {/* Relationship Detail Drawer (mobile) */}
@@ -519,98 +418,109 @@ function SettlementRequestCard({
   isConfirming: boolean;
   onReview?: () => void;
 }) {
+  const theme = useTheme();
   const otherUserId = isConfirming ? settlement.from_user : settlement.to_user;
   const user = useUser(otherUserId);
   const displayName = user
     ? `${user.firstName} ${user.lastName}`.trim() || user.email
     : otherUserId.slice(0, 8);
-  const initial = displayName.charAt(0).toUpperCase();
 
   const time = new Date(settlement.created_at).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
 
+  const accentColor = isConfirming ? theme.palette.warning.main : theme.palette.primary.main;
+  const icon = isConfirming ? <GavelIcon sx={{ fontSize: 18 }} /> : <HourglassIcon sx={{ fontSize: 18 }} />;
+
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        p: 2,
-        borderRadius: 2,
-        border: `1px solid ${alpha('#fff', 0.1)}`,
-        bgcolor: 'elevated.main',
-        mb: 1.5,
-        cursor: isConfirming ? 'pointer' : 'default',
-        '&:hover': isConfirming ? { bgcolor: alpha('#fff', 0.03) } : {},
-      }}
+    <MobileFeedCard
+      accentColor={accentColor}
+      icon={icon}
       onClick={isConfirming ? onReview : undefined}
+      rightContent={
+        <Box>
+          <Typography
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              color: accentColor,
+              lineHeight: 1.2,
+            }}
+          >
+            {formatAmount(settlement.amount_cents, currency)}
+          </Typography>
+          <Typography
+            sx={{
+              display: 'block',
+              fontSize: '0.6rem',
+              color: 'text.disabled',
+            }}
+          >
+            {time}
+          </Typography>
+        </Box>
+      }
     >
-      <Avatar
+      <Typography
         sx={{
-          width: 40,
-          height: 40,
-          bgcolor: isConfirming ? 'primary.main' : 'warning.main',
-          color: '#121212',
-          fontWeight: 700,
-          flexShrink: 0,
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          lineHeight: 1.3,
+          mb: 0.5,
         }}
       >
-        {initial}
-      </Avatar>
-
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-          {isConfirming ? `${displayName} claims to have paid` : `Waiting for ${displayName}`}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {time}
-        </Typography>
-      </Box>
-
-      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-        <Typography variant="body1" fontWeight={700} color="text.primary">
-          {formatAmount(settlement.amount_cents, currency)}
-        </Typography>
-        <Chip
-          label="Pending"
-          size="small"
-          sx={{
-            height: 20,
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            bgcolor: alpha('#F59E0B', 0.15),
-            color: 'warning.main',
-          }}
-        />
-      </Box>
+        <Box component="span" color={accentColor}>
+          {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
+        </Box>
+        {' — '}
+        <Box component="span" color="text.primary">
+          {displayName}
+        </Box>
+      </Typography>
 
       {isConfirming && onReview && (
-        <Button
-          size="small"
-          variant="contained"
-          startIcon={<ConfirmIcon sx={{ fontSize: 16 }} />}
+        <Box
           onClick={(e) => {
             e.stopPropagation();
             onReview();
           }}
           sx={{
-            bgcolor: 'primary.main',
-            color: '#121212',
-            fontWeight: 700,
-            '&:hover': { bgcolor: 'primary.dark' },
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            px: 1,
+            py: 0.5,
+            borderRadius: 1,
+            bgcolor: alpha(accentColor, 0.15),
+            border: '1px solid',
+            borderColor: alpha(accentColor, 0.3),
+            cursor: 'pointer',
+            '&:hover': { bgcolor: alpha(accentColor, 0.2) },
+            '&:active': { transform: 'scale(0.97)' },
+            transition: 'all 0.15s ease',
+            mt: 0.25,
           }}
         >
-          Review
-        </Button>
+          <ConfirmIcon sx={{ fontSize: 14, color: accentColor }} />
+          <Typography
+            sx={{
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              color: accentColor,
+              textTransform: 'uppercase',
+              letterSpacing: '0.03em',
+              lineHeight: 1,
+            }}
+          >
+            Review
+          </Typography>
+        </Box>
       )}
-    </Box>
+    </MobileFeedCard>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Transaction History Component
 // ---------------------------------------------------------------------------
 
 interface TransactionItem {
@@ -626,7 +536,14 @@ interface TransactionItem {
   isOutgoing: boolean;
 }
 
-function TransactionHistory({
+interface TransactionDisplayItem {
+  id: string;
+  type: 'day-header' | 'transaction';
+  dateLabel?: string;
+  tx?: TransactionItem;
+}
+
+function TransactionHistoryList({
   relationships,
   currency,
   userMap,
@@ -646,106 +563,120 @@ function TransactionHistory({
     return userId.slice(0, 8);
   };
 
-  // Flatten all settlements and payments from all relationships
-  const transactions = useMemo(() => {
-    const items: TransactionItem[] = [];
+  const displayItems = useMemo((): TransactionDisplayItem[] => {
+    const rawItems: { tx: TransactionItem; date: Date }[] = [];
     let idx = 0;
 
     for (const rel of relationships) {
       const counterpartyName = getMemberNameFromMap(rel.userId);
       const counterpartyInitial = counterpartyName.charAt(0).toUpperCase();
 
-      // Add settlements
       for (const settlement of rel.settlements) {
         const isOutgoing = settlement.from_user === currentUserId;
-        items.push({
-          id: settlement.id || `settlement-${idx++}`,
-          type: 'settlement',
+        rawItems.push({
+          tx: {
+            id: settlement.id || `settlement-${idx++}`,
+            type: 'settlement',
+            date: new Date(settlement.created_at),
+            amountCents: settlement.amount_cents,
+            counterpartyUserId: rel.userId,
+            counterpartyName,
+            counterpartyInitial,
+            note: settlement.note || undefined,
+            status: settlement.status,
+            isOutgoing,
+          },
           date: new Date(settlement.created_at),
-          amountCents: settlement.amount_cents,
-          counterpartyUserId: rel.userId,
-          counterpartyName,
-          counterpartyInitial,
-          note: settlement.note || undefined,
-          status: settlement.status,
-          isOutgoing,
         });
       }
 
-      // Add payments
       for (const payment of rel.payments) {
         const isOutgoing = payment.from_user === currentUserId;
-        items.push({
-          id: payment.id || `payment-${idx++}`,
-          type: 'payment',
+        rawItems.push({
+          tx: {
+            id: payment.id || `payment-${idx++}`,
+            type: 'payment',
+            date: new Date(payment.recorded_at),
+            amountCents: payment.amount_cents,
+            counterpartyUserId: rel.userId,
+            counterpartyName,
+            counterpartyInitial,
+            note: payment.description || undefined,
+            isOutgoing,
+          },
           date: new Date(payment.recorded_at),
-          amountCents: payment.amount_cents,
-          counterpartyUserId: rel.userId,
-          counterpartyName,
-          counterpartyInitial,
-          note: payment.description || undefined,
-          isOutgoing,
         });
       }
     }
 
-    // Sort by date (newest first)
-    return items.sort((a, b) => b.date.getTime() - a.date.getTime());
+    rawItems.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    const result: TransactionDisplayItem[] = [];
+    let lastDateKey = '';
+    for (const { tx, date } of rawItems) {
+      const validDate = date && !isNaN(date.getTime()) ? date : new Date();
+      const dateKey = validDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (dateKey !== lastDateKey) {
+        lastDateKey = dateKey;
+        result.push({ id: `header-${dateKey}`, type: 'day-header', dateLabel: dateKey });
+      }
+      result.push({ id: tx.id, type: 'transaction', tx });
+    }
+
+    return result;
   }, [relationships, currentUserId, userMap, getMemberNameFromMap]);
 
-  if (transactions.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 6 }}>
-        <Typography variant="body1" color="text.secondary">
-          No transaction history yet.
-        </Typography>
-      </Box>
-    );
-  }
-
-  // Group transactions by date
-  const groupedTransactions = new Map<string, TransactionItem[]>();
-  for (const tx of transactions) {
-    const validDate = tx.date && !isNaN(tx.date.getTime()) ? tx.date : new Date();
-    const dateKey = validDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const existing = groupedTransactions.get(dateKey) || [];
-    existing.push({ ...tx, date: validDate });
-    groupedTransactions.set(dateKey, existing);
-  }
+  const renderItem = useCallback(
+    (item: TransactionDisplayItem) => {
+      if (item.type === 'day-header') {
+        return (
+          <Box key={item.id}>
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              color="text.secondary"
+              sx={{ display: 'block', mb: 1, mt: 2, letterSpacing: '0.05em', textTransform: 'uppercase' }}
+            >
+              {item.dateLabel}
+            </Typography>
+          </Box>
+        );
+      }
+      const tx = item.tx!;
+      const validDate = tx.date && !isNaN(tx.date.getTime()) ? tx.date : new Date();
+      const timeStr = validDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      return (
+        <Box key={tx.id}>
+          <TransactionHistoryRow
+            type={tx.type}
+            counterpartyName={tx.counterpartyName}
+            counterpartyInitial={tx.counterpartyInitial}
+            amountCents={tx.amountCents}
+            currency={currency}
+            timeStr={timeStr}
+            note={tx.note}
+            status={tx.status}
+            isOutgoing={tx.isOutgoing}
+          />
+        </Box>
+      );
+    },
+    [currency]
+  );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {Array.from(groupedTransactions.entries()).map(([dateKey, dayTransactions]) => (
-        <Box key={dateKey}>
-          <Typography
-            variant="caption"
-            fontWeight={700}
-            color="text.secondary"
-            sx={{ display: 'block', mb: 1, mt: 2, letterSpacing: '0.05em', textTransform: 'uppercase' }}
-          >
-            {dateKey}
+    <MobileCardList<TransactionDisplayItem>
+      items={displayItems}
+      renderItem={renderItem}
+      emptyState={
+        <Box sx={{ textAlign: 'center', py: 6 }}>
+          <Typography variant="body1" color="text.secondary">
+            No transaction history yet.
           </Typography>
-          {dayTransactions.map((tx) => {
-            const validDate = tx.date && !isNaN(tx.date.getTime()) ? tx.date : new Date();
-            const timeStr = validDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            return (
-              <TransactionHistoryRow
-                key={tx.id}
-                type={tx.type}
-                counterpartyName={tx.counterpartyName}
-                counterpartyInitial={tx.counterpartyInitial}
-                amountCents={tx.amountCents}
-                currency={currency}
-                timeStr={timeStr}
-                note={tx.note}
-                status={tx.status}
-                isOutgoing={tx.isOutgoing}
-              />
-            );
-          })}
         </Box>
-      ))}
-    </Box>
+      }
+      gap={0}
+    />
   );
 }
 

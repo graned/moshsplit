@@ -1,5 +1,7 @@
 //! BalanceService — computes per-user balances and simplifies debts.
 
+use std::collections::HashMap;
+
 use moshsplit_balance_engine::{compute_balance, simplified_debts, UserBalance};
 use uuid::Uuid;
 
@@ -7,6 +9,9 @@ use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
     BalancesResponse, DebtTransfer, ExplainBalanceResponse, ExpenseBreakdown, PaymentBreakdown,
     SettlementBreakdown, SimplifiedDebtsResponse, UserBalanceItem, UserBalanceResponse,
+};
+use crate::infrastructure::http::api::dtos::settlement_dtos::{
+    IncomingBalanceItem, IncomingBalancesResponse, OutgoingBalanceItem, OutgoingBalancesResponse,
 };
 use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
@@ -181,5 +186,123 @@ impl BalanceService {
             payments,
             settlements,
         })
+    }
+
+    /// Get incoming balances — users who owe the current user money.
+    pub fn incoming_balances(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<IncomingBalancesResponse, ServiceError> {
+        self.event_repo
+            .find_by_id(event_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
+
+        let explanation = self.explain_balance(event_id, user_id)?;
+
+        let mut balances: HashMap<Uuid, i32> = HashMap::new();
+
+        for expense in &explanation.expenses {
+            let is_payer = expense.paid_by == user_id;
+            let share_cents = expense.share_cents;
+
+            if is_payer {
+                for participant in &expense.participants {
+                    if *participant != user_id {
+                        *balances.entry(*participant).or_insert(0) += share_cents;
+                    }
+                }
+            } else {
+                *balances.entry(expense.paid_by).or_insert(0) += share_cents;
+            }
+        }
+
+        for settlement in &explanation.settlements {
+            if settlement.status != "confirmed" {
+                continue;
+            }
+            if settlement.to_user == user_id {
+                *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
+            } else if settlement.from_user == user_id {
+                *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+            }
+        }
+
+        let incoming: Vec<(Uuid, i32)> = balances
+            .into_iter()
+            .filter(|(_, balance)| *balance > 0)
+            .map(|(user_id, balance)| (user_id, balance))
+            .collect();
+
+        let total_cents: i32 = incoming.iter().map(|(_, b)| b).sum();
+
+        let items: Vec<IncomingBalanceItem> = incoming
+            .into_iter()
+            .map(|(user_id, amount_cents)| IncomingBalanceItem {
+                user_id,
+                amount_cents,
+            })
+            .collect();
+
+        Ok(IncomingBalancesResponse { items, total_cents })
+    }
+
+    /// Get outgoing balances — users the current user owes money to.
+    pub fn outgoing_balances(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<OutgoingBalancesResponse, ServiceError> {
+        self.event_repo
+            .find_by_id(event_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
+
+        let explanation = self.explain_balance(event_id, user_id)?;
+
+        let mut balances: HashMap<Uuid, i32> = HashMap::new();
+
+        for expense in &explanation.expenses {
+            let is_payer = expense.paid_by == user_id;
+            let share_cents = expense.share_cents;
+
+            if is_payer {
+                for participant in &expense.participants {
+                    if *participant != user_id {
+                        *balances.entry(*participant).or_insert(0) += share_cents;
+                    }
+                }
+            } else {
+                *balances.entry(expense.paid_by).or_insert(0) += share_cents;
+            }
+        }
+
+        for settlement in &explanation.settlements {
+            if settlement.status != "confirmed" {
+                continue;
+            }
+            if settlement.to_user == user_id {
+                *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
+            } else if settlement.from_user == user_id {
+                *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+            }
+        }
+
+        let outgoing: Vec<(Uuid, i32)> = balances
+            .into_iter()
+            .filter(|(_, balance)| *balance < 0)
+            .map(|(user_id, balance)| (user_id, balance.abs()))
+            .collect();
+
+        let total_cents: i32 = outgoing.iter().map(|(_, b)| b).sum();
+
+        let items: Vec<OutgoingBalanceItem> = outgoing
+            .into_iter()
+            .map(|(user_id, amount_cents)| OutgoingBalanceItem {
+                user_id,
+                amount_cents,
+            })
+            .collect();
+
+        Ok(OutgoingBalancesResponse { items, total_cents })
     }
 }

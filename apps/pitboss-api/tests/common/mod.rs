@@ -7,7 +7,7 @@ use serde_json::Value;
 pub const ENVELOPE_FIELDS: &[&str] = &["success", "data", "error", "timestamp", "request_id"];
 
 /// Base URL of the running pitboss-api Docker container.
-pub const BASE_URL: &str = "http://localhost:8080";
+pub const BASE_URL: &str = "http://localhost";
 
 /// Returns a `reqwest::Client` pre-configured to call the test server.
 pub fn test_client() -> reqwest::Client {

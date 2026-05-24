@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
+    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest, SettlementHistoryItem, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
 };
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
@@ -222,6 +222,81 @@ impl SettlementService {
         } else {
             None
         };
+
+        Ok((items, has_more, next_cursor))
+    }
+
+    /// List settlements involving a specific user (as either from_user or to_user).
+    pub fn list_settlements_for_user(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+        status_filter: Option<&str>,
+        cursor: Option<&str>,
+        limit: i64,
+    ) -> Result<(Vec<SettlementListItem>, bool, Option<String>), ServiceError> {
+        self.event_repo
+            .find_by_id(event_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
+
+        let (rows, has_more) = self.settlement_repo.list_by_event_user_paginated(
+            event_id,
+            Some(user_id),
+            status_filter,
+            cursor,
+            limit,
+        )?;
+
+        let items: Vec<SettlementListItem> = rows
+            .into_iter()
+            .map(settlement_to_list_item)
+            .collect();
+
+        let next_cursor = if has_more {
+            items.last().map(|i| i.created_at.to_rfc3339())
+        } else {
+            None
+        };
+
+        Ok((items, has_more, next_cursor))
+    }
+
+    /// List confirmed settlement history for a user (paginated).
+    pub fn list_history_for_user(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+        cursor: Option<&str>,
+        limit: i64,
+    ) -> Result<(Vec<SettlementHistoryItem>, bool, Option<String>), ServiceError> {
+        self.event_repo
+            .find_by_id(event_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
+
+        let (rows, has_more, next_cursor) =
+            self.settlement_repo
+                .list_confirmed_for_user_paginated(event_id, user_id, cursor, limit)?;
+
+        let items: Vec<SettlementHistoryItem> = rows
+            .into_iter()
+            .map(|r| {
+                let is_outgoing = r.from_user == user_id;
+                let counterparty_id = if is_outgoing { r.to_user } else { r.from_user };
+                let amount_cents = if is_outgoing {
+                    -r.amount_cents
+                } else {
+                    r.amount_cents
+                };
+                SettlementHistoryItem {
+                    id: r.id,
+                    amount_cents,
+                    counterparty_id,
+                    created_at: r.settled_at,
+                    note: r.note,
+                    is_outgoing,
+                }
+            })
+            .collect();
 
         Ok((items, has_more, next_cursor))
     }

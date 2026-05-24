@@ -139,6 +139,22 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/settlements/{settlement_id}/reject",
             post(settlement_handlers::reject_settlement),
+        )
+        .route(
+            "/v1/events/{id}/settlements/incoming",
+            get(settlement_handlers::incoming_balances),
+        )
+        .route(
+            "/v1/events/{id}/settlements/outgoing",
+            get(settlement_handlers::outgoing_balances),
+        )
+        .route(
+            "/v1/events/{id}/settlements/requests",
+            get(settlement_handlers::list_settlement_requests),
+        )
+        .route(
+            "/v1/events/{id}/settlements/history",
+            get(settlement_handlers::list_settlement_history),
         );
 
     // ── Balances ───────────────────────────────────────────────────────

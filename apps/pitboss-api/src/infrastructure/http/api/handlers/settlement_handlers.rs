@@ -8,15 +8,17 @@ use axum::Json;
 use uuid::Uuid;
 
 use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::common::{ListSettlementsParams, PaginatedResponse, PaginationMeta};
+use crate::infrastructure::http::api::dtos::common::{CursorParams, ListSettlementsParams, PaginatedResponse, PaginationMeta};
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
+    ApproveSettlementRequest, CreateSettlementRequest, IncomingBalancesResponse, OutgoingBalancesResponse,
+    RejectSettlementRequest, SettlementHistoryItem, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
 };
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::services::balance_service::BalanceService;
 use crate::services::settlement_service::SettlementService;
 
 /// GET /v1/events/:id/settlements — list settlements.
@@ -214,4 +216,147 @@ pub async fn get_settlement(
 
     let settlement = svc.get_settlement(event_id, settlement_id)?;
     Ok(Json(settlement))
+}
+
+/// GET /v1/events/{id}/settlements/incoming — users who owe the current user money.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/settlements/incoming",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+    ),
+    responses(
+        (status = 200, description = "Incoming balances — who owes the current user", body = IncomingBalancesResponse),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn incoming_balances(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    CurrentUser(user_id): CurrentUser,
+) -> Result<Json<IncomingBalancesResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        crate::domain::repositories::balance_repo::BalanceRepository::new(state.db_client.clone()),
+    );
+
+    let response = svc.incoming_balances(event_id, user_id)?;
+    Ok(Json(response))
+}
+
+/// GET /v1/events/{id}/settlements/outgoing — users the current user owes money to.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/settlements/outgoing",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+    ),
+    responses(
+        (status = 200, description = "Outgoing balances — who the current user owes", body = OutgoingBalancesResponse),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn outgoing_balances(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    CurrentUser(user_id): CurrentUser,
+) -> Result<Json<OutgoingBalancesResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        crate::domain::repositories::balance_repo::BalanceRepository::new(state.db_client.clone()),
+    );
+
+    let response = svc.outgoing_balances(event_id, user_id)?;
+    Ok(Json(response))
+}
+
+/// GET /v1/events/{id}/settlements/requests — pending settlement requests involving the current user.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/settlements/requests",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("cursor" = Option<String>, Query, description = "Pagination cursor"),
+        ("limit" = Option<i64>, Query, description = "Max results (default 20, max 100)"),
+    ),
+    responses(
+        (status = 200, description = "Paginated settlement requests", body = PaginatedResponse<SettlementListItem>),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn list_settlement_requests(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    Query(params): Query<CursorParams>,
+    CurrentUser(user_id): CurrentUser,
+) -> Result<Json<PaginatedResponse<SettlementListItem>>, ServiceError> {
+    let svc = SettlementService::new(
+        EventRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
+        EventMemberRepository::new(state.db_client.clone()),
+    );
+
+    let (items, has_more, next_cursor) = svc.list_settlements_for_user(
+        event_id,
+        user_id,
+        None,
+        params.cursor.as_deref(),
+        params.limit(),
+    )?;
+
+    Ok(Json(PaginatedResponse {
+        items,
+        pagination: PaginationMeta {
+            next_cursor,
+            has_more,
+            limit: params.limit(),
+        },
+    }))
+}
+
+/// GET /v1/events/{id}/settlements/history — confirmed settlement history for the current user.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/settlements/history",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("cursor" = Option<String>, Query, description = "Pagination cursor"),
+        ("limit" = Option<i64>, Query, description = "Max results (default 20, max 100)"),
+    ),
+    responses(
+        (status = 200, description = "Paginated settlement history", body = PaginatedResponse<SettlementHistoryItem>),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn list_settlement_history(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<Uuid>,
+    Query(params): Query<CursorParams>,
+    CurrentUser(user_id): CurrentUser,
+) -> Result<Json<PaginatedResponse<SettlementHistoryItem>>, ServiceError> {
+    let svc = SettlementService::new(
+        EventRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
+        EventMemberRepository::new(state.db_client.clone()),
+    );
+
+    let (items, has_more, next_cursor) = svc.list_history_for_user(
+        event_id,
+        user_id,
+        params.cursor.as_deref(),
+        params.limit(),
+    )?;
+
+    Ok(Json(PaginatedResponse {
+        items,
+        pagination: PaginationMeta {
+            next_cursor,
+            has_more,
+            limit: params.limit(),
+        },
+    }))
 }
