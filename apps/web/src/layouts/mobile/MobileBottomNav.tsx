@@ -17,9 +17,12 @@ import {
   RssFeed as FeedIcon,
   ReceiptLong as ExpensesIcon,
   SwapHoriz as SettleIcon,
+  Language as LanguageIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from '@moshsplit/auth-react';
+
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
 
 function MobileBottomNav() {
   const navigate = useNavigate();
@@ -181,8 +184,18 @@ function MobileBottomNav() {
           <Typography variant="caption" color="text.secondary">
             {userEmail}
           </Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25, fontSize: '0.6rem' }}>
+            v{APP_VERSION}
+          </Typography>
         </Box>
         <Divider sx={{ my: 1, borderColor: 'divider' }} />
+        <MenuItem onClick={handleProfileClose} sx={{ color: 'text.secondary' }}>
+          <ListItemIcon>
+            <LanguageIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+          </ListItemIcon>
+          <ListItemText>Language</ListItemText>
+        </MenuItem>
+        <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
         <MenuItem onClick={handleLogout} sx={{ color: 'text.primary' }}>
           <ListItemIcon>
             <ArrowBackIcon fontSize="small" sx={{ color: 'text.secondary' }} />
