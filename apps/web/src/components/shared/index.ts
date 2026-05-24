@@ -11,3 +11,6 @@ export { ParticipantSearch } from './forms/ParticipantSearch';
 
 // Shared Page Components
 export { MobilePageHeader } from './MobilePageHeader';
+
+// Shared Drawers
+export { MobileDrawer } from './MobileDrawer';

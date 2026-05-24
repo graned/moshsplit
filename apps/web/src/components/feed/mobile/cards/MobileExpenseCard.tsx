@@ -1,4 +1,4 @@
-import { Typography, Box, useTheme } from '@mui/material';
+import { Typography, Box, useTheme, alpha } from '@mui/material';
 import { Receipt as ReceiptIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -11,6 +11,24 @@ const EXPENSE_TYPE_ICONS: Record<string, string> = {
   transport: '/moshsplit/assets/transport-icon.png',
   merch: '/moshsplit/assets/merch-icon.png',
   camping: '/moshsplit/assets/camping-icon.png',
+};
+
+const EXPENSE_TYPE_LABELS: Record<string, string> = {
+  food: 'Food',
+  beer: 'Beer',
+  gas: 'Gas',
+  transport: 'Travel',
+  merch: 'Merch',
+  camping: 'Camping',
+};
+
+const EXPENSE_TYPE_COLORS: Record<string, string> = {
+  food: '#E85D04',
+  beer: '#F4A261',
+  gas: '#6C757D',
+  transport: '#2A9D8F',
+  merch: '#9B5DE5',
+  camping: '#52B788',
 };
 
 const formatAmount = (cents: number, currency = 'EUR') => {
@@ -28,10 +46,6 @@ interface MobileExpenseCardProps {
   onClick?: () => void;
 }
 
-/**
- * Mobile-only simplified expense card.
- * No Tooltip, no Avatar, no participant count — just icon, title, payer, amount, date.
- */
 export function MobileExpenseCard({
   activity,
   paidBy,
@@ -47,6 +61,13 @@ export function MobileExpenseCard({
 
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
+
+  const categoryLabel = activity.expense_type
+    ? EXPENSE_TYPE_LABELS[activity.expense_type] || activity.expense_type
+    : null;
+  const categoryColor = activity.expense_type
+    ? EXPENSE_TYPE_COLORS[activity.expense_type]
+    : theme.palette.primary.main;
 
   return (
     <MobileFeedCard
@@ -92,10 +113,60 @@ export function MobileExpenseCard({
               })}
             </Typography>
           )}
+          {activity.participant_count > 0 && (
+            <Typography
+              sx={{
+                display: 'block',
+                fontSize: '0.6rem',
+                color: alpha(theme.palette.primary.main, 0.6),
+                mt: 0.25,
+              }}
+            >
+              Split: {activity.participant_count}
+            </Typography>
+          )}
         </Box>
       }
     >
-      {/* Title */}
+      {categoryLabel && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            mb: 0.75,
+            px: 0.75,
+            py: 0.35,
+            borderRadius: 1.5,
+            backgroundColor: alpha(categoryColor, 0.1),
+            border: `1px solid ${alpha(categoryColor, 0.25)}`,
+          }}
+        >
+          {iconSrc ? (
+            <img
+              src={iconSrc}
+              alt=""
+              style={{ width: 12, height: 10, objectFit: 'contain' }}
+            />
+          ) : (
+            <ReceiptIcon sx={{ fontSize: 11, color: categoryColor }} />
+          )}
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              color: categoryColor,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+            }}
+          >
+            {categoryLabel}
+          </Typography>
+        </Box>
+      )}
+
       <Typography
         sx={{
           fontSize: '0.85rem',
@@ -112,7 +183,6 @@ export function MobileExpenseCard({
         {activity.title}
       </Typography>
 
-      {/* Payer name */}
       <Typography
         variant="caption"
         color="text.secondary"

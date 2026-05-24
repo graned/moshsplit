@@ -11,3 +11,4 @@ export { LiveIntelSidebar } from './desktop/LiveIntelSidebar';
 
 // Expenses Mobile
 export { AddExpenseDrawer } from './mobile/AddExpenseDrawer';
+export { ExpenseDetailDrawer } from './mobile/ExpenseDetailDrawer';
