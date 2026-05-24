@@ -40,6 +40,7 @@ export interface HonorRestoredActivity extends ActivityItemBase {
 export interface MemberJoinActivity extends ActivityItemBase {
   type: 'member_join';
   user_id: string;
+  user_name?: string;
 }
 
 /** Discriminated union of all activity item types */
