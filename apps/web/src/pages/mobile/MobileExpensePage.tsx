@@ -11,6 +11,7 @@ import { ExpenseFeed, FilterChips, AddExpenseDrawer } from '../../components/exp
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
 import { UserInfo } from '../../api/users.api';
+import { MobilePageHeader } from '../../components/shared';
 
 interface MobileOutletContext {
   eventId: string | undefined;
@@ -117,94 +118,34 @@ export default function MobileExpensePage() {
 
   const currency = event?.currency || 'EUR';
 
-  const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
-  const headerBg = bannerUrl
-    ? `linear-gradient(to bottom, rgba(18,18,18,0.3) 0%, rgba(18,18,18,0.7) 60%, #121212 100%), url(${bannerUrl})`
-    : `linear-gradient(to bottom, rgba(18,18,18,0.6) 0%, rgba(18,18,18,0.85) 60%, #121212 100%), linear-gradient(135deg, #4A2F0A 0%, #1A1A1A 100%)`;
-
   const youPaid = stats?.your_paid_cents ?? 0;
   const youGetBack = stats?.your_incoming_cents ?? 0;
   const yourRealSpend = youPaid - youGetBack;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Fixed Header with event image background */}
-      <Box
-        sx={{
-          flexShrink: 0,
-          px: 2,
-          pt: 1.5,
-          pb: 1.5,
-          background: headerBg,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                bgcolor: alpha('#F59E0B', 0.12),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <WarChestIcon sx={{ fontSize: 22, color: 'primary.main' }} />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  color: 'primary.main',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.2,
-                }}
-              >
-                War Chest
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {event?.name || ''}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Add Expense Button */}
+      <MobilePageHeader
+        icon={<WarChestIcon sx={{ fontSize: 22, color: 'primary.main' }} />}
+        title="War Chest"
+        subtitle={event?.name || ''}
+        rightAction={
           <IconButton
             onClick={() => setAddExpenseOpen(true)}
             sx={{
-              ml: 1,
-              flexShrink: 0,
               width: 40,
               height: 40,
               borderRadius: 2,
               bgcolor: alpha('#F59E0B', 0.12),
               color: 'primary.main',
-              '&:hover': {
-                bgcolor: alpha('#F59E0B', 0.2),
-              },
+              '&:hover': { bgcolor: alpha('#F59E0B', 0.2) },
             }}
           >
             <AddIcon sx={{ fontSize: 22 }} />
           </IconButton>
-        </Box>
-
-        {/* Glass user metrics cards */}
+        }
+        backgroundImage={event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url}
+      >
+        {/* You Paid / Getting Back / Real Spend cards */}
         <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
           <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.08), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
@@ -231,7 +172,7 @@ export default function MobileExpensePage() {
 
         {/* Filter Chips */}
         <FilterChips selectedType={selectedType} onTypeChange={setSelectedType} />
-      </Box>
+      </MobilePageHeader>
 
       {/* Scrollable Feed */}
       <Box

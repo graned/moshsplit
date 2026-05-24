@@ -20,8 +20,8 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { settlementsApi } from '../../api/settlements.api';
-import { useUsers } from '../../hooks/useUserCache';
 import { SettlementCards, RelationshipSummary, LiveIntelPanel } from '../../components/balances';
+import { MobilePageHeader } from '../../components/shared';
 
 export default function BalancesPage() {
   const { eventId: routeEventId } = useParams<{ eventId: string }>();
@@ -44,9 +44,6 @@ export default function BalancesPage() {
     queryFn: () => groupsApi.listMembers(eventId!),
     enabled: !!eventId,
   });
-
-  const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
-  useUsers(memberUserIds);
 
   // Fetch balances
   const {
@@ -263,41 +260,11 @@ export default function BalancesPage() {
 
   return (
     <Box sx={{ minHeight: '100vh' }}>
-      {/* Sticky Header */}
-      <Box
-        sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          bgcolor: alpha('#131313', 0.85),
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid',
-          borderColor: alpha('#534434', 0.1),
-        }}
-      >
-        <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 3 }, py: 2 }}>
-          <Typography
-            sx={{
-              fontSize: { xs: '1.5rem', md: '2rem' },
-              fontWeight: 700,
-              color: 'primary.main',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-            }}
-          >
-            Scales of War
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.875rem',
-              color: 'text.secondary',
-              mt: 0.25,
-            }}
-          >
-            {eventName ? `${eventName} — Balance the scales of justice` : 'The scales demand balance.'}
-          </Typography>
-        </Box>
-      </Box>
+      <MobilePageHeader
+        icon={<ScalesIcon sx={{ fontSize: 22, color: 'primary.main' }} />}
+        title="Scales of War"
+        subtitle={eventName}
+      />
 
       {/* Main Layout: Settlement Cards + Intel Panel */}
       <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>

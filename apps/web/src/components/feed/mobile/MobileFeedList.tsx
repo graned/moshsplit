@@ -1,13 +1,18 @@
 import { useCallback, useMemo } from 'react';
 import { Box, Typography, alpha } from '@mui/material';
 import { SearchOff as SearchOffIcon } from '@mui/icons-material';
-import { useActivityFeed } from '../../../hooks/useActivityFeed';
-import { ActivityItem, isExpenseActivity, isSettlementActivity, isHonorRestoredActivity, isMemberJoinActivity } from '../../../api/activity.api';
+import {
+  ActivityItem,
+  isExpenseActivity,
+  isSettlementActivity,
+  isHonorRestoredActivity,
+  isMemberJoinActivity,
+} from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
-import { ExpenseFeedCard } from '../cards/ExpenseFeedCard';
-import { SettlementFeedCard } from '../cards/SettlementFeedCard';
-import { HonorRestoredFeedCard } from '../cards/HonorRestoredFeedCard';
-import { MemberJoinCard } from '../cards/MemberJoinCard';
+import { MobileExpenseCard } from './cards/MobileExpenseCard';
+import { MobileSettlementCard } from './cards/MobileSettlementCard';
+import { MobileHonorCard } from './cards/MobileHonorCard';
+import { MobileMemberJoinCard } from './cards/MobileMemberJoinCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
 
 function getDateLabel(dateStr: string): string {
@@ -60,12 +65,16 @@ function groupByDay(items: ActivityItem[]): FeedDisplayItem[] {
   return result;
 }
 
-interface FeedListProps {
-  eventId: string;
-  userId: string;
+interface MobileFeedListProps {
+  items: ActivityItem[];
   userMap: Record<string, UserInfo>;
   currency?: string;
-  pageSize?: number;
+  isLoading?: boolean;
+  isError?: boolean;
+  error?: string | null;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  fetchNextPage?: () => void;
   onExpenseClick?: (expenseId: string) => void;
   onSettlementClick?: (settlementId: string) => void;
   className?: string;
@@ -73,26 +82,29 @@ interface FeedListProps {
   activityType?: string;
 }
 
-export function FeedList({
-  eventId,
-  userId,
+/**
+ * Mobile-only feed list with infinite scroll and day grouping.
+ *
+ * Mirrors the logic from the shared `FeedList` but renders mobile card
+ * components instead of the shared/desktop ones. No `useMediaQuery`,
+ * no responsive breakpoints — always uses mobile-sized layouts.
+ */
+export function MobileFeedList({
+  items,
   userMap,
   currency = 'EUR',
-  pageSize = 20,
+  isLoading = false,
+  isError = false,
+  error,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  fetchNextPage,
   onExpenseClick,
   onSettlementClick,
   className,
   scrollContainerRef,
   activityType,
-}: FeedListProps) {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } = useActivityFeed({
-    eventId,
-    userId,
-    pageSize,
-  });
-
-  const items = data?.pages.flatMap((p) => p.data) ?? [];
-
+}: MobileFeedListProps) {
   const filteredItems = useMemo(() => {
     if (!activityType) return items;
     return items.filter((item) => item.type === activityType);
@@ -114,12 +126,10 @@ export function FeedList({
         const paidBy = getUser(item.paid_by);
 
         return (
-          <ExpenseFeedCard
+          <MobileExpenseCard
             key={item.id}
             activity={item}
             paidBy={paidBy}
-            participantCount={item.participant_count}
-            currentUserId={userId}
             currency={currency}
             onClick={() => onExpenseClick?.(item.id)}
           />
@@ -131,12 +141,11 @@ export function FeedList({
         const toUser = getUser(item.to_user);
 
         return (
-          <SettlementFeedCard
+          <MobileSettlementCard
             key={item.id}
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
-            currentUserId={userId}
             currency={currency}
             onClick={() => onSettlementClick?.(item.id)}
           />
@@ -146,16 +155,13 @@ export function FeedList({
       if (isHonorRestoredActivity(item)) {
         const fromUser = getUser(item.from_user);
         const toUser = getUser(item.to_user);
-        const approvedByUser = getUser(item.approved_by);
 
         return (
-          <HonorRestoredFeedCard
+          <MobileHonorCard
             key={item.id}
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
-            approvedByUser={approvedByUser}
-            currentUserId={userId}
             currency={currency}
           />
         );
@@ -164,7 +170,13 @@ export function FeedList({
       if (isMemberJoinActivity(item)) {
         const joinedUser = getUser(item.user_id);
 
-        return <MemberJoinCard key={item.id} activity={item} joinedUser={joinedUser} currentUserId={userId} />;
+        return (
+          <MobileMemberJoinCard
+            key={item.id}
+            activity={item}
+            joinedUser={joinedUser}
+          />
+        );
       }
 
       return (
@@ -173,7 +185,7 @@ export function FeedList({
         </Box>
       );
     },
-    [getUser, userId, currency, onExpenseClick, onSettlementClick]
+    [getUser, currency, onExpenseClick, onSettlementClick]
   );
 
   const emptyState = (
@@ -217,7 +229,7 @@ export function FeedList({
       renderItem={renderDisplayItem}
       isLoading={isLoading}
       isError={isError}
-      error="Failed to load activity feed"
+      error={error ?? 'Failed to load activity feed'}
       emptyState={emptyState}
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}

@@ -8,9 +8,11 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { useUsers } from '../../hooks/useUserCache';
+import { useActivityFeed } from '../../hooks/useActivityFeed';
 import { useUIStore } from '../../stores/uiStore';
-import { FeedList } from '../../components/feed';
+import { MobileFeedList } from '../../components/feed';
 import { getPainLevel } from '../../utils/damage';
+import { MobilePageHeader } from '../../components/shared';
 
 const ACTIVITY_FILTERS = [
   { value: undefined, label: 'All' },
@@ -121,6 +123,21 @@ export default function MobileFeedPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const {
+    data: activityPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: activityLoading,
+    isError: activityError,
+  } = useActivityFeed({
+    eventId: eventId!,
+    userId: userId!,
+    enabled: !!eventId && !!userId,
+  });
+
+  const activityItems = activityPages?.pages.flatMap((p) => p.data) ?? [];
+
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   const sentinelUsers = useUsers(memberUserIds);
 
@@ -174,93 +191,38 @@ export default function MobileFeedPage() {
   const crewCount = members.length;
 
   const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
-  const headerBg = bannerUrl
-    ? `linear-gradient(to bottom, rgba(18,18,18,0.3) 0%, rgba(18,18,18,0.7) 60%, #121212 100%), url(${bannerUrl})`
-    : `linear-gradient(to bottom, rgba(18,18,18,0.6) 0%, rgba(18,18,18,0.85) 60%, #121212 100%), linear-gradient(135deg, #4A2F0A 0%, #1A1A1A 100%)`;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Fixed Header with event image background */}
-      <Box
-        sx={{
-          flexShrink: 0,
-          px: 2,
-          pt: 1.5,
-          pb: 1.5,
-          background: headerBg,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
+      <MobilePageHeader
+        icon={<BattleLogIcon sx={{ fontSize: 22, color: 'primary.main' }} />}
+        title="Battle Log"
+        subtitle={event?.name || ''}
+        rightAction={
+          <Badge
+            badgeContent={crewCount}
+            sx={{
+              '& .MuiBadge-badge': {
+                bgcolor: 'primary.main',
+                color: '#121212',
+                fontWeight: 700,
+                fontSize: '0.65rem',
+                minWidth: 18,
+                height: 18,
+              },
+            }}
+          >
+            <IconButton
+              size="small"
+              onClick={() => setCrewDrawerOpen(true)}
+              sx={{ color: '#fff', width: 28, height: 28, bgcolor: alpha('#fff', 0.1) }}
+            >
+              <PeopleIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Badge>
+        }
+        backgroundImage={bannerUrl}
       >
-        {/* Title row */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                bgcolor: alpha('#F59E0B', 0.12),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <BattleLogIcon sx={{ fontSize: 22, color: 'primary.main' }} />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  color: 'primary.main',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.2,
-                }}
-              >
-                Battle Log
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {event?.name || ''}
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-            <Badge
-              badgeContent={crewCount}
-              sx={{
-                '& .MuiBadge-badge': {
-                  bgcolor: 'primary.main',
-                  color: '#121212',
-                  fontWeight: 700,
-                  fontSize: '0.65rem',
-                  minWidth: 18,
-                  height: 18,
-                },
-              }}
-            >
-              <IconButton
-                size="small"
-                onClick={() => setCrewDrawerOpen(true)}
-                sx={{ color: '#fff', width: 28, height: 28, bgcolor: alpha('#fff', 0.1) }}
-              >
-                <PeopleIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Badge>
-          </Box>
-        </Box>
-
         {/* Total Damage card - hero stat */}
         <Box sx={{ display: 'flex', mb: 1.5 }}>
           <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, textAlign: 'center', bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.25), backdropFilter: 'blur(8px)', boxShadow: '0 0 24px rgba(245, 158, 11, 0.08)' }}>
@@ -322,7 +284,7 @@ export default function MobileFeedPage() {
             );
           })}
         </Box>
-      </Box>
+      </MobilePageHeader>
 
       {/* Scrollable Feed */}
       <Box
@@ -336,11 +298,15 @@ export default function MobileFeedPage() {
           pb: 2,
         }}
       >
-        <FeedList
-          eventId={eventId}
-          userId={userId || ''}
+        <MobileFeedList
+          items={activityItems}
           userMap={userMap}
           currency={currency}
+          isLoading={activityLoading}
+          isError={activityError}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          fetchNextPage={fetchNextPage}
           scrollContainerRef={feedScrollRef}
           activityType={selectedActivityFilter ?? undefined}
         />
