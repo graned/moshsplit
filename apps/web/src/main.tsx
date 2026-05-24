@@ -15,11 +15,11 @@ import '@moshsplit/auth-react/dist/style.css';
 
 // Create QueryClient with automatic 401 handling and token refresh
 export const queryClient = createSentinelQueryClient({
-  afterLogout: '/login',
-  verifyEmail: '/verify-email',
-  changePassword: '/change-password',
-  unauthorized: '/unauthorized',
-  setupMfa: '/setup-mfa',
+  afterLogout: '/moshsplit/login',
+  verifyEmail: '/moshsplit/verify-email',
+  changePassword: '/moshsplit/change-password',
+  unauthorized: '/moshsplit/unauthorized',
+  setupMfa: '/moshsplit/setup-mfa',
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -28,7 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <I18nextProvider i18n={i18n}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <BrowserRouter>
+          <BrowserRouter basename="/moshsplit">
             <App />
           </BrowserRouter>
         </ThemeProvider>

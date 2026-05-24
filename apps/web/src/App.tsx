@@ -139,7 +139,7 @@ function App() {
       client={authClient}
       redirects={{
         afterLogin: '/app',
-        afterLogout: '/login',
+        afterLogout: '/moshsplit/login',
         verifyEmail: '/verify-email',
         changePassword: '/change-password',
         setupMfa: '/setup-mfa',
