@@ -272,6 +272,7 @@ export default function MobileSettlePage() {
                 onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
               />
             )}))}
+            customDateKey={() => new Date().toISOString()}
             userMap={{}}
             emptyState={emptyState('No one owes you. The pit is quiet.')}
           />
@@ -288,6 +289,7 @@ export default function MobileSettlePage() {
                 onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
               />
             )}))}
+            customDateKey={() => new Date().toISOString()}
             userMap={{}}
             emptyState={emptyState("You don't owe anyone. Your honor is intact.")}
           />
@@ -368,6 +370,7 @@ export default function MobileSettlePage() {
                 );
               })(),
             }))}
+            customDateKey={(item) => (item as { node?: { props?: { item?: { created_at?: string } } } }).node?.props?.item?.created_at ?? new Date().toISOString()}
             userMap={{}}
             hasNextPage={hasNextRequests}
             isFetchingNextPage={isFetchingNextRequests}
@@ -384,6 +387,7 @@ export default function MobileSettlePage() {
                 currency={currency}
               />
             )}))}
+            customDateKey={(item) => (item as { node?: { props?: { item?: { created_at?: string } } } }).node?.props?.item?.created_at ?? new Date().toISOString()}
             userMap={{}}
             hasNextPage={hasNextHistory}
             isFetchingNextPage={isFetchingNextHistory}
