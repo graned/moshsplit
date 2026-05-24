@@ -2,12 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:9000';
+const API_BASE_URL = process.env.VITE_API_BASE_URL || '/pitboss';
+const MOSHSPLIT_URL = process.env.MOSHSPLIT_URL || 'moshsplit.localhost';
 const isDev = process.env.NODE_ENV !== 'production';
 
 export default defineConfig({
-  // Only use /moshsplit/ base in production
-  base: isDev ? '/' : '/moshsplit/',
+  base: '/moshsplit/',
   plugins: [
     react(),
     VitePWA({
@@ -90,6 +90,16 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    host: '0.0.0.0',
+    allowedHosts: [
+      MOSHSPLIT_URL,
+      'sentinel.' + MOSHSPLIT_URL,
+      'localhost',
+    ],
+    hmr: {
+      clientPort: 80,
+      host: MOSHSPLIT_URL,
+    },
     proxy: {
       '/api': {
         target: API_BASE_URL,
