@@ -2,13 +2,74 @@
 # ======================================
 # Uses hot-reload for pitboss-api (cargo-watch) and web (Vite HMR).
 # Source directories are mounted as bind volumes so edits take effect immediately.
+#
+# TOPOLOGY: Identical to production — Caddy is the ONLY front door.
+# Only difference from prod: HTTP (no TLS), bind-mounted sources, HMR enabled.
+#
+# Entry points:
+#   Web app:   http://moshsplit.localhost/moshsplit/
+#   Sentinel:  http://sentinel.moshsplit.localhost/
+#   Pitboss:    http://moshsplit.localhost/pitboss/
+#   Sentinel:  http://moshsplit.localhost/sentinel/
+#
+# *.localhost is RFC 6761 — resolves to 127.0.0.1 on macOS/Linux/modern Windows
+# with no /etc/hosts editing. If you have a stubborn setup, add:
+#   127.0.0.1 moshsplit.localhost sentinel.moshsplit.localhost
+#
+# postgres:5432 is published to the host as the ONLY non-Caddy port (for psql
+# access from the host machine). All app traffic goes through Caddy on :80.
+#
+# ── HMR (Hot Module Replacement) ─────────────────────────────────────────────
+# Vite HMR uses WebSockets. The flow:
+#   1. Browser requests http://moshsplit.localhost/moshsplit/ → Caddy → web:5173
+#   2. Vite responds with HMR JS that opens ws://moshsplit.localhost/moshsplit/@vite/
+#   3. Caddy forwards the WS upgrade to web:5173 (reverse_proxy handles this natively)
+#   4. Changes are pushed over the same channel → browser updates instantly
+# Vite config sets hmr.clientPort=80 and hmr.host=moshsplit.localhost so the WS
+# URL uses the same port and host Caddy is listening on.
 
 services:
+
+  # ── Caddy Reverse Proxy (Front-facing) ─────────────────────────────────────
+  # Only service exposed to the outside world (:80).
+  # Replicates production Caddy topology over plain HTTP.
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: moshsplit-caddy
+    ports:
+      - "80:80"
+      # NOTE: 443 is intentionally NOT published. Dev runs HTTP-only to avoid
+      # mkcert / self-signed cert friction. HTTPS in dev is opt-in (see README).
+    volumes:
+      - ../docker/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    environment:
+      MOSHSPLIT_URL: ${MOSHSPLIT_URL:-moshsplit.localhost}
+    depends_on:
+      - pitboss-api
+      - sentinel
+      - sentinel-ui
+      - web
+    networks:
+      - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: moshsplit-db
+    # postgres:5432 is the ONLY non-Caddy port published to the host.
+    # This is intentional: it lets you `psql` from the host for debugging.
+    # All application traffic MUST route through Caddy on :80 — this is the
+    # one exception to the "no service ports" rule in dev.
     ports:
       - "5432:5432"
     environment:
@@ -53,8 +114,7 @@ services:
       dockerfile: infra/docker/pitboss-api.Dockerfile
       target: dev
     container_name: pitboss-api
-    ports:
-      - "8080:8080"
+    # No ports published — all traffic goes through Caddy on :80.
     volumes:
       - ../../apps/pitboss-api:/app/apps/pitboss-api
       - ../../packages:/app/packages
@@ -76,17 +136,18 @@ services:
   sentinel:
     image: ghcr.io/graned/sentinel-core:v1.3.2
     container_name: moshsplit-sentinel
-    ports:
-      - "9000:8000"
+    # No ports published — all traffic goes through Caddy on :80.
     environment:
       DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
       PGOPTIONS: "-c search_path=auth,public"
       HEX_KEY: 32a8c0fc962ce0299e8f5dedb1ff75b7e8789416db8f6836fb91c6e7bd2e58fe
       CONFIG_ENCRYPTION_KEY: 02b96ece27c893f176d52139c17ef97db53283a3b0a75e185c2a9da7c1855db5
       RUST_LOG: debug
-      OIDC_ISSUER_URL: http://localhost:9000
-      FRONTEND_URL: http://localhost:5173
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
+      # OIDC and frontend URLs now use the same origin pattern as production
+      # (same-origin relative paths through Caddy reverse proxy).
+      OIDC_ISSUER_URL: http://${MOSHSPLIT_URL:-moshsplit.localhost}/sentinel
+      FRONTEND_URL: http://${MOSHSPLIT_URL:-moshsplit.localhost}/moshsplit
+      CORS_ALLOWED_ORIGINS: http://${MOSHSPLIT_URL:-moshsplit.localhost}
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
     depends_on:
@@ -105,8 +166,7 @@ services:
   sentinel-ui:
     image: ghcr.io/graned/sentinel-ui:v1.3.1
     container_name: moshsplit-sentinel-ui
-    ports:
-      - "3000:80"
+    # No ports published — all traffic goes through Caddy on :80.
     volumes:
       - ../../infra/docker/sentinel-ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
@@ -115,14 +175,14 @@ services:
     networks:
       - app-net
 
-  # ── Web (React PWA / Vite) - DEV MODE ───────────────────────────────────────
-  # Runs Vite dev server directly (not nginx) for hot module replacement
+  # ── Web (React PWA / Vite) — DEV MODE ───────────────────────────────────────
+  # Runs Vite dev server directly (not nginx) for hot module replacement.
+  # Vite HMR traffic flows through Caddy via WebSocket upgrade.
   web:
     image: node:20-alpine
     container_name: moshsplit-web
     working_dir: /app
-    ports:
-      - "5173:5173"
+    # No ports published — HMR works through Caddy's reverse proxy on :80.
     volumes:
       # Mount entire web app for HMR
       - ../../apps/web:/app/apps/web
@@ -135,9 +195,13 @@ services:
       - ../../pnpm-lock.yaml:/app/pnpm-lock.yaml
       - ../../.npmrc:/app/.npmrc
     environment:
-      # Vite dev server config
-      VITE_API_BASE_URL: http://localhost:8080
-      VITE_SENTINEL_URL: http://localhost:9000
+      # Same relative paths as production — all requests are same-origin via Caddy.
+      VITE_API_BASE_URL: /pitboss
+      VITE_SENTINEL_URL: /sentinel
+      # MOSHSPLIT_URL mirrors production so Vite can construct HMR WS URLs.
+      MOSHSPLIT_URL: ${MOSHSPLIT_URL:-moshsplit.localhost}
+      # Vite runs on 0.0.0.0 inside the container; Caddy connects to it.
+      VITE_DEV_HOST: "0.0.0.0"
     command: >
       sh -c "
         corepack enable &&
@@ -155,6 +219,9 @@ services:
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
 
 networks:
   app-net:
