@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer } from '@mui/material';
@@ -13,13 +13,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { MobileFeedList } from '../../components/feed';
 import { getPainLevel } from '../../utils/damage';
 import { MobilePageHeader } from '../../components/shared';
-
-const ACTIVITY_FILTERS = [
-  { value: undefined, label: 'All' },
-  { value: 'expense', label: 'Expenses' },
-  { value: 'honor_restored', label: 'Honor' },
-  { value: 'member_join', label: 'Joins' },
-] as const;
+import { FilterDrawerLauncher, FilterDrawerContent } from '../../components/shared/filters';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -101,7 +95,10 @@ export default function MobileFeedPage() {
   const userId = useAuthStore((state) => state.userId);
   const feedScrollRef = useRef<HTMLDivElement>(null);
 
-  const { selectedActivityFilter, setSelectedActivityFilter, crewDrawerOpen, setCrewDrawerOpen } = useUIStore();
+  const [selectedActivityTypes, setSelectedActivityTypes] = useState<string[]>([]);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+
+  const { crewDrawerOpen, setCrewDrawerOpen } = useUIStore();
 
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event', eventId],
@@ -168,6 +165,54 @@ export default function MobileFeedPage() {
       };
     }
   });
+
+  // Activity type counts for filter
+  const activityTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      expense: 0,
+      honor_restored: 0,
+      member_join: 0,
+    };
+    for (const item of activityItems) {
+      if (item.type === 'expense') counts.expense = (counts.expense || 0) + 1;
+      else if (item.type === 'honor_restored') counts.honor_restored = (counts.honor_restored || 0) + 1;
+      else if (item.type === 'member_join') counts.member_join = (counts.member_join || 0) + 1;
+    }
+    return counts;
+  }, [activityItems]);
+
+  const ACTIVITY_TYPE_OPTIONS = [
+    { value: 'all', label: 'All', count: activityItems.length },
+    { value: 'expense', label: 'Expenses', count: activityTypeCounts['expense'] || 0 },
+    { value: 'honor_restored', label: 'Honor', count: activityTypeCounts['honor_restored'] || 0 },
+    { value: 'member_join', label: 'Joins', count: activityTypeCounts['member_join'] || 0 },
+  ];
+
+  const handleFilterToggle = (value: string) => {
+    if (value === 'all') {
+      setSelectedActivityTypes([]);
+      setFilterDrawerOpen(false);
+      return;
+    }
+    setSelectedActivityTypes((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  };
+
+  const handleFilterClear = () => {
+    setSelectedActivityTypes([]);
+  };
+
+  const activeFilters = selectedActivityTypes.map((type) => {
+    const option = ACTIVITY_TYPE_OPTIONS.find((o) => o.value === type);
+    return { value: type, label: option?.label ?? type };
+  });
+
+  // Filter activity items client-side
+  const filteredActivityItems = useMemo(() => {
+    if (selectedActivityTypes.length === 0) return activityItems;
+    return activityItems.filter((item) => selectedActivityTypes.includes(item.type));
+  }, [activityItems, selectedActivityTypes]);
 
   if (!eventId) {
     return (
@@ -249,41 +294,11 @@ export default function MobileFeedPage() {
           </Box>
         </Box>
 
-        {/* Filter chips */}
-        <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '::-webkit-scrollbar': { display: 'none' } }}>
-          {ACTIVITY_FILTERS.map((filter) => {
-            const isSelected = selectedActivityFilter === filter.value;
-            return (
-              <Box
-                key={filter.value ?? 'all'}
-                onClick={() => setSelectedActivityFilter(filter.value ?? null)}
-                sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: 100,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.03em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  bgcolor: isSelected ? 'primary.main' : alpha('#1E1E1E', 0.5),
-                  color: isSelected ? '#121212' : alpha('#fff', 0.6),
-                  border: '1px solid',
-                  borderColor: isSelected ? 'primary.main' : alpha('#fff', 0.1),
-                  transition: 'all 0.15s ease',
-                  minHeight: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {filter.label}
-              </Box>
-            );
-          })}
-        </Box>
+        {/* Filter row */}
+        <FilterDrawerLauncher
+          activeFilters={activeFilters}
+          onClick={() => setFilterDrawerOpen(true)}
+        />
       </MobilePageHeader>
 
       {/* Scrollable Feed */}
@@ -299,7 +314,7 @@ export default function MobileFeedPage() {
         }}
       >
         <MobileFeedList
-          items={activityItems}
+          items={filteredActivityItems}
           userMap={userMap}
           currency={currency}
           isLoading={activityLoading}
@@ -308,7 +323,6 @@ export default function MobileFeedPage() {
           isFetchingNextPage={isFetchingNextPage}
           fetchNextPage={fetchNextPage}
           scrollContainerRef={feedScrollRef}
-          activityType={selectedActivityFilter ?? undefined}
         />
       </Box>
 
@@ -529,6 +543,17 @@ export default function MobileFeedPage() {
           })}
         </Box>
       </Drawer>
+
+      {/* Filter Drawer */}
+      <FilterDrawerContent
+        open={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        title="Filter by Type"
+        options={ACTIVITY_TYPE_OPTIONS}
+        selectedValues={selectedActivityTypes}
+        onToggle={handleFilterToggle}
+        onClear={handleFilterClear}
+      />
     </Box >
   );
 }

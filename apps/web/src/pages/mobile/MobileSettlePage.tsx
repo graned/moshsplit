@@ -9,6 +9,7 @@ import { groupsApi } from '../../api/groups.api';
 import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, type SettlementListItem } from '../../api/settlements.api';
 import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
+import { MobileTabBar } from '../../components/shared/MobileTabBar';
 import { MobileFeedList } from '../../components/feed/mobile/MobileFeedList';
 import { MobileFeedCard } from '../../components/feed/mobile/MobileFeedCard';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
@@ -239,45 +240,16 @@ export default function MobileSettlePage() {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '::-webkit-scrollbar': { display: 'none' } }}>
-          {[
-            { value: 'incoming' as TabFilter, label: 'Incoming', count: incomingItems.length },
-            { value: 'outgoing' as TabFilter, label: 'Outgoing', count: outgoingItems.length },
-            { value: 'requests' as TabFilter, label: 'Requests', count: pendingRequests.length },
-            { value: 'history' as TabFilter, label: 'History', count: historyItems.length },
-          ].map((filter) => {
-            const isSelected = activeTabFilter === filter.value;
-            return (
-              <Box
-                key={filter.value}
-                onClick={() => setActiveTabFilter(filter.value)}
-                sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: 100,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.03em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  bgcolor: isSelected ? 'primary.main' : alpha('#1E1E1E', 0.5),
-                  color: isSelected ? '#121212' : alpha('#fff', 0.6),
-                  border: '1px solid',
-                  borderColor: isSelected ? 'primary.main' : alpha('#fff', 0.1),
-                  transition: 'all 0.15s ease',
-                  minHeight: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {filter.label} ({filter.count})
-              </Box>
-            );
-          })}
-        </Box>
+        <MobileTabBar
+          tabs={[
+            { value: 'incoming', label: 'Incoming', count: incomingItems.length },
+            { value: 'outgoing', label: 'Outgoing', count: outgoingItems.length },
+            { value: 'requests', label: 'Requests', count: pendingRequests.length },
+            { value: 'history', label: 'History', count: historyItems.length },
+          ]}
+          activeTab={activeTabFilter}
+          onChange={(val) => setActiveTabFilter(val as TabFilter)}
+        />
       </MobilePageHeader>
 
       <Box sx={{ flexGrow: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', px: 2, pt: 2, pb: 4 }}>

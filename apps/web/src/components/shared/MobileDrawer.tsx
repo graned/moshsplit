@@ -8,6 +8,7 @@ interface MobileDrawerProps {
   title: React.ReactNode;
   children: React.ReactNode;
   onOpen?: () => void;
+  clearAction?: React.ReactNode;
 }
 
 /**
@@ -22,7 +23,7 @@ interface MobileDrawerProps {
  *  - Scrollable content area
  *  - Optional onOpen callback (fires when drawer opens — useful for clearError etc.)
  */
-export function MobileDrawer({ open, onClose, title, children, onOpen }: MobileDrawerProps) {
+export function MobileDrawer({ open, onClose, title, children, onOpen, clearAction }: MobileDrawerProps) {
   const theme = useTheme();
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export function MobileDrawer({ open, onClose, title, children, onOpen }: MobileD
         </IconButton>
       </Box>
 
-      {/* Title */}
+      {/* Title row */}
       <Box
         sx={{
           px: 2,
@@ -100,6 +101,9 @@ export function MobileDrawer({ open, onClose, title, children, onOpen }: MobileD
           borderBottom: 1,
           borderColor: 'divider',
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
         <Typography
@@ -114,6 +118,7 @@ export function MobileDrawer({ open, onClose, title, children, onOpen }: MobileD
         >
           {title}
         </Typography>
+        {clearAction}
       </Box>
 
       {/* Content */}

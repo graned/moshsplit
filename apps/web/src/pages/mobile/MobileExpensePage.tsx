@@ -13,7 +13,8 @@ import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { FilterChips, AddExpenseDrawer, ExpenseDetailDrawer } from '../../components/expenses';
+import { AddExpenseDrawer, ExpenseDetailDrawer } from '../../components/expenses';
+import { FilterDrawerLauncher, FilterDrawerContent } from '../../components/shared/filters';
 import { MobileFeedList } from '../../components/feed';
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
@@ -41,7 +42,8 @@ export default function MobileExpensePage() {
   const { eventId, currentUser } = useOutletContext<MobileOutletContext>();
   const userId = useAuthStore((state) => state.userId);
 
-  const [selectedType, setSelectedType] = useState<string>();
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseActivity | null>(null);
   const { addExpenseOpen, setAddExpenseOpen } = useUIStore();
 
@@ -119,10 +121,52 @@ export default function MobileExpensePage() {
     return allActivityItems.filter((item) => {
       if (item.type !== 'expense') return false;
       if (item.paid_by !== userId) return false;
-      if (selectedType && item.expense_type && item.expense_type !== selectedType) return false;
+      if (selectedTypes.length > 0 && item.expense_type && !selectedTypes.includes(item.expense_type)) return false;
       return true;
     });
-  }, [allActivityItems, userId, selectedType]);
+  }, [allActivityItems, userId, selectedTypes]);
+
+  const totalExpenses = useMemo(() => allActivityItems.filter((item) => item.type === 'expense' && item.paid_by === userId).length, [allActivityItems, userId]);
+
+  const expenseTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const item of allActivityItems) {
+      if (item.type === 'expense' && item.paid_by === userId && item.expense_type) {
+        counts[item.expense_type] = (counts[item.expense_type] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [allActivityItems, userId]);
+
+  const EXPENSE_TYPE_OPTIONS = [
+    { value: 'all', label: 'All', count: totalExpenses },
+    { value: 'food', label: 'Food', count: expenseTypeCounts['food'] || 0 },
+    { value: 'transport', label: 'Travel', count: expenseTypeCounts['transport'] || 0 },
+    { value: 'merch', label: 'Merch', count: expenseTypeCounts['merch'] || 0 },
+    { value: 'beer', label: 'Beer', count: expenseTypeCounts['beer'] || 0 },
+    { value: 'gas', label: 'Gas', count: expenseTypeCounts['gas'] || 0 },
+    { value: 'camping', label: 'Camping', count: expenseTypeCounts['camping'] || 0 },
+  ];
+
+  const handleFilterToggle = (value: string) => {
+    if (value === 'all') {
+      setSelectedTypes([]);
+      setFilterDrawerOpen(false);
+      return;
+    }
+    setSelectedTypes((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  };
+
+  const handleFilterClear = () => {
+    setSelectedTypes([]);
+  };
+
+  const activeFilters = selectedTypes.map((type) => {
+    const option = EXPENSE_TYPE_OPTIONS.find((o) => o.value === type);
+    return { value: type, label: option?.label ?? type };
+  });
 
   const handleExpenseClick = useCallback(
     (expenseId: string) => {
@@ -223,8 +267,11 @@ export default function MobileExpensePage() {
           </Box>
         </Box>
 
-        {/* Filter Chips */}
-        <FilterChips selectedType={selectedType} onTypeChange={setSelectedType} />
+        {/* Filter row */}
+        <FilterDrawerLauncher
+          activeFilters={activeFilters}
+          onClick={() => setFilterDrawerOpen(true)}
+        />
       </MobilePageHeader>
 
       {/* Scrollable Feed */}
@@ -252,7 +299,7 @@ export default function MobileExpensePage() {
         />
       </Box>
 
-      {/* Expense Drawers */}
+{/* Expense Drawers */}
       {eventId && (
         <>
           <AddExpenseDrawer
@@ -274,6 +321,17 @@ export default function MobileExpensePage() {
           />
         </>
       )}
+
+      {/* Filter Drawer */}
+      <FilterDrawerContent
+        open={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        title="Filter by Type"
+        options={EXPENSE_TYPE_OPTIONS}
+        selectedValues={selectedTypes}
+        onToggle={handleFilterToggle}
+        onClear={handleFilterClear}
+      />
     </Box>
   );
 }
