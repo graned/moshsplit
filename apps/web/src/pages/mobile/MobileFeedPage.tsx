@@ -224,7 +224,7 @@ export default function MobileFeedPage() {
         backgroundImage={bannerUrl}
       >
         {/* Total Damage card - hero stat */}
-        <Box sx={{ display: 'flex', mb: 1.5 }}>
+        <Box sx={{ display: 'flex' }}>
           <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, textAlign: 'center', bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.25), backdropFilter: 'blur(8px)', boxShadow: '0 0 24px rgba(245, 158, 11, 0.08)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
               <SpentIcon sx={{ fontSize: 15, color: '#F59E0B' }} />

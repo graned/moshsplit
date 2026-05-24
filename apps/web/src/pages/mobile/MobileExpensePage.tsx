@@ -199,22 +199,22 @@ export default function MobileExpensePage() {
         }
         backgroundImage={event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url}
       >
-        <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.08), backdropFilter: 'blur(8px)' }}>
+        <Box sx={{ display: 'flex' }}>
+          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.1), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
               <SpentIcon sx={{ fontSize: 14, color: alpha('#fff', 0.6) }} />
               <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>You Paid</Typography>
             </Box>
             {statsLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{formatAmount(youPaid, currency)}</Typography>}
           </Box>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
+          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
               <ReturnIcon sx={{ fontSize: 14, color: '#10b981' }} />
               <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Getting Back</Typography>
             </Box>
             {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(youGetBack, currency)}</Typography>}
           </Box>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
+          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
               <RealSpendIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
               <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Real Spend</Typography>
