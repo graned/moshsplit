@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use moshsplit_balance_engine::{compute_balance, simplified_debts, UserBalance};
 use uuid::Uuid;
 
@@ -201,6 +202,7 @@ impl BalanceService {
         let explanation = self.explain_balance(event_id, user_id)?;
 
         let mut balances: HashMap<Uuid, i32> = HashMap::new();
+        let mut latest_timestamps: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
 
         for expense in &explanation.expenses {
             let is_payer = expense.paid_by == user_id;
@@ -210,10 +212,18 @@ impl BalanceService {
                 for participant in &expense.participants {
                     if *participant != user_id {
                         *balances.entry(*participant).or_insert(0) += share_cents;
+                        latest_timestamps
+                            .entry(*participant)
+                            .and_modify(|t| *t = (*t).max(expense.created_at))
+                            .or_insert(expense.created_at);
                     }
                 }
             } else {
                 *balances.entry(expense.paid_by).or_insert(0) += share_cents;
+                latest_timestamps
+                    .entry(expense.paid_by)
+                    .and_modify(|t| *t = (*t).max(expense.created_at))
+                    .or_insert(expense.created_at);
             }
         }
 
@@ -223,8 +233,16 @@ impl BalanceService {
             }
             if settlement.to_user == user_id {
                 *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.from_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
             } else if settlement.from_user == user_id {
                 *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.to_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
             }
         }
 
@@ -241,6 +259,9 @@ impl BalanceService {
             .map(|(user_id, amount_cents)| IncomingBalanceItem {
                 user_id,
                 amount_cents,
+                created_at: latest_timestamps
+                    .remove(&user_id)
+                    .unwrap_or_else(chrono::Utc::now),
             })
             .collect();
 
@@ -260,6 +281,7 @@ impl BalanceService {
         let explanation = self.explain_balance(event_id, user_id)?;
 
         let mut balances: HashMap<Uuid, i32> = HashMap::new();
+        let mut latest_timestamps: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
 
         for expense in &explanation.expenses {
             let is_payer = expense.paid_by == user_id;
@@ -269,10 +291,18 @@ impl BalanceService {
                 for participant in &expense.participants {
                     if *participant != user_id {
                         *balances.entry(*participant).or_insert(0) += share_cents;
+                        latest_timestamps
+                            .entry(*participant)
+                            .and_modify(|t| *t = (*t).max(expense.created_at))
+                            .or_insert(expense.created_at);
                     }
                 }
             } else {
                 *balances.entry(expense.paid_by).or_insert(0) += share_cents;
+                latest_timestamps
+                    .entry(expense.paid_by)
+                    .and_modify(|t| *t = (*t).max(expense.created_at))
+                    .or_insert(expense.created_at);
             }
         }
 
@@ -282,8 +312,16 @@ impl BalanceService {
             }
             if settlement.to_user == user_id {
                 *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.from_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
             } else if settlement.from_user == user_id {
                 *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.to_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
             }
         }
 
@@ -300,6 +338,9 @@ impl BalanceService {
             .map(|(user_id, amount_cents)| OutgoingBalanceItem {
                 user_id,
                 amount_cents,
+                created_at: latest_timestamps
+                    .remove(&user_id)
+                    .unwrap_or_else(chrono::Utc::now),
             })
             .collect();
 

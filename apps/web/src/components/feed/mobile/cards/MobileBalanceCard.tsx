@@ -2,6 +2,7 @@ import { Typography, Box, alpha } from '@mui/material';
 import { TrendingUp as TrendingUpIcon, TrendingDown as TrendingDownIcon } from '@mui/icons-material';
 import { useUsers } from '../../../../hooks/useUserCache';
 import { MobileFeedCard } from '../MobileFeedCard';
+import type { IncomingBalanceItem, OutgoingBalanceItem } from '../../../../api/settlements.api';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
   new Intl.NumberFormat('en-US', {
@@ -12,6 +13,7 @@ const formatAmount = (cents: number, currency = 'EUR') =>
   }).format(cents / 100);
 
 interface MobileBalanceCardProps {
+  balanceItem?: IncomingBalanceItem | OutgoingBalanceItem;
   userId: string;
   amountCents: number;
   isIncoming: boolean;
@@ -20,6 +22,7 @@ interface MobileBalanceCardProps {
 }
 
 export function MobileBalanceCard({
+  balanceItem,
   userId,
   amountCents,
   isIncoming,
@@ -36,6 +39,7 @@ export function MobileBalanceCard({
   const Icon = isIncoming ? TrendingUpIcon : TrendingDownIcon;
 
   return (
+    <Box data-balance={balanceItem ? JSON.stringify(balanceItem) : undefined}>
     <MobileFeedCard
       accentColor={accentColor}
       icon={
@@ -103,5 +107,6 @@ export function MobileBalanceCard({
         {isIncoming ? 'owes you' : 'you owe'}
       </Typography>
     </MobileFeedCard>
+    </Box>
   );
 }

@@ -13,6 +13,8 @@ use uuid::Uuid;
 pub struct IncomingBalanceItem {
     pub user_id: Uuid,
     pub amount_cents: i32,
+    /// `created_at` of the most recent expense/settlement that contributed to this balance.
+    pub created_at: DateTime<Utc>,
 }
 
 /// Response for the incoming balances endpoint.
@@ -28,6 +30,8 @@ pub struct IncomingBalancesResponse {
 pub struct OutgoingBalanceItem {
     pub user_id: Uuid,
     pub amount_cents: i32,
+    /// `created_at` of the most recent expense/settlement that contributed to this balance.
+    pub created_at: DateTime<Utc>,
 }
 
 /// Response for the outgoing balances endpoint.

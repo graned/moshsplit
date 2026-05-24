@@ -25,7 +25,9 @@ type FeedListInput = ActivityItem[] | FeedDisplayItem[];
 export type { FeedDisplayItem, FeedListInput };
 
 function getDateLabel(dateStr: string): string {
+  if (dateStr === 'today') return 'Today';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -79,39 +81,38 @@ function normalizeItems(items: FeedListInput, customDateKey?: (item: unknown) =>
   if (!items || items.length === 0) return [];
   if (items.length > 0 && 'kind' in items[0]) {
     const displayItems = items as FeedDisplayItem[];
-    if (customDateKey) {
-      const result: FeedDisplayItem[] = [];
-      let lastDate = '';
-      for (const item of displayItems) {
-        if (item.kind === 'custom') {
-          const date = customDateKey(item) || '';
-          const day = date.slice(0, 10);
-          if (day !== lastDate && day) {
-            lastDate = day;
-            result.push({ kind: 'day-header', date: day });
-          }
-        } else if (item.kind === 'day-header') {
-          lastDate = item.date;
-          result.push(item);
-        } else if (item.kind === 'activity') {
-          const day = item.item.created_at.slice(0, 10);
-          if (day !== lastDate && day) {
-            lastDate = day;
-            result.push({ kind: 'day-header', date: day });
-          }
-          result.push(item);
+    if (!customDateKey) return displayItems;
+    const result: FeedDisplayItem[] = [];
+    let lastDate = '';
+    for (const item of displayItems) {
+      if (item.kind === 'custom') {
+        const date = customDateKey(item) || '';
+        const day = date.slice(0, 10) || date;
+        if (day && day !== lastDate) {
+          lastDate = day;
+          result.push({ kind: 'day-header', date: day });
         }
+        result.push(item);
+      } else if (item.kind === 'day-header') {
+        lastDate = item.date;
+        result.push(item);
+      } else if (item.kind === 'activity') {
+        const day = item.item.created_at.slice(0, 10);
+        if (day && day !== lastDate) {
+          lastDate = day;
+          result.push({ kind: 'day-header', date: day });
+        }
+        result.push(item);
       }
-      return result;
     }
-    return displayItems;
+    return result;
   }
   const activityItems = items as ActivityItem[];
   const result: FeedDisplayItem[] = [];
   let lastDate = '';
   for (const item of activityItems) {
     const date = item.created_at.slice(0, 10);
-    if (date !== lastDate) {
+    if (date && date !== lastDate) {
       lastDate = date;
       result.push({ kind: 'day-header', date });
     }
@@ -141,10 +142,23 @@ export function MobileFeedList({
   const normalizedItems = useMemo(() => {
     const displayItems = normalizeItems(items, customDateKey);
     if (!activityType) return displayItems;
-    return displayItems.filter(
-      (item) => item.kind !== 'day-header' && item.kind !== 'custom' && item.item.type === activityType
-    );
-  }, [items, activityType]);
+    const result: FeedDisplayItem[] = [];
+    let lastDate = '';
+    for (const item of displayItems) {
+      if (item.kind === 'day-header') {
+        lastDate = item.date;
+        result.push(item);
+      } else if (item.kind !== 'custom' && item.item.type === activityType) {
+        const day = item.item.created_at.slice(0, 10);
+        if (day !== lastDate) {
+          lastDate = day;
+          result.push({ kind: 'day-header', date: day });
+        }
+        result.push(item);
+      }
+    }
+    return result;
+  }, [items, activityType, customDateKey]);
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
   const renderDisplayItem = useCallback(

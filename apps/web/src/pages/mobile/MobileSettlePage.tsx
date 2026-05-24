@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha } from '@mui/material';
@@ -265,6 +265,7 @@ export default function MobileSettlePage() {
           <MobileFeedList
             items={incomingItems.map((item) => ({ kind: 'custom' as const, id: `incoming-${item.user_id}`, node: (
               <MobileBalanceCard
+                balanceItem={item}
                 userId={item.user_id}
                 amountCents={item.amount_cents}
                 isIncoming={true}
@@ -272,7 +273,10 @@ export default function MobileSettlePage() {
                 onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
               />
             )}))}
-            customDateKey={() => new Date().toISOString()}
+            customDateKey={(item) => {
+              const balanceItem = (item as { node?: React.ReactNode }).node as React.ReactElement<{ balanceItem?: { created_at?: string } }> | undefined;
+              return balanceItem?.props?.balanceItem?.created_at ?? 'today';
+            }}
             userMap={{}}
             emptyState={emptyState('No one owes you. The pit is quiet.')}
           />
@@ -282,6 +286,7 @@ export default function MobileSettlePage() {
           <MobileFeedList
             items={outgoingItems.map((item) => ({ kind: 'custom' as const, id: `outgoing-${item.user_id}`, node: (
               <MobileBalanceCard
+                balanceItem={item}
                 userId={item.user_id}
                 amountCents={item.amount_cents}
                 isIncoming={false}
@@ -289,7 +294,10 @@ export default function MobileSettlePage() {
                 onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
               />
             )}))}
-            customDateKey={() => new Date().toISOString()}
+            customDateKey={(item) => {
+              const balanceItem = (item as { node?: React.ReactNode }).node as React.ReactElement<{ balanceItem?: { created_at?: string } }> | undefined;
+              return balanceItem?.props?.balanceItem?.created_at ?? 'today';
+            }}
             userMap={{}}
             emptyState={emptyState("You don't owe anyone. Your honor is intact.")}
           />
@@ -370,7 +378,6 @@ export default function MobileSettlePage() {
                 );
               })(),
             }))}
-            customDateKey={(item) => (item as { node?: { props?: { item?: { created_at?: string } } } }).node?.props?.item?.created_at ?? new Date().toISOString()}
             userMap={{}}
             hasNextPage={hasNextRequests}
             isFetchingNextPage={isFetchingNextRequests}

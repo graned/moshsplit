@@ -36,6 +36,7 @@ export interface SettlementListItem {
 export interface IncomingBalanceItem {
   user_id: string;
   amount_cents: number; // always positive
+  created_at: string;
 }
 
 export interface IncomingBalancesResponse {
@@ -47,6 +48,7 @@ export interface IncomingBalancesResponse {
 export interface OutgoingBalanceItem {
   user_id: string;
   amount_cents: number; // always positive
+  created_at: string;
 }
 
 export interface OutgoingBalancesResponse {
