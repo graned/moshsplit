@@ -14,6 +14,8 @@ import { MobileFeedCard } from '../../components/feed/mobile/MobileFeedCard';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
 import { MobileTransactionCard } from '../../components/feed/mobile/cards/MobileTransactionCard';
 import { RestoreHonorModal } from '../../components/settlements/RestoreHonorModal';
+import { MobileIncomingBalanceDrawer } from '../../components/settlements/mobile/MobileIncomingBalanceDrawer';
+import { MobileOutgoingBalanceDrawer } from '../../components/settlements/mobile/MobileOutgoingBalanceDrawer';
 import { SettlementReviewPanel } from '../../components/settlements/SettlementReviewPanel';
 
 function formatAmount(cents: number, currency = 'EUR') {
@@ -132,9 +134,27 @@ export default function MobileSettlePage() {
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [reviewSettlement, setReviewSettlement] = useState<SettlementListItem | null>(null);
 
+  // Incoming balance drawer state
+  const [incomingDrawerItem, setIncomingDrawerItem] = useState<IncomingBalanceItem | null>(null);
+  const [incomingDrawerOpen, setIncomingDrawerOpen] = useState(false);
+
+  // Outgoing balance drawer state
+  const [outgoingDrawerItem, setOutgoingDrawerItem] = useState<OutgoingBalanceItem | null>(null);
+  const [outgoingDrawerOpen, setOutgoingDrawerOpen] = useState(false);
+
   const handleOpenRestoreHonor = (userId: string, amountCents: number) => {
     setRestoreHonorTarget({ userId, amountCents });
     setRestoreHonorOpen(true);
+  };
+
+  const handleOpenIncomingDrawer = (item: IncomingBalanceItem) => {
+    setIncomingDrawerItem(item);
+    setIncomingDrawerOpen(true);
+  };
+
+  const handleOpenOutgoingDrawer = (item: OutgoingBalanceItem) => {
+    setOutgoingDrawerItem(item);
+    setOutgoingDrawerOpen(true);
   };
 
   const handleOpenReviewPanel = (settlement: SettlementListItem) => {
@@ -270,7 +290,7 @@ export default function MobileSettlePage() {
                 amountCents={item.amount_cents}
                 isIncoming={true}
                 currency={currency}
-                onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
+                onClick={() => handleOpenIncomingDrawer(item)}
               />
             )}))}
             customDateKey={(item) => {
@@ -291,7 +311,7 @@ export default function MobileSettlePage() {
                 amountCents={item.amount_cents}
                 isIncoming={false}
                 currency={currency}
-                onClick={() => handleOpenRestoreHonor(item.user_id, item.amount_cents)}
+                onClick={() => handleOpenOutgoingDrawer(item)}
               />
             )}))}
             customDateKey={(item) => {
@@ -417,6 +437,22 @@ export default function MobileSettlePage() {
           fromUserId={userId!}
         />
       )}
+
+      <MobileIncomingBalanceDrawer
+        open={incomingDrawerOpen}
+        onClose={() => setIncomingDrawerOpen(false)}
+        balanceItem={incomingDrawerItem}
+        currency={currency}
+        onSettle={handleOpenRestoreHonor}
+      />
+
+      <MobileOutgoingBalanceDrawer
+        open={outgoingDrawerOpen}
+        onClose={() => setOutgoingDrawerOpen(false)}
+        balanceItem={outgoingDrawerItem}
+        currency={currency}
+        onSettle={handleOpenRestoreHonor}
+      />
 
       {reviewSettlement && (
         <SettlementReviewPanel
