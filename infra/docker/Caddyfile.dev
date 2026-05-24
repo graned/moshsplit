@@ -1,0 +1,158 @@
+# MoshSplit — Development Caddyfile
+# =================================
+# Mirrors the production Caddyfile topology but runs over plain HTTP.
+# Caddy will NOT attempt ACME on *.localhost — the explicit `http://` site
+# block forces HTTP-only mode, eliminating mkcert / self-signed cert friction.
+#
+# Environment Variables:
+#   {$MOSHSPLIT_URL} - Defaults to moshsplit.localhost (override via .env or -e)
+#
+# Routing (identical to production):
+#   sentinel.{$MOSHSPLIT_URL} -> Sentinel UI (management dashboard)
+#   /sentinel/*             -> Sentinel API (auth service)
+#   /pitboss/*              -> Pitboss API (backend API)
+#   /moshsplit/*            -> Web frontend (React PWA)
+#   /                       -> Web frontend (default)
+#
+# HMR Note: Caddy's reverse_proxy handles WebSocket upgrades transparently.
+# Vite connects to ws://moshsplit.localhost/moshsplit/@vite/* which Caddy
+# forwards to web:5173.
+
+{
+    # Skip ACME challenges for *.localhost — RFC 6761 reserved, no CA issues certs.
+    # Explicitly using an http:// site block below, so this is belt-and-suspenders.
+    admin off
+}
+
+# ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────
+# Access at: http://sentinel.moshsplit.localhost/
+# Explicit http:// so Caddy never attempts TLS / ACME here.
+http://sentinel.{$MOSHSPLIT_URL:-moshsplit.localhost} {
+    # Map any sentinel.{MOSHSPLIT_URL} variant in dev; default to moshsplit.localhost
+    @sentinel_host {
+        header X-Forwarded-Host sentinel.{$MOSHSPLIT_URL}
+    }
+    reverse_proxy sentinel-ui:80 {
+        header_up Host sentinel.{$MOSHSPLIT_URL}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host sentinel.{$MOSHSPLIT_URL}
+    }
+}
+
+# ── Main Application ──────────────────────────────────────────────────────────
+# Explicit http:// so Caddy never attempts TLS / ACME in dev.
+http://{$MOSHSPLIT_URL:-moshsplit.localhost} {
+    # Enable compression
+    encode gzip zstd
+
+    # Logging — stdout for docker logs
+    log {
+        output stdout
+        format json
+    }
+
+    # ── Sentinel Auth Service ──────────────────────────────────────────────
+    # Routes: /sentinel/* -> sentinel:8000
+    # Strips /sentinel prefix before forwarding (mirrors prod)
+    @sentinel {
+        path /sentinel/*
+    }
+    handle @sentinel {
+        uri strip_prefix /sentinel
+        reverse_proxy sentinel:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # ── Pitboss API Service ────────────────────────────────────────────────
+    # Routes: /pitboss/* -> pitboss-api:8080
+    # Strips /pitboss prefix before forwarding (mirrors prod)
+    @pitboss {
+        path /pitboss/*
+    }
+    handle @pitboss {
+        uri strip_prefix /pitboss
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            header_up Authorization {header.Authorization}
+        }
+    }
+
+    # ── Web Frontend (MoshSplit) ────────────────────────────────────────────
+    # Routes: /moshsplit/* -> web:5173 (Vite HMR port)
+    #
+    # NOTE: NO strip_prefix here. Vite is configured with base: '/moshsplit/'
+    # and bootstraps internally at that path. If Caddy stripped the prefix,
+    # Vite would see the request as '/' and redirect to '/moshsplit/' — creating
+    # an infinite loop. The path matcher above (/moshsplit/*) is sufficient;
+    # the full path is passed through so Vite sees /moshsplit/ and matches its base.
+    #
+    # Caddy's reverse_proxy handles WebSocket upgrade transparently,
+    # so Vite HMR over ws://moshsplit.localhost/moshsplit/@vite/* works.
+    @moshsplit {
+        path /moshsplit/*
+    }
+    handle @moshsplit {
+        reverse_proxy web:5173 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+        }
+    }
+
+    # ── Root-level Assets (dev-only rewrite) ────────────────────────────────
+    # The React app uses absolute /assets/... paths that work in prod because
+    # nginx is path-agnostic. In dev, Vite's base: '/moshsplit/' means public/
+    # assets are only served at /moshsplit/assets/*.
+    # This handler rewrites root-level asset requests internally (no redirect)
+    # to /moshsplit/... so Vite serves them correctly. Placed before @default
+    # so it takes priority over the catch-all.
+    @rootAssets {
+        path /assets/*
+        path /favicon.svg
+        path /favicon.png
+        path /robots.txt
+        path /config.js
+        path /pwa-192x192.png
+        path /pwa-512x512.png
+        path /login.png
+        path /viralatas-moshsplit.png
+        path /background.png
+        path /background.svg
+        path /background-moshsplit.webp
+    }
+    handle @rootAssets {
+        rewrite * /moshsplit{uri}
+        reverse_proxy web:5173 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+        }
+    }
+
+    # ── Default Route ──────────────────────────────────────────────────────
+    # All other requests go to the web frontend — allows React Router
+    # to handle client-side navigation (mirrors prod)
+    @default {
+        not path /sentinel/*
+        not path /pitboss/*
+        not path /moshsplit/*
+    }
+    handle @default {
+        reverse_proxy web:5173 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+}
