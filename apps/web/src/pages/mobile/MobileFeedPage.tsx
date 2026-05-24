@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer } from '@mui/material';
-import { People as PeopleIcon, RssFeed as BattleLogIcon, AttachMoney as SpentIcon, CheckCircle as SettledIcon, Pending as OutstandingIcon } from '@mui/icons-material';
+import { People as PeopleIcon, RssFeed as BattleLogIcon, AttachMoney as SpentIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
@@ -10,6 +10,7 @@ import { balancesApi } from '../../api/balances.api';
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
 import { FeedList } from '../../components/feed';
+import { getPainLevel } from '../../utils/damage';
 
 const ACTIVITY_FILTERS = [
   { value: undefined, label: 'All' },
@@ -25,6 +26,72 @@ function formatAmount(cents: number, currency = 'EUR') {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
+}
+
+function getPainDisplay(label: string) {
+  const styleMap: Record<string, { color: string; glow: string; fontWeight: number }> = {
+    none:      { color: alpha('#6B7280', 0.35), glow: 'none',                           fontWeight: 400 },
+    nuisance:  { color: alpha('#A3A3A3', 0.5),  glow: 'none',                           fontWeight: 400 },
+    moderate:  { color: alpha('#FBBF24', 0.6),  glow: '0 0 6px rgba(251,191,36,0.15)',  fontWeight: 500 },
+    severe:    { color: alpha('#F97316', 0.7),  glow: '0 0 8px rgba(249,115,22,0.25)',  fontWeight: 600 },
+    critical:  { color: alpha('#EF4444', 0.8),  glow: '0 0 10px rgba(239,68,68,0.3)',   fontWeight: 700 },
+    legendary: { color: '#F59E0B',              glow: '0 0 16px rgba(245,158,11,0.55)', fontWeight: 800 },
+  };
+  return styleMap[label] ?? styleMap.none;
+}
+
+function getPainAnimationStyle(label: string): Record<string, any> {
+  switch (label) {
+    case 'none':
+    case 'nuisance':
+      return {
+        animation: 'painFadeIn 0.6s ease-out',
+        '@keyframes painFadeIn': {
+          '0%': { opacity: 0, transform: 'translateY(4px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+      };
+    case 'moderate':
+      return {
+        animation: 'painGentlePulse 3s ease-in-out infinite',
+        '@keyframes painGentlePulse': {
+          '0%, 100%': { opacity: 0.65 },
+          '50%': { opacity: 1 },
+        },
+      };
+    case 'severe':
+      return {
+        animation: 'painStrongPulse 2.5s ease-in-out infinite',
+        '@keyframes painStrongPulse': {
+          '0%, 100%': { opacity: 0.65, filter: 'brightness(1)' },
+          '50%': { opacity: 1, filter: 'brightness(1.3)' },
+        },
+      };
+    case 'critical':
+      return {
+        animation: 'painCriticalPulse 1.8s ease-in-out infinite',
+        '@keyframes painCriticalPulse': {
+          '0%, 100%': { opacity: 0.7, filter: 'brightness(1)' },
+          '50%': { opacity: 1, filter: 'brightness(1.5)' },
+        },
+      };
+    case 'legendary':
+      return {
+        background: 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 30%, #FDE68A 50%, #FBBF24 70%, #F59E0B 100%)',
+        backgroundSize: '200% 100%',
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        animation: 'painShimmer 4s ease-in-out infinite',
+        '@keyframes painShimmer': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
+      };
+    default:
+      return {};
+  }
 }
 
 export default function MobileFeedPage() {
@@ -194,28 +261,29 @@ export default function MobileFeedPage() {
           </Box>
         </Box>
 
-        {/* Glass festival overview cards */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.08), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <SpentIcon sx={{ fontSize: 14, color: alpha('#fff', 0.6) }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Spent</Typography>
+        {/* Total Damage card - hero stat */}
+        <Box sx={{ display: 'flex', mb: 1.5 }}>
+          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, textAlign: 'center', bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.25), backdropFilter: 'blur(8px)', boxShadow: '0 0 24px rgba(245, 158, 11, 0.08)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+              <SpentIcon sx={{ fontSize: 15, color: '#F59E0B' }} />
+              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Damage</Typography>
             </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: 'text.primary' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{formatAmount(stats?.total_spent_cents ?? 0, currency)}</Typography>}
-          </Box>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <SettledIcon sx={{ fontSize: 14, color: '#10b981' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settled</Typography>
-            </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(stats?.total_settled_cents ?? 0, currency)}</Typography>}
-          </Box>
-          <Box sx={{ flex: 1, p: 1, borderRadius: 1.5, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <OutstandingIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</Typography>
-            </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: '#F59E0B' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#F59E0B' }}>{formatAmount(stats?.outstanding_cents ?? 0, currency)}</Typography>}
+            {statsLoading ? (
+              <CircularProgress size={22} sx={{ color: '#F59E0B' }} />
+            ) : (
+              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.3 }}>
+                {formatAmount(stats?.total_spent_cents ?? 0, currency)}
+              </Typography>
+            )}
+            {(() => {
+              const pain = getPainLevel(stats?.total_spent_cents ?? 0);
+              const display = getPainDisplay(pain.label);
+              return (
+                <Typography sx={{ fontSize: '0.85rem', color: display.color, mt: 0.5, fontStyle: 'italic', fontWeight: display.fontWeight, textShadow: display.glow, ...getPainAnimationStyle(pain.label) }}>
+                  {pain.text}
+                </Typography>
+              );
+            })()}
           </Box>
         </Box>
 

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, alpha } from '@mui/material';
 import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import { useActivityFeed } from '../../../hooks/useActivityFeed';
 import { ActivityItem, isExpenseActivity, isSettlementActivity, isHonorRestoredActivity, isMemberJoinActivity } from '../../../api/activity.api';
@@ -9,6 +9,56 @@ import { SettlementFeedCard } from '../cards/SettlementFeedCard';
 import { HonorRestoredFeedCard } from '../cards/HonorRestoredFeedCard';
 import { MemberJoinCard } from '../cards/MemberJoinCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
+
+function getDateLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = today.getTime() - target.getTime();
+  if (diff === 0) return 'Today';
+  if (diff === 86400000) return 'Yesterday';
+  return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(d);
+}
+
+function DayHeader({ dateStr }: { dateStr: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.75 }}>
+      <Box sx={{ flex: 1, height: 1, bgcolor: alpha('#fff', 0.06) }} />
+      <Typography
+        sx={{
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          color: alpha('#fff', 0.35),
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {getDateLabel(dateStr)}
+      </Typography>
+      <Box sx={{ flex: 1, height: 1, bgcolor: alpha('#fff', 0.06) }} />
+    </Box>
+  );
+}
+
+type FeedDisplayItem =
+  | { kind: 'day-header'; date: string }
+  | { kind: 'activity'; item: ActivityItem };
+
+function groupByDay(items: ActivityItem[]): FeedDisplayItem[] {
+  const result: FeedDisplayItem[] = [];
+  let lastDate = '';
+  for (const item of items) {
+    const date = item.created_at.slice(0, 10);
+    if (date !== lastDate) {
+      lastDate = date;
+      result.push({ kind: 'day-header', date });
+    }
+    result.push({ kind: 'activity', item });
+  }
+  return result;
+}
 
 interface FeedListProps {
   eventId: string;
@@ -52,10 +102,18 @@ export function FeedList({
     return items.filter((item) => item.type === activityType);
   }, [items, activityType]);
 
+  const displayItems = useMemo(() => groupByDay(filteredItems), [filteredItems]);
+
   const getUser = useCallback((id: string) => userMap[id], [userMap]);
 
-  const renderActivityItem = useCallback(
-    (item: ActivityItem) => {
+  const renderDisplayItem = useCallback(
+    (displayItem: FeedDisplayItem) => {
+      if (displayItem.kind === 'day-header') {
+        return <DayHeader key={displayItem.date} dateStr={displayItem.date} />;
+      }
+
+      const item = displayItem.item;
+
       if (isExpenseActivity(item)) {
         const paidBy = getUser(item.paid_by);
 
@@ -159,8 +217,8 @@ export function FeedList({
 
   return (
     <MobileCardList
-      items={filteredItems}
-      renderItem={renderActivityItem}
+      items={displayItems}
+      renderItem={renderDisplayItem}
       isLoading={isLoading}
       isError={isError}
       error="Failed to load activity feed"
