@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer, Avatar } from '@mui/material';
+import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer } from '@mui/material';
 import { RssFeed as BattleLogIcon, AttachMoney as SpentIcon, Close as CloseIcon, Leaderboard as LeaderboardIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
@@ -12,7 +12,7 @@ import { useActivityFeed } from '../../hooks/useActivityFeed';
 import { useUIStore } from '../../stores/uiStore';
 import { MobileFeedList } from '../../components/feed';
 import { getPainLevel } from '../../utils/damage';
-import { MobilePageHeader } from '../../components/shared';
+import { MobilePageHeader, SpendingLadder } from '../../components/shared';
 import { FilterDrawerLauncher, FilterDrawerContent } from '../../components/shared/filters';
 import { isExpenseActivity } from '../../api/activity.api';
 
@@ -207,7 +207,7 @@ export default function MobileFeedPage() {
     { value: 'member_join', label: 'Joins', count: activityTypeCounts['member_join'] || 0 },
   ];
 
-  
+
 
   const handleFilterToggle = (value: string) => {
     if (value === 'all') {
@@ -367,13 +367,13 @@ export default function MobileFeedPage() {
       >
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: 2, pb: 1 }}>
-          <Typography variant="h6" fontWeight={800} fontSize="1.1rem" sx={{ color: '#fff' }}>Leaderboard</Typography>
+          <Typography variant="h6" fontWeight={800} fontSize="1.1rem" sx={{ color: '#fff' }}>Slaughter Board</Typography>
           <IconButton onClick={() => setCrewDrawerOpen(false)} size="small" sx={{ color: alpha('#fff', 0.4), '&:hover': { color: '#fff' } }}>
             <CloseIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Box>
 
-        {/* Leaderboard */}
+        {/* Slaughter Board */}
         <Box
           sx={{
             flex: 1,
@@ -382,24 +382,24 @@ export default function MobileFeedPage() {
             py: 1.5,
             display: 'flex',
             flexDirection: 'column',
-            gap: 0.75,
+            gap: 0.25,
           }}
         >
-          {spendingLadder.map(({ userId, amount, rank, user }) => {
-            const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0] : userId.slice(0, 8);
-            const top3 = rank <= 3;
-            const medalIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-            return (
-              <Box key={userId} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1, borderRadius: 2, bgcolor: top3 ? alpha('#F59E0B', 0.06) : alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: top3 ? alpha('#F59E0B', 0.2) : alpha('#fff', 0.06) }}>
-                <Typography sx={{ fontSize: rank <= 3 ? '1.1rem' : '0.85rem', fontWeight: 900, minWidth: 32, textAlign: 'center', flexShrink: 0 }}>{medalIcon}</Typography>
-                <Avatar sx={{ width: 38, height: 38, bgcolor: top3 ? alpha('#F59E0B', 0.2) : '#1E1E1E', color: top3 ? '#F59E0B' : '#fff', fontSize: '0.85rem', fontWeight: 800, flexShrink: 0, border: top3 ? `2px solid ${alpha('#F59E0B', 0.3)}` : 'none', boxShadow: top3 ? (rank === 1 ? '0 0 20px rgba(255, 215, 0, 0.5)' : rank === 2 ? '0 0 16px rgba(192, 192, 192, 0.4)' : '0 0 12px rgba(205, 127, 50, 0.4)') : 'none' }}>
-                  {name.charAt(0).toUpperCase()}
-                </Avatar>
-                <Typography sx={{ flex: 1, fontSize: '0.9rem', fontWeight: 700, color: top3 ? '#F59E0B' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: top3 ? '#F59E0B' : alpha('#fff', 0.7), flexShrink: 0 }}>{formatAmount(amount, currency)}</Typography>
-              </Box>
-            );
-          })}
+          <SpendingLadder
+            entries={spendingLadder.map(({ userId, rank, amount, user }) => ({
+              rank,
+              amount,
+              displayName: user ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0] : userId.slice(0, 8),
+            }))}
+            currency={currency}
+            formatAmount={formatAmount}
+            banners={{ 1: '/moshsplit/banner_first.svg', 2: '/moshsplit/second_banner.svg', 3: '/moshsplit/third_banner.svg' }}
+            logos={{
+              1: { src: '/moshsplit/doggo_first.svg', width: 120, height: 120 },
+              2: { src: '/moshsplit/doggo_second.svg', width: 105, height: 75 },
+              3: { src: '/moshsplit/doggo_third.svg', width: 105, height: 70 },
+            }}
+          />
         </Box>
       </Drawer>
 

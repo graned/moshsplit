@@ -255,16 +255,18 @@ export default function MobileSettlePage() {
       <Box sx={{ flexGrow: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', px: 2, pt: 2, pb: 4 }}>
         {activeTabFilter === 'incoming' && (
           <MobileFeedList
-            items={incomingItems.map((item) => ({ kind: 'custom' as const, id: `incoming-${item.user_id}`, node: (
-              <MobileBalanceCard
-                balanceItem={item}
-                userId={item.user_id}
-                amountCents={item.amount_cents}
-                isIncoming={true}
-                currency={currency}
-                onClick={() => handleOpenIncomingDrawer(item)}
-              />
-            )}))}
+            items={incomingItems.map((item) => ({
+              kind: 'custom' as const, id: `incoming-${item.user_id}`, node: (
+                <MobileBalanceCard
+                  balanceItem={item}
+                  userId={item.user_id}
+                  amountCents={item.amount_cents}
+                  isIncoming={true}
+                  currency={currency}
+                  onClick={() => handleOpenIncomingDrawer(item)}
+                />
+              )
+            }))}
             customDateKey={(item) => {
               const balanceItem = (item as { node?: React.ReactNode }).node as React.ReactElement<{ balanceItem?: { created_at?: string } }> | undefined;
               return balanceItem?.props?.balanceItem?.created_at ?? 'today';
@@ -276,16 +278,18 @@ export default function MobileSettlePage() {
 
         {activeTabFilter === 'outgoing' && (
           <MobileFeedList
-            items={outgoingItems.map((item) => ({ kind: 'custom' as const, id: `outgoing-${item.user_id}`, node: (
-              <MobileBalanceCard
-                balanceItem={item}
-                userId={item.user_id}
-                amountCents={item.amount_cents}
-                isIncoming={false}
-                currency={currency}
-                onClick={() => handleOpenOutgoingDrawer(item)}
-              />
-            )}))}
+            items={outgoingItems.map((item) => ({
+              kind: 'custom' as const, id: `outgoing-${item.user_id}`, node: (
+                <MobileBalanceCard
+                  balanceItem={item}
+                  userId={item.user_id}
+                  amountCents={item.amount_cents}
+                  isIncoming={false}
+                  currency={currency}
+                  onClick={() => handleOpenOutgoingDrawer(item)}
+                />
+              )
+            }))}
             customDateKey={(item) => {
               const balanceItem = (item as { node?: React.ReactNode }).node as React.ReactElement<{ balanceItem?: { created_at?: string } }> | undefined;
               return balanceItem?.props?.balanceItem?.created_at ?? 'today';
@@ -380,12 +384,14 @@ export default function MobileSettlePage() {
 
         {activeTabFilter === 'history' && (
           <MobileFeedList
-            items={historyItems.map((item) => ({ kind: 'custom' as const, id: item.id, node: (
-              <MobileTransactionCard
-                item={item}
-                currency={currency}
-              />
-            )}))}
+            items={historyItems.map((item) => ({
+              kind: 'custom' as const, id: item.id, node: (
+                <MobileTransactionCard
+                  item={item}
+                  currency={currency}
+                />
+              )
+            }))}
             customDateKey={(item) => (item as { node?: { props?: { item?: { created_at?: string } } } }).node?.props?.item?.created_at ?? new Date().toISOString()}
             userMap={{}}
             hasNextPage={hasNextHistory}
