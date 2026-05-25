@@ -11,7 +11,7 @@
 #   /sentinel/*      -> Sentinel API (auth service)
 #   /pitboss/*   -> Pitboss API (backend API)
 #   /moshsplit/* -> Web frontend (React PWA)
-#   /            -> Web frontend (default)
+#   /            -> Redirects to /moshsplit/
 
 # ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────
 # Access at: https://sentinel.viralatas.org/
@@ -116,8 +116,8 @@ sentinel.viralatas.org {
     }
 
     # ── Default Route ──────────────────────────────────────────────────────
-    # All other requests go to the web frontend
-    # This allows the React router to handle client-side routing
+    # Redirect / to /moshsplit/ so users don't need to type the base path.
+    # The React app serves exclusively under /moshsplit/ (Vite base config).
     @default {
         not path /sentinel/*
         not path /pitboss/*
@@ -127,13 +127,7 @@ sentinel.viralatas.org {
         not path /v1/*
     }
     handle @default {
-        reverse_proxy web:80 {
-            header_up Host {host}
-            header_up X-Real-IP {remote}
-            header_up X-Forwarded-For {remote}
-            header_up X-Forwarded-Proto {scheme}
-            header_up X-Forwarded-Host {host}
-        }
+        redir /moshsplit/ 301
     }
 }
 
