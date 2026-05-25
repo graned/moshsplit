@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer, Avatar, Tabs, Tab } from '@mui/material';
-import { People as PeopleIcon, RssFeed as BattleLogIcon, AttachMoney as SpentIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer, Avatar } from '@mui/material';
+import { RssFeed as BattleLogIcon, AttachMoney as SpentIcon, Close as CloseIcon, Leaderboard as LeaderboardIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
@@ -207,7 +207,7 @@ export default function MobileFeedPage() {
     { value: 'member_join', label: 'Joins', count: activityTypeCounts['member_join'] || 0 },
   ];
 
-  const [crewTab, setCrewTab] = useState(0);
+  
 
   const handleFilterToggle = (value: string) => {
     if (value === 'all') {
@@ -283,7 +283,7 @@ export default function MobileFeedPage() {
               onClick={() => setCrewDrawerOpen(true)}
               sx={{ color: '#fff', width: 28, height: 28, bgcolor: alpha('#fff', 0.1) }}
             >
-              <PeopleIcon sx={{ fontSize: 16 }} />
+              <LeaderboardIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Badge>
         }
@@ -367,199 +367,40 @@ export default function MobileFeedPage() {
       >
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: 2, pb: 1 }}>
-          <Typography variant="h6" fontWeight={800} fontSize="1.1rem" sx={{ color: '#fff' }}>The Crew</Typography>
+          <Typography variant="h6" fontWeight={800} fontSize="1.1rem" sx={{ color: '#fff' }}>Leaderboard</Typography>
           <IconButton onClick={() => setCrewDrawerOpen(false)} size="small" sx={{ color: alpha('#fff', 0.4), '&:hover': { color: '#fff' } }}>
             <CloseIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Box>
 
-        {/* Title section with tabs */}
-        <Box sx={{ px: 2, pb: 1.5, borderBottom: '1px solid', borderColor: alpha('#fff', 0.06) }}>
-          <Tabs
-            value={crewTab}
-            onChange={(_, v) => setCrewTab(v)}
-            variant="fullWidth"
-            sx={{
-              mb: 1,
-              '& .MuiTabs-indicator': {
-                bgcolor: '#F59E0B',
-                height: 2,
-              },
-              '& .MuiTab-root': {
-                color: alpha('#fff', 0.4),
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                textTransform: 'none',
-                py: 0.5,
-                minHeight: 36,
-              },
-              '& .MuiTab-root.Mui-selected': {
-                color: '#F59E0B',
-              },
-            }}
-          >
-            <Tab label="The Crew" />
-            <Tab label="Spenders" />
-          </Tabs>
-          {crewTab === 0 && (
-            <Typography
-              sx={{
-                fontSize: '0.7rem',
-                textAlign: 'center',
-                color: alpha('#fff', 0.4),
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-              }}
-            >
-              {crewCount} {crewCount === 1 ? 'survivor' : 'survivors'} in the pit
-            </Typography>
-          )}
-          {crewTab === 1 && (
-            <Typography
-              sx={{
-                fontSize: '0.7rem',
-                textAlign: 'center',
-                color: alpha('#fff', 0.4),
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-              }}
-            >
-              ranked by total spent
-            </Typography>
-          )}
+        {/* Leaderboard */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            px: 2,
+            py: 1.5,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.75,
+          }}
+        >
+          {spendingLadder.map(({ userId, amount, rank, user }) => {
+            const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0] : userId.slice(0, 8);
+            const top3 = rank <= 3;
+            const medalIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+            return (
+              <Box key={userId} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1, borderRadius: 2, bgcolor: top3 ? alpha('#F59E0B', 0.06) : alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: top3 ? alpha('#F59E0B', 0.2) : alpha('#fff', 0.06) }}>
+                <Typography sx={{ fontSize: rank <= 3 ? '1.1rem' : '0.85rem', fontWeight: 900, minWidth: 32, textAlign: 'center', flexShrink: 0 }}>{medalIcon}</Typography>
+                <Avatar sx={{ width: 38, height: 38, bgcolor: top3 ? alpha('#F59E0B', 0.2) : '#1E1E1E', color: top3 ? '#F59E0B' : '#fff', fontSize: '0.85rem', fontWeight: 800, flexShrink: 0, border: top3 ? `2px solid ${alpha('#F59E0B', 0.3)}` : 'none', boxShadow: top3 ? (rank === 1 ? '0 0 20px rgba(255, 215, 0, 0.5)' : rank === 2 ? '0 0 16px rgba(192, 192, 192, 0.4)' : '0 0 12px rgba(205, 127, 50, 0.4)') : 'none' }}>
+                  {name.charAt(0).toUpperCase()}
+                </Avatar>
+                <Typography sx={{ flex: 1, fontSize: '0.9rem', fontWeight: 700, color: top3 ? '#F59E0B' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
+                <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: top3 ? '#F59E0B' : alpha('#fff', 0.7), flexShrink: 0 }}>{formatAmount(amount, currency)}</Typography>
+              </Box>
+            );
+          })}
         </Box>
-
-        {/* Tab Content */}
-        {crewTab === 0 ? (
-          <Box
-            sx={{
-              flex: 1,
-              overflowY: 'auto',
-              px: 2,
-              py: 1.5,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-            }}
-          >
-            {enrichedMembers.map((member, index) => {
-              const sentinel = sentinelUsers[member.user_id];
-              const firstName = sentinel?.firstName ?? member.user_name?.split(' ')[0] ?? '';
-              const lastName = sentinel?.lastName ?? member.user_name?.split(' ').slice(1).join(' ') ?? '';
-              const email = sentinel?.email ?? member.user_email ?? '';
-              const initials = `${(firstName?.[0] ?? '').toUpperCase()}${(lastName?.[0] ?? '').toUpperCase()}`;
-              const isCurrentUser = member.user_id === userId;
-              const role = member.role;
-
-              const avatarColors = [
-                { bg: '#F59E0B', color: '#121212' },
-                { bg: '#ef4444', color: '#fff' },
-                { bg: '#10b981', color: '#fff' },
-                { bg: '#6366f1', color: '#fff' },
-                { bg: '#f472b6', color: '#fff' },
-                { bg: '#14b8a6', color: '#fff' },
-                { bg: '#f97316', color: '#fff' },
-                { bg: '#8b5cf6', color: '#fff' },
-              ];
-              const colorScheme = isCurrentUser
-                ? { bg: 'primary.main', color: '#121212' }
-                : avatarColors[index % avatarColors.length];
-
-              return (
-                <Box
-                  key={member.user_id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    p: 1.5,
-                    borderRadius: 2,
-                    bgcolor: isCurrentUser ? alpha('#F59E0B', 0.08) : alpha('#1E1E1E', 0.5),
-                    border: '1px solid',
-                    borderColor: isCurrentUser ? alpha('#F59E0B', 0.25) : alpha('#fff', 0.06),
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: '50%',
-                      bgcolor: colorScheme.bg,
-                      color: colorScheme.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.9rem',
-                      fontWeight: 800,
-                      flexShrink: 0,
-                      boxShadow: isCurrentUser ? '0 0 16px rgba(245, 158, 11, 0.3)' : 'none',
-                    }}
-                  >
-                    {initials || '?'}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                      <Typography
-                        sx={{
-                          fontSize: '0.9rem',
-                          fontWeight: 700,
-                          color: isCurrentUser ? '#F59E0B' : '#fff',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {firstName} {lastName}
-                      </Typography>
-                      {isCurrentUser && (
-                        <Box sx={{ px: 0.75, py: 0.15, borderRadius: 100, bgcolor: alpha('#F59E0B', 0.15), border: '1px solid', borderColor: alpha('#F59E0B', 0.3), flexShrink: 0 }}>
-                          <Typography sx={{ fontSize: '0.55rem', fontWeight: 800, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>You</Typography>
-                        </Box>
-                      )}
-                      {role === 'admin' && (
-                        <Box sx={{ px: 0.75, py: 0.15, borderRadius: 100, bgcolor: alpha('#ef4444', 0.15), border: '1px solid', borderColor: alpha('#ef4444', 0.3), flexShrink: 0 }}>
-                          <Typography sx={{ fontSize: '0.55rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Admin</Typography>
-                        </Box>
-                      )}
-                    </Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: alpha('#fff', 0.35), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</Typography>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
-        ) : (
-          <Box
-            sx={{
-              flex: 1,
-              overflowY: 'auto',
-              px: 2,
-              py: 1.5,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0.75,
-            }}
-          >
-            {spendingLadder.map(({ userId, amount, rank, user }) => {
-              const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0] : userId.slice(0, 8);
-              const top3 = rank <= 3;
-              const medalIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-              return (
-                <Box key={userId} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1, borderRadius: 2, bgcolor: top3 ? alpha('#F59E0B', 0.06) : alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: top3 ? alpha('#F59E0B', 0.2) : alpha('#fff', 0.06) }}>
-                  <Typography sx={{ fontSize: rank <= 3 ? '1.1rem' : '0.85rem', fontWeight: 900, minWidth: 32, textAlign: 'center', flexShrink: 0 }}>{medalIcon}</Typography>
-                  <Avatar sx={{ width: 38, height: 38, bgcolor: top3 ? alpha('#F59E0B', 0.2) : '#1E1E1E', color: top3 ? '#F59E0B' : '#fff', fontSize: '0.85rem', fontWeight: 800, flexShrink: 0, border: top3 ? `2px solid ${alpha('#F59E0B', 0.3)}` : 'none', boxShadow: top3 ? (rank === 1 ? '0 0 20px rgba(255, 215, 0, 0.5)' : rank === 2 ? '0 0 16px rgba(192, 192, 192, 0.4)' : '0 0 12px rgba(205, 127, 50, 0.4)') : 'none' }}>
-                    {name.charAt(0).toUpperCase()}
-                  </Avatar>
-                  <Typography sx={{ flex: 1, fontSize: '0.9rem', fontWeight: 700, color: top3 ? '#F59E0B' : '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
-                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: top3 ? '#F59E0B' : alpha('#fff', 0.7), flexShrink: 0 }}>{formatAmount(amount, currency)}</Typography>
-                </Box>
-              );
-            })}
-          </Box>
-        )}
       </Drawer>
 
       <FilterDrawerContent
