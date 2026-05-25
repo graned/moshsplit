@@ -159,10 +159,8 @@ http://{$MOSHSPLIT_URL:-moshsplit.localhost} {
         }
     }
 
-    # ── Default Route ──────────────────────────────────────────────────────
-    # Redirect / to /moshsplit/ so users don't need to type the base path.
+    # ── Root Redirect ──────────────────────────────────────────────────────
+    # Redirect exact / to /moshsplit/ so users don't need to type the base path.
     # The React app serves exclusively under /moshsplit/ (Vite base config).
-    handle / {
-        redir /moshsplit/ 302
-    }
+    redir / /moshsplit/ 302
 }
