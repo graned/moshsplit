@@ -10,7 +10,7 @@ import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, typ
 import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
 import { MobileTabBar } from '../../components/shared/MobileTabBar';
-import { MobileFeedList } from '../../components/feed/mobile/MobileFeedList';
+import { MobileFeedList, type FeedDisplayItem } from '../../components/feed/mobile/MobileFeedList';
 import { MobileFeedCard } from '../../components/feed/mobile/MobileFeedCard';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
 import { MobileTransactionCard } from '../../components/feed/mobile/cards/MobileTransactionCard';
@@ -266,10 +266,11 @@ export default function MobileSettlePage() {
                   onClick={() => handleOpenIncomingDrawer(item)}
                 />
               )
-            }))}
-            customDateKey={(item) => {
-              const balanceItem = (item as { node?: React.ReactNode }).node as React.ReactElement<{ balanceItem?: { created_at?: string } }> | undefined;
-              return balanceItem?.props?.balanceItem?.created_at ?? 'today';
+            })) as FeedDisplayItem[]}
+            customDateKey={(item: any) => {
+              const displayItem = item as FeedDisplayItem;
+              const el = displayItem.kind === 'custom' ? displayItem.node as React.ReactElement<{ balanceItem?: { created_at?: string } }> : null;
+              return el?.props?.balanceItem?.created_at ?? 'today';
             }}
             userMap={{}}
             emptyState={emptyState('No one owes you. The pit is quiet.')}
@@ -289,10 +290,11 @@ export default function MobileSettlePage() {
                   onClick={() => handleOpenOutgoingDrawer(item)}
                 />
               )
-            }))}
-            customDateKey={(item) => {
-              const balanceItem = (item as { node?: React.ReactNode }).node as React.ReactElement<{ balanceItem?: { created_at?: string } }> | undefined;
-              return balanceItem?.props?.balanceItem?.created_at ?? 'today';
+            })) as FeedDisplayItem[]}
+            customDateKey={(item: any) => {
+              const displayItem = item as FeedDisplayItem;
+              const el = displayItem.kind === 'custom' ? displayItem.node as React.ReactElement<{ balanceItem?: { created_at?: string } }> : null;
+              return el?.props?.balanceItem?.created_at ?? 'today';
             }}
             userMap={{}}
             emptyState={emptyState("You don't owe anyone. Your honor is intact.")}
@@ -373,7 +375,7 @@ export default function MobileSettlePage() {
                   </MobileFeedCard>
                 );
               })(),
-            }))}
+            })) as FeedDisplayItem[]}
             userMap={{}}
             hasNextPage={hasNextRequests}
             isFetchingNextPage={isFetchingNextRequests}
@@ -391,8 +393,12 @@ export default function MobileSettlePage() {
                   currency={currency}
                 />
               )
-            }))}
-            customDateKey={(item) => (item as { node?: { props?: { item?: { created_at?: string } } } }).node?.props?.item?.created_at ?? new Date().toISOString()}
+            })) as FeedDisplayItem[]}
+            customDateKey={(item) => {
+              const displayItem = item as FeedDisplayItem;
+              const el = displayItem.kind === 'custom' ? displayItem.node as React.ReactElement<{ item?: { created_at?: string } }> : null;
+              return el?.props?.item?.created_at ?? new Date().toISOString();
+            }}
             userMap={{}}
             hasNextPage={hasNextHistory}
             isFetchingNextPage={isFetchingNextHistory}
