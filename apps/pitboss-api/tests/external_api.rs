@@ -18,7 +18,9 @@
 mod common;
 
 use common::{
-    assert_valid_envelope, get_json, post_json, post_json_with_auth, test_client, BASE_URL,
+    assert_valid_envelope, get_json, get_json_with_auth, parse_query_params,
+    patch_json_with_auth, post_json, post_json_follow_redirect, post_json_with_auth,
+    test_client, BASE_URL,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -47,11 +49,9 @@ const UNKNOWN_EMAIL: &str = "nonexistent@example.com";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Perform an external login and return the `access_token`.
-///
-/// Used as a pre-condition for tests that need a valid Bearer token.
+/// Perform an external login and return the `access_token` from redirect params.
 async fn login_and_get_token() -> String {
-    let (status, body) = post_json(
+    let result = post_json_follow_redirect(
         "/v1/auth/external-login",
         &json!({
             "api_token": VALID_API_TOKEN,
@@ -59,24 +59,18 @@ async fn login_and_get_token() -> String {
             "display_name": "Eduardo Anaya",
         }),
     )
-    .await;
+    .await
+    .expect("external-login setup call failed — is Sentinel running?");
 
-    assert_eq!(
-        status,
-        StatusCode::OK,
-        "external-login setup call failed — is Sentinel running?"
-    );
-    assert_valid_envelope(&body, true);
-
-    body["data"]["access_token"]
-        .as_str()
-        .expect("access_token should be a non-empty string in the response")
-        .to_string()
+    result
+        .get("access_token")
+        .cloned()
+        .expect("access_token should be in redirect params")
 }
 
-/// Perform an external login and return both `bearer_token` and `user_id`.
+/// Perform an external login and return both `access_token` and `user_id` from redirect params.
 async fn login_and_get_credentials() -> (String, String) {
-    let (status, body) = post_json(
+    let result = post_json_follow_redirect(
         "/v1/auth/external-login",
         &json!({
             "api_token": VALID_API_TOKEN,
@@ -84,23 +78,17 @@ async fn login_and_get_credentials() -> (String, String) {
             "display_name": "Eduardo Anaya",
         }),
     )
-    .await;
+    .await
+    .expect("external-login setup call failed — is Sentinel running?");
 
-    assert_eq!(
-        status,
-        StatusCode::OK,
-        "external-login setup call failed — is Sentinel running?"
-    );
-    assert_valid_envelope(&body, true);
-
-    let token = body["data"]["access_token"]
-        .as_str()
-        .expect("access_token should be present")
-        .to_string();
-    let user_id = body["data"]["user_id"]
-        .as_str()
-        .expect("user_id should be present")
-        .to_string();
+    let token = result
+        .get("access_token")
+        .cloned()
+        .expect("access_token should be in redirect params");
+    let user_id = result
+        .get("user_id")
+        .cloned()
+        .expect("user_id should be in redirect params");
 
     (token, user_id)
 }
@@ -185,7 +173,7 @@ async fn create_expense(
 
 #[tokio::test]
 async fn test_external_login_success() {
-    let (status, body) = post_json(
+    let result = post_json_follow_redirect(
         "/v1/auth/external-login",
         &json!({
             "api_token": VALID_API_TOKEN,
@@ -193,71 +181,90 @@ async fn test_external_login_success() {
             "display_name": "Eduardo Anaya",
         }),
     )
-    .await;
+    .await
+    .expect("external-login call failed");
 
-    assert_eq!(status, StatusCode::OK);
-    assert_valid_envelope(&body, true);
-
-    let data = &body["data"];
     assert!(
-        data["user_id"].as_str().unwrap_or("").len() > 0,
-        "data.user_id should be present and non-empty"
+        result.get("user_id").map(|s| !s.is_empty()).unwrap_or(false),
+        "user_id should be in redirect params"
     );
     assert!(
-        data["access_token"].as_str().unwrap_or("").len() > 0,
-        "data.access_token should be present and non-empty"
+        result.get("access_token").map(|s| !s.is_empty()).unwrap_or(false),
+        "access_token should be in redirect params"
     );
     assert!(
-        data["refresh_token"].as_str().unwrap_or("").len() > 0,
-        "data.refresh_token should be present and non-empty"
+        result.get("refresh_token").map(|s| !s.is_empty()).unwrap_or(false),
+        "refresh_token should be in redirect params"
     );
     assert!(
-        data["expires_at"].as_str().unwrap_or("").len() > 0,
-        "data.expires_at should be present and non-empty"
+        result.get("expires_at").map(|s| !s.is_empty()).unwrap_or(false),
+        "expires_at should be in redirect params"
     );
     assert_eq!(
-        data["email_verified"], true,
-        "data.email_verified should be true"
+        result.get("return_to").cloned(),
+        Some("/app".to_string()),
+        "return_to should be /app"
     );
 }
 
 #[tokio::test]
 async fn test_external_login_missing_email() {
-    // Omit the `email` field entirely — Axum's Json extractor rejects the
-    // request because `email` is a required field in `ExternalLoginRequest`.
-    let (status, body) = post_json(
-        "/v1/auth/external-login",
-        &json!({
+    let client = common::test_client();
+    let resp = client
+        .post(format!("{}/v1/auth/external-login", common::BASE_URL))
+        .json(&json!({
             "api_token": VALID_API_TOKEN,
             "display_name": "Test",
-        }),
-    )
-    .await;
+        }))
+        .send()
+        .await
+        .expect("HTTP request failed");
 
-    // Axum 0.8 returns 422 for Json deserialization failures.
-    // The response wrapper middleware wraps the error in the standard envelope.
+    let status = resp.status();
     assert!(
         status == StatusCode::UNPROCESSABLE_ENTITY
             || status == StatusCode::BAD_REQUEST,
         "expected 422 or 400 for missing email, got: {status}"
     );
-    assert_valid_envelope(&body, false);
 }
 
 #[tokio::test]
 async fn test_external_login_invalid_api_token() {
-    let (status, body) = post_json(
-        "/v1/auth/external-login",
-        &json!({
+    let client = common::test_client();
+    let resp = client
+        .post(format!("{}/v1/auth/external-login", common::BASE_URL))
+        .json(&json!({
             "api_token": INVALID_API_TOKEN,
             "email": KNOWN_EMAIL,
             "display_name": "Test",
-        }),
-    )
-    .await;
+        }))
+        .send()
+        .await
+        .expect("HTTP request failed");
 
-    assert_eq!(status, StatusCode::UNAUTHORIZED);
-    assert_valid_envelope(&body, false);
+    let status = resp.status();
+    let location = resp
+        .headers()
+        .get("location")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    assert_eq!(status, StatusCode::FOUND, "should redirect on error");
+    assert!(
+        location.as_ref().map(|l| l.contains("error=")).unwrap_or(false),
+        "redirect should contain error param"
+    );
+
+    if let Some(loc) = location {
+        if let Some(query_pos) = loc.find('?') {
+            let query = &loc[query_pos + 1..];
+            let params = parse_query_params(query);
+            assert!(
+                params.get("error").map(|s| !s.is_empty()).unwrap_or(false),
+                "error param should be present"
+            );
+        }
+    }
 }
 
 // ===========================================================================

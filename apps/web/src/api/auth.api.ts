@@ -86,16 +86,17 @@ export const authApi = {
     if (result.type === 'mfa') {
       throw new Error('MFA required');
     }
-    // Successfully got a session
+    const profile = await authClient.user.getMe(result.session.accessToken) as any;
     return {
       token: result.session.accessToken,
       refreshToken: result.session.refreshToken,
       user: {
         id: result.session.userId,
-        email: data.email,
-        name: '',
+        email: profile.email || data.email,
+        name: [profile.first_name || profile.firstName, profile.last_name || profile.lastName].filter(Boolean).join(' ') || '',
+        avatarUrl: profile.avatar_url || profile.avatarUrl || undefined,
         mfaEnabled: false,
-        createdAt: new Date().toISOString(),
+        createdAt: profile.created_at || profile.createdAt || new Date().toISOString(),
       },
     };
   },

@@ -64,10 +64,14 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     //   ));
 
     // ── Shared state ─────────────────────────────────────────────────
+    let frontend_base_url = std::env::var("FRONTEND_BASE_URL")
+        .unwrap_or_else(|_| "http://localhost:5173".to_string());
+
     let state = Arc::new(AppState {
         db_client,
         sentinel_client,
         sentinel_auth_client,
+        frontend_base_url,
         // event_app,
         // expense_app,
         // payment_app,

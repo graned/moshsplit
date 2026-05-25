@@ -27,14 +27,25 @@ class ApiClient {
     return this.token;
   }
 
+  private getCookieToken(): string | null {
+    const match = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('moshsplit_access_token='));
+    return match ? match.split('=')[1] : null;
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    if (this.token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
+    // Read from cookie first (SSO flow), fall back to store token
+    const cookieToken = this.getCookieToken();
+    const token = cookieToken || this.token;
+
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {

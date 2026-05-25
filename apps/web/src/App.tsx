@@ -4,13 +4,13 @@ import { AuthClient } from '@moshsplit/sentinel-sdk';
 import {
   SentinelAuthProvider,
   VerifyEmailPage,
-  ResetPasswordPage,
-  ChangePasswordForcedPage,
   useAuthStore,
 } from '@moshsplit/auth-react';
 
 import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import ChangePasswordForcedPage from './pages/auth/ChangePasswordForcedPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { UserCacheProvider } from './providers/UserCacheProvider';
 import { DeviceProvider, useDevice } from './providers/DeviceProvider';

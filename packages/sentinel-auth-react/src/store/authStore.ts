@@ -57,6 +57,15 @@ interface AuthState {
   setMfaSetupRequired: (val: boolean) => void;
   clearMfaSetupRequired: () => void;
   clearTokens: () => void;
+  /** Write SSO tokens to document.cookie for cross-context access */
+  setCookiesFromSso: (accessToken: string, refreshToken: string, userId: string) => void;
+}
+
+function writeCookies(accessToken: string, refreshToken: string, userId: string) {
+  const cookieOptions = 'path=/; SameSite=Lax; max-age=' + (7 * 24 * 60 * 60);
+  document.cookie = `moshsplit_access_token=${accessToken}; ${cookieOptions}`;
+  document.cookie = `moshsplit_refresh_token=${refreshToken}; ${cookieOptions}`;
+  document.cookie = `moshsplit_user_id=${userId}; ${cookieOptions}`;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -74,7 +83,9 @@ export const useAuthStore = create<AuthState>()(
       firstName: null,
       lastName: null,
       avatarUrl: null,
-      setSession: (userId, access, refresh, emailVerified, mustChangePassword = false) =>
+      setSession: (userId, access, refresh, emailVerified, mustChangePassword = false) => {
+        // Also write to cookies for SSO cross-context access
+        writeCookies(access, refresh, userId);
         set({
           userId,
           accessToken: access,
@@ -82,7 +93,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           emailVerified,
           mustChangePassword,
-        }),
+        });
+      },
       setIsAdmin: (isAdmin) => set({ isAdmin }),
       setUserProfile: (email, firstName, lastName, avatarUrl = null) => set({ userEmail: email, firstName, lastName, avatarUrl }),
       clearMustChangePassword: () => set({ mustChangePassword: false }),
@@ -103,6 +115,9 @@ export const useAuthStore = create<AuthState>()(
           lastName: null,
           avatarUrl: null,
         }),
+      setCookiesFromSso: (accessToken, refreshToken, userId) => {
+        writeCookies(accessToken, refreshToken, userId);
+      },
     }),
     { name: "sentinel-auth" },
   ),

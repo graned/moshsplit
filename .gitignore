@@ -64,3 +64,6 @@ vendor/*
 .opencode/package.json
 .opencode/package-lock.json
 .opencode/bun.lock
+
+# Sentinel auth-react build artifact (stray dist2 directory from docker build)
+packages/sentinel-auth-react/dist2/

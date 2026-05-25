@@ -217,7 +217,6 @@ impl Modify for SecurityAddon {
     ),
     components(schemas(
         super::handlers::auth_handlers::ExternalLoginRequest,
-        super::handlers::auth_handlers::ExternalLoginResponse,
         super::dtos::balance_dtos::ExternalBalanceSummaryRequest,
         super::dtos::balance_dtos::ExternalBalanceSummaryResponse,
         super::dtos::balance_dtos::ExternalBalanceItem,

@@ -34,6 +34,7 @@ use crate::infrastructure::http::api::handlers::payment_handlers;
 use crate::infrastructure::http::api::handlers::settlement_handlers;
 use crate::infrastructure::http::api::handlers::stats_handlers;
 use crate::infrastructure::http::api::handlers::system_handlers;
+use crate::infrastructure::http::api::middlewares::cookie_auth;
 use crate::infrastructure::http::api::middlewares::request_id_middleware;
 use crate::infrastructure::http::api::middlewares::response_wrapper;
 use crate::infrastructure::http::api::openapi::{ApiDoc, ExternalApiDoc};
@@ -218,7 +219,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     // Create Sentinel auth middleware using the client from app state
     let sentinel_client = state.sentinel_client.clone();
-    let auth_middleware = Arc::new(AuthMiddleware::new(sentinel_client));
+    let auth_middleware = Arc::new(AuthMiddleware::new(sentinel_client.clone()));
+    let cookie_auth_middleware = Arc::new(cookie_auth::CookieAuthMiddleware::new(sentinel_client));
 
     let public_api = Router::new()
         .merge(public_routes)
@@ -230,19 +232,24 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         ))
         .layer(CorsLayer::permissive());
 
-    let protected_api = protected_api.layer(middleware::from_fn(move |req, next| {
-        let auth = auth_middleware.clone();
-        async move { auth.authenticate(req, next).await }
-    }))
-    .layer(middleware::from_fn(
-        response_wrapper::response_wrapper_middleware,
-    ))
-    .layer(TraceLayer::new_for_http())
-    .layer(CatchPanicLayer::new())
-    .layer(middleware::from_fn(
-        request_id_middleware::request_id_middleware,
-    ))
-    .layer(CorsLayer::permissive());
+    let protected_api = protected_api
+        .layer(middleware::from_fn(move |req, next| {
+            let auth = auth_middleware.clone();
+            async move { auth.authenticate(req, next).await }
+        }))
+        .layer(middleware::from_fn(move |req, next| {
+            let auth = cookie_auth_middleware.clone();
+            async move { auth.authenticate(req, next).await }
+        }))
+        .layer(middleware::from_fn(
+            response_wrapper::response_wrapper_middleware,
+        ))
+        .layer(TraceLayer::new_for_http())
+        .layer(CatchPanicLayer::new())
+        .layer(middleware::from_fn(
+            request_id_middleware::request_id_middleware,
+        ))
+        .layer(CorsLayer::permissive());
 
     let api_routes = Router::new()
         .merge(public_api)

@@ -14,7 +14,7 @@ mod common;
 
 use common::{
     assert_valid_envelope, delete_json_with_auth, get_json_with_auth,
-    patch_json_with_auth, post_json, post_json_with_auth,
+    patch_json_with_auth, post_json, post_json_with_auth, test_client, BASE_URL,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -36,9 +36,9 @@ const KNOWN_EMAIL: &str = "anayamaster@gmail.com";
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Exchange the API token for a Bearer token via external-login.
+/// Exchange the API token for an access token via external-login redirect.
 async fn login_and_get_token() -> String {
-    let (status, body) = post_json(
+    let result = common::post_json_follow_redirect(
         "/v1/auth/external-login",
         &json!({
             "api_token": VALID_API_TOKEN,
@@ -46,19 +46,13 @@ async fn login_and_get_token() -> String {
             "display_name": "Eduardo Anaya",
         }),
     )
-    .await;
+    .await
+    .expect("external-login setup call failed — is Sentinel running?");
 
-    assert_eq!(
-        status,
-        StatusCode::OK,
-        "external-login setup call failed — is Sentinel running?"
-    );
-    assert_valid_envelope(&body, true);
-
-    body["data"]["access_token"]
-        .as_str()
-        .expect("access_token should be present")
-        .to_string()
+    result
+        .get("access_token")
+        .cloned()
+        .expect("access_token should be in redirect params")
 }
 
 /// Generate a unique event name.

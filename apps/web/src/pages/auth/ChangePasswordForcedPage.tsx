@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, Link as RouterLink } from 'react-router';
+import { useState } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router';
 import {
   Box,
   Card,
@@ -23,9 +23,12 @@ import {
   ArrowBack as ArrowBackIcon,
   CheckCircle,
   Circle,
+  CheckCircleOutline,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { authApi } from '../../api/auth.api';
+import { useSentinelAuth } from '@moshsplit/auth-react';
+import { useAuthStore } from '@moshsplit/auth-react';
+import { SentinelError } from '@moshsplit/sentinel-sdk';
 
 const PASSWORD_RULES = [
   { label: 'At least 12 characters', test: (p: string) => p.length >= 12 },
@@ -59,52 +62,53 @@ function PasswordRequirements({ password }: { password: string }) {
   );
 }
 
-function ResetPasswordPage() {
+function ChangePasswordForcedPage() {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const navigate = useNavigate();
+  const { client, redirects } = useSentinelAuth();
+  const { accessToken, clearMustChangePassword } = useAuthStore();
 
-  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (!token) {
-      setError(t('resetPassword.invalidToken'));
-    }
-  }, [token, t]);
+  const afterLoginPath = redirects?.afterLogin ?? '/app';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setValidationError(null);
+    setApiError(null);
 
-    if (password !== confirmPassword) {
-      setError(t('resetPassword.passwordMismatch'));
-      return;
-    }
-
-    // Validate password requirements
-    const failedRule = PASSWORD_RULES.find(({ test }) => !test(password));
+    const failedRule = PASSWORD_RULES.find(({ test }) => !test(newPassword));
     if (failedRule) {
-      setError(t('resetPassword.requirementsNotMet'));
+      setValidationError(t('changePasswordForced.requirementsNotMet'));
       return;
     }
 
-    if (!token) {
-      setError(t('resetPassword.invalidToken'));
+    if (newPassword !== confirmPassword) {
+      setValidationError(t('changePasswordForced.passwordMismatch'));
       return;
     }
 
     setLoading(true);
 
     try {
-      await authApi.resetPassword({ token, newPassword: password });
+      await client.user.changePassword(accessToken!, {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      clearMustChangePassword();
       setSuccess(true);
     } catch (err) {
-      setError((err as Error).message || t('resetPassword.errorMessage'));
+      const msg = err instanceof SentinelError
+        ? err.message
+        : t('changePasswordForced.errorMessage');
+      setApiError(msg);
     } finally {
       setLoading(false);
     }
@@ -119,64 +123,36 @@ function ResetPasswordPage() {
           alignItems: 'center',
           justifyContent: 'center',
           p: 2,
-          background: `
-          linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
-          url('/moshsplit/assets/background-moshsplit.webp')
-        `,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `
-            radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
-            radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 40%)
-          `,
-          pointerEvents: 'none',
-        },
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
         }}
       >
         <Card
           sx={{
             width: '100%',
             maxWidth: 420,
-            background: `
-              linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(18, 18, 18, 0.98) 100%),
-              url('/moshsplit/assets/bg-texture-1.svg')
-            `,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            border: '1px solid rgba(245, 158, 11, 0.2)',
-            borderRadius: '4px',
-            boxShadow: '0 24px 80px rgba(0, 0, 0, 0.55)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
           }}
         >
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <CheckCircleOutline sx={{ fontSize: 56, color: 'success.main', mb: 2 }} />
               <Typography variant="h4" component="h1" fontWeight={700}>
-                {t('resetPassword.title')}
+                {t('changePasswordForced.titleSuccess')}
               </Typography>
             </Box>
 
-            <Alert severity="success">{t('resetPassword.successMessage')}</Alert>
+            <Alert severity="success">{t('changePasswordForced.successMessage')}</Alert>
 
             <Button
-              component={RouterLink}
-              to="/login"
+              onClick={() => navigate(afterLoginPath)}
               variant="outlined"
               fullWidth
               sx={{ mt: 3 }}
               startIcon={<ArrowBackIcon />}
             >
-              {t('forgotPassword.backToLogin')}
+              {t('changePasswordForced.continueButton')}
             </Button>
           </CardContent>
         </Card>
@@ -192,28 +168,7 @@ function ResetPasswordPage() {
         alignItems: 'center',
         justifyContent: 'center',
         p: 2,
-        background: `
-          linear-gradient(180deg, rgba(18, 18, 18, 0.7) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(18, 18, 18, 0.7) 100%),
-          url('/moshsplit/assets/background-moshsplit.webp')
-        `,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `
-            radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
-            radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 40%)
-          `,
-          pointerEvents: 'none',
-        },
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
       }}
     >
       <Card
@@ -228,26 +183,54 @@ function ResetPasswordPage() {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography variant="h4" component="h1" fontWeight={700}>
-              {t('resetPassword.title')}
+              {t('changePasswordForced.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {t('resetPassword.subtitle')}
+              {t('changePasswordForced.subtitle')}
             </Typography>
           </Box>
 
-          {error && (
+          {validationError && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+              {validationError}
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {apiError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {apiError}
+            </Alert>
+          )}
+
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
+          >
+            <TextField
+              label={t('changePasswordForced.currentPassword')}
+              type={showPassword ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              fullWidth
+              autoComplete="current-password"
+              autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
             <div>
               <TextField
-                label={t('resetPassword.newPassword')}
+                label={t('changePasswordForced.newPassword')}
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
                 required
                 fullWidth
                 autoComplete="new-password"
@@ -266,11 +249,11 @@ function ResetPasswordPage() {
                   ),
                 }}
               />
-              {password && <PasswordRequirements password={password} />}
+              {newPassword && <PasswordRequirements password={newPassword} />}
             </div>
 
             <TextField
-              label={t('resetPassword.confirmPassword')}
+              label={t('changePasswordForced.confirmPassword')}
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -286,14 +269,20 @@ function ResetPasswordPage() {
               }}
             />
 
-            <Button type="submit" variant="contained" size="large" disabled={loading || !token} sx={{ mt: 1 }}>
-              {loading ? t('common.loading') : t('resetPassword.submitButton')}
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={loading}
+              sx={{ mt: 1 }}
+            >
+              {loading ? t('common.loading') : t('changePasswordForced.submitButton')}
             </Button>
           </Box>
 
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Link component={RouterLink} to="/login" variant="body2">
-              {t('forgotPassword.backToLogin')}
+              {t('changePasswordForced.backToLogin')}
             </Link>
           </Box>
         </CardContent>
@@ -302,4 +291,4 @@ function ResetPasswordPage() {
   );
 }
 
-export default ResetPasswordPage;
+export default ChangePasswordForcedPage;

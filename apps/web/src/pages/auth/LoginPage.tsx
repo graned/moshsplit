@@ -4,7 +4,11 @@ import { useNavigate } from 'react-router';
 import { LoginCard } from '../../components/LoginCard';
 import { useAuthStore } from '@moshsplit/auth-react';
 import { authApi } from '../../api/auth.api';
+import { AuthClient } from '@moshsplit/sentinel-sdk';
 import type { LoginCredentials } from './types';
+
+const sentinelUrl = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+const authClient = new AuthClient(sentinelUrl);
 
 // Shared key with ProtectedRoute.tsx — both files must agree on the storage key.
 const RETURN_TO_KEY = 'moshsplit_return_to';
@@ -24,13 +28,63 @@ function getReturnTo(): string | null {
 
 function LoginPage() {
   const setSession = useAuthStore((state) => state.setSession);
+  const setUserProfile = useAuthStore((state) => state.setUserProfile);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
   const hasNavigated = useRef(false);
+  const fetchedProfile = useRef(false);
 
-  // Only redirect on mount if user is already authenticated (e.g. returning from login elsewhere)
+  // Handle SSO redirect params (Pitboss API redirects here with tokens)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const userId = params.get('user_id');
+    const returnTo = params.get('return_to') || '/app';
+
+    if (accessToken && refreshToken && userId) {
+      setSession(userId, accessToken, refreshToken, true, false);
+
+      // Clean the URL immediately
+      window.history.replaceState(null, '', window.location.pathname);
+
+      hasNavigated.current = true;
+      navigate(returnTo, { replace: true });
+      return;
+    }
+
+    const errorParam = params.get('error');
+    if (errorParam) {
+      const errorDesc = params.get('error_description') || errorParam;
+      setLocalError(decodeURIComponent(errorDesc));
+      // Clean the URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [setSession, navigate]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      fetchedProfile.current = false;
+      return;
+    }
+    if (fetchedProfile.current) return;
+    fetchedProfile.current = true;
+
+    authClient.user.getMe(accessToken).then((profile: any) => {
+      setUserProfile(
+        profile.email || null,
+        profile.first_name || profile.firstName || null,
+        profile.last_name || profile.lastName || null,
+        profile.avatar_url || profile.avatarUrl || null,
+      );
+    }).catch((err: unknown) => {
+      console.error('[LoginPage] Failed to fetch user profile:', err);
+    });
+  }, [accessToken, setUserProfile]);
+
   useEffect(() => {
     if (isAuthenticated && !hasNavigated.current) {
       const returnTo = getReturnTo();
@@ -40,7 +94,7 @@ function LoginPage() {
         navigate(returnTo, { replace: true });
       }
     }
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
@@ -49,8 +103,13 @@ function LoginPage() {
       try {
         const result = await authApi.login(credentials);
         setSession(result.user.id, result.token, result.refreshToken, true, false);
+        setUserProfile(
+          result.user.email,
+          result.user.name.split(' ').slice(0, -1).join(' ') || null,
+          result.user.name.split(' ').slice(-1).join(' ') || null,
+          result.user.avatarUrl || null,
+        );
 
-        // Check for return URL before default redirect
         const returnTo = getReturnTo();
         if (returnTo) {
           clearReturnTo();
@@ -58,6 +117,7 @@ function LoginPage() {
           return { success: true };
         }
 
+        navigate('/app', { replace: true });
         return { success: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Login failed';
@@ -67,7 +127,7 @@ function LoginPage() {
         setIsLoading(false);
       }
     },
-    [setSession, navigate]
+    [setSession, setUserProfile, navigate]
   );
 
   const handleSubmit = useCallback(

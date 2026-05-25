@@ -231,3 +231,43 @@ pub fn assert_valid_envelope(body: &Value, expected_success: bool) {
         assert!(err["message"].is_string(), "error.message should be a string");
     }
 }
+
+pub fn parse_query_params(query: &str) -> std::collections::HashMap<String, String> {
+    let mut params = std::collections::HashMap::new();
+    for pair in query.split('&') {
+        let mut parts = pair.splitn(2, '=');
+        if let Some(key) = parts.next() {
+            let value = parts.next().unwrap_or("");
+            params.insert(key.to_string(), value.to_string());
+        }
+    }
+    params
+}
+
+pub async fn post_json_follow_redirect(
+    path: &str,
+    body: &Value,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    let client = test_client();
+    let resp = client
+        .post(format!("{BASE_URL}{path}"))
+        .json(body)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+    let status = resp.status();
+
+    if status == StatusCode::FOUND || status == StatusCode::SEE_OTHER {
+        if let Some(location) = resp.headers().get("location") {
+            let location_str = location.to_str().map_err(|e| format!("Invalid location header: {e}"))?;
+            if let Some(query_pos) = location_str.find('?') {
+                let query = &location_str[query_pos + 1..];
+                return Ok(parse_query_params(query));
+            }
+        }
+        return Err("Redirect without Location header".to_string());
+    }
+
+    Err(format!("Expected redirect, got {status}"))
+}

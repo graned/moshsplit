@@ -24,4 +24,6 @@ pub struct AppState {
     pub sentinel_client: SentinelClient,
     /// Read-only client for sentinel_auth database (for user list)
     pub sentinel_auth_client: SentinelAuthClient,
+    /// Frontend base URL for SSO redirect flows (e.g. http://localhost:5173)
+    pub frontend_base_url: String,
 }
