@@ -4,7 +4,6 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 const API_BASE_URL = process.env.VITE_API_BASE_URL || '/pitboss';
 const MOSHSPLIT_URL = process.env.MOSHSPLIT_URL || 'moshsplit.localhost';
-const isDev = process.env.NODE_ENV !== 'production';
 
 export default defineConfig({
   base: '/moshsplit/',

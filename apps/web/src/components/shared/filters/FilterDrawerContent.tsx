@@ -16,6 +16,7 @@ interface FilterDrawerContentProps {
   onClear: () => void;
   open: boolean;
   onClose: () => void;
+  fullScreen?: boolean;
 }
 
 /**
@@ -30,14 +31,16 @@ export function FilterDrawerContent({
   onClear,
   open,
   onClose,
+  fullScreen,
 }: FilterDrawerContentProps) {
   const hasSelection = selectedValues.length > 0;
 
-return (
+  return (
     <MobileDrawer
       open={open}
       onClose={onClose}
       title={title}
+      fullScreen={fullScreen}
       clearAction={
         hasSelection ? (
           <Box onClick={onClear} sx={{ cursor: 'pointer', py: 0.25, px: 1 }}>

@@ -9,6 +9,7 @@ interface MobileDrawerProps {
   children: React.ReactNode;
   onOpen?: () => void;
   clearAction?: React.ReactNode;
+  fullScreen?: boolean;
 }
 
 /**
@@ -23,7 +24,7 @@ interface MobileDrawerProps {
  *  - Scrollable content area
  *  - Optional onOpen callback (fires when drawer opens — useful for clearError etc.)
  */
-export function MobileDrawer({ open, onClose, title, children, onOpen, clearAction }: MobileDrawerProps) {
+export function MobileDrawer({ open, onClose, title, children, onOpen, clearAction, fullScreen }: MobileDrawerProps) {
   const theme = useTheme();
 
   useEffect(() => {
@@ -45,9 +46,9 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, clearActi
       sx={{
         '& .MuiDrawer-paper': {
           bgcolor: '#1A1A1A',
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          maxHeight: '92dvh',
+          borderTopLeftRadius: fullScreen ? 0 : 20,
+          borderTopRightRadius: fullScreen ? 0 : 20,
+          maxHeight: fullScreen ? '100dvh' : '92dvh',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
