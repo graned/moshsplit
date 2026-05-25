@@ -121,7 +121,7 @@ http://{$MOSHSPLIT_URL:-moshsplit.localhost} {
     # Caddy's reverse_proxy handles WebSocket upgrade transparently,
     # so Vite HMR over ws://moshsplit.localhost/moshsplit/@vite/* works.
     @moshsplit {
-        path /moshsplit/*
+        path /moshsplit /moshsplit/*
     }
     handle @moshsplit {
         reverse_proxy web:5173 {
@@ -163,12 +163,12 @@ http://{$MOSHSPLIT_URL:-moshsplit.localhost} {
     # Redirect / to /moshsplit/ so users don't need to type the base path.
     # The React app serves exclusively under /moshsplit/ (Vite base config).
     @default {
-        not path /sentinel/*
-        not path /pitboss/*
-        not path /moshsplit/*
-        not path /api-docs/*
-        not path /docs/*
-        not path /v1/*
+        not path /sentinel /sentinel/*
+        not path /pitboss /pitboss/*
+        not path /moshsplit /moshsplit/*
+        not path /api-docs /api-docs/*
+        not path /docs /docs/*
+        not path /v1 /v1/*
     }
     handle @default {
         redir /moshsplit/ 302
