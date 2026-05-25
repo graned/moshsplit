@@ -118,7 +118,7 @@ sentinel.viralatas.org {
     # ── Default Route ──────────────────────────────────────────────────────
     # Redirect / to /moshsplit/ so users don't need to type the base path.
     # The React app serves exclusively under /moshsplit/ (Vite base config).
-    handle path / {
+    handle / {
         redir /moshsplit/ 301
     }
 }
