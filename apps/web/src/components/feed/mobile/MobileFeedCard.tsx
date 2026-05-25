@@ -46,12 +46,14 @@ export function MobileFeedCard({
         borderColor: 'divider',
         borderRadius: 2,
         cursor: onClick ? 'pointer' : 'default',
+        WebkitTapHighlightColor: 'transparent',
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
         '&:hover': {
           borderColor: alpha(accent, 0.3),
           boxShadow: onClick ? `0 4px 16px ${alpha(accent, 0.12)}` : 'none',
         },
         '&:active': onClick ? { transform: 'scale(0.98)' } : {},
+        '&:focus-visible': { outline: 'none' },
       }}
     >
       {/* Left: 36×36 icon box */}
