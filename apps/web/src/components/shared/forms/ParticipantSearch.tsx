@@ -21,6 +21,7 @@ interface ParticipantSearchProps {
   value: string[];
   onChange: (userIds: string[]) => void;
   currentUserId?: string;
+  users?: UserInfo[];
   placeholder?: string;
 }
 
@@ -28,6 +29,7 @@ export function ParticipantSearch({
   value,
   onChange,
   currentUserId,
+  users,
   placeholder = 'Search survivors by name...',
 }: ParticipantSearchProps) {
   const theme = useTheme();
@@ -37,7 +39,7 @@ export function ParticipantSearch({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { getAllUsers, isLoading, isReady } = useUserCache();
-  const allUsers = useMemo(() => getAllUsers(), [getAllUsers]);
+  const allUsers = useMemo(() => users ?? getAllUsers(), [users, getAllUsers]);
 
   const filteredUsers = useMemo(() => {
     if (!query.trim()) return allUsers;

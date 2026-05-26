@@ -29,6 +29,7 @@ import { Stepper, StepDefinition } from '../../shared/forms/Stepper';
 import { ParticipantSearch } from '../../shared/forms/ParticipantSearch';
 import { CreateExpenseRequest } from '../../../api/expenses.api';
 import { GroupMember } from '../../../api/groups.api';
+import { UserInfo } from '../../../api/users.api';
 
 // ---------------------------------------------------------------------------
 // Category definitions
@@ -96,6 +97,19 @@ export function AddExpenseWizard({
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const memberUsers = useMemo((): UserInfo[] =>
+    members.map((m) => {
+      const nameParts = (m.user_name || '').split(' ');
+      return {
+        id: m.user_id,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        email: m.user_email || '',
+      };
+    }),
+    [members]
+  );
 
   // Form state
   const [title, setTitle] = useState('');
@@ -498,6 +512,7 @@ export function AddExpenseWizard({
         value={selectedMemberIds}
         onChange={setSelectedMemberIds}
         currentUserId={currentUser.id}
+        users={memberUsers}
         placeholder="Search survivors by name..."
       />
 
