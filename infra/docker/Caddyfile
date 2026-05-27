@@ -115,6 +115,28 @@ sentinel.viralatas.org {
         }
     }
 
+    # ── Default Catch-All (Root-Level Assets & Safety Net) ────────────────
+    # Requests not matching any known path (e.g. /assets/*, /pwa-*.png,
+    # /config.js, /favicon.svg) are forwarded to the web frontend so the
+    # nginx static file server can serve them.
+    @default {
+        not path /sentinel/*
+        not path /pitboss/*
+        not path /moshsplit /moshsplit/*
+        not path /api-docs/*
+        not path /docs/*
+        not path /v1/*
+    }
+    handle @default {
+        reverse_proxy web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
     # ── Root Redirect ──────────────────────────────────────────────────────
     # Redirect exact / to /moshsplit/ so users don't need to type the base path.
     # The React app serves exclusively under /moshsplit/ (Vite base config).

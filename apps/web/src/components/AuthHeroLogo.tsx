@@ -20,7 +20,7 @@ export function AuthHeroLogo({ title: _title, subtitle }: AuthHeroLogoProps) {
         }}
       >
         <img
-          src='/assets/logo.svg'
+          src='/moshsplit/assets/logo.svg'
           alt="MoshSplit Logo"
           style={{
             width: '100%',

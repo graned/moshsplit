@@ -42,12 +42,12 @@ interface CategoryDef {
 }
 
 const CATEGORIES: CategoryDef[] = [
-  { value: 'beer', label: 'Beer', icon: <img src='/assets/beer-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'food', label: 'Food', icon: <img src='/assets/food-icon.png' alt="" style={{ width: 36, height: 32 }} /> },
-  { value: 'gas', label: 'Fuel', icon: <img src='/assets/tank-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'transport', label: 'Transport', icon: <img src='/assets/transport-icon.png' alt="" style={{ width: 36, height: 32 }} /> },
-  { value: 'camping', label: 'Camping', icon: <img src='/assets/camping-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'merch', label: 'Merch', icon: <img src='/assets/merch-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'beer', label: 'Beer', icon: <img src='/moshsplit/assets/beer-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'food', label: 'Food', icon: <img src='/moshsplit/assets/food-icon.png' alt="" style={{ width: 36, height: 32 }} /> },
+  { value: 'gas', label: 'Fuel', icon: <img src='/moshsplit/assets/tank-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'transport', label: 'Transport', icon: <img src='/moshsplit/assets/transport-icon.png' alt="" style={{ width: 36, height: 32 }} /> },
+  { value: 'camping', label: 'Camping', icon: <img src='/moshsplit/assets/camping-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
+  { value: 'merch', label: 'Merch', icon: <img src='/moshsplit/assets/merch-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
   { value: 'other', label: 'Other', icon: <OtherIcon sx={{ fontSize: 32 }} /> },
 ];
 
