@@ -219,7 +219,8 @@ impl BalanceService {
                     }
                 }
             } else {
-                *balances.entry(expense.paid_by).or_insert(0) += share_cents;
+                // Non-payer owes the payer their share — negative balance
+                *balances.entry(expense.paid_by).or_insert(0) -= share_cents;
                 latest_timestamps
                     .entry(expense.paid_by)
                     .and_modify(|t| *t = (*t).max(expense.created_at))
@@ -298,7 +299,7 @@ impl BalanceService {
                     }
                 }
             } else {
-                *balances.entry(expense.paid_by).or_insert(0) += share_cents;
+                *balances.entry(expense.paid_by).or_insert(0) -= share_cents;
                 latest_timestamps
                     .entry(expense.paid_by)
                     .and_modify(|t| *t = (*t).max(expense.created_at))

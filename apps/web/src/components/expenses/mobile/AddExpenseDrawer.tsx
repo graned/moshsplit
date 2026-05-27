@@ -42,6 +42,7 @@ export function AddExpenseDrawer({
       onClose={onClose}
       title="Deploy Financial Damage"
       onOpen={clearError}
+      fullScreen
     >
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <AddExpenseWizard

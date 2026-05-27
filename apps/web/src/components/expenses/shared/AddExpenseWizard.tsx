@@ -30,6 +30,7 @@ import { ParticipantSearch } from '../../shared/forms/ParticipantSearch';
 import { CreateExpenseRequest } from '../../../api/expenses.api';
 import { GroupMember } from '../../../api/groups.api';
 import { UserInfo } from '../../../api/users.api';
+import { useUsers } from '../../../hooks/useUserCache';
 
 // ---------------------------------------------------------------------------
 // Category definitions
@@ -98,8 +99,13 @@ export function AddExpenseWizard({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
+  const enrichedUserMap = useUsers(memberUserIds);
+
   const memberUsers = useMemo((): UserInfo[] =>
     members.map((m) => {
+      const enriched = enrichedUserMap[m.user_id];
+      if (enriched) return enriched;
       const nameParts = (m.user_name || '').split(' ');
       return {
         id: m.user_id,
@@ -108,7 +114,7 @@ export function AddExpenseWizard({
         email: m.user_email || '',
       };
     }),
-    [members]
+    [members, enrichedUserMap]
   );
 
   // Form state
