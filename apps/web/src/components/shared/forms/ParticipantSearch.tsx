@@ -16,6 +16,7 @@ import {
   PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import { useUserCache } from '../../../hooks/useUserCache';
+import type { UserInfo } from '../../../api/users.api';
 
 interface ParticipantSearchProps {
   value: string[];
