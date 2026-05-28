@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha } from '@mui/material';
-import { Scale as ScalesIcon, CheckCircle as SettledIcon, TrendingUp as IncomingIcon, TrendingDown as OutgoingIcon, Pending as PendingIcon } from '@mui/icons-material';
+import { Scale as ScalesIcon, CheckCircle as SettledIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi } from '../../api/groups.api';
+import { balancesApi } from '../../api/balances.api';
 import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, type SettlementListItem } from '../../api/settlements.api';
 import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
@@ -65,6 +66,12 @@ export default function MobileSettlePage() {
     enabled: !!eventId,
   });
 
+  const { data: userBalance } = useQuery({
+    queryKey: ['user-balance', eventId, userId],
+    queryFn: () => balancesApi.getUserBalance(eventId!, userId!),
+    enabled: !!eventId && !!userId,
+  });
+
   const {
     data: requestsPages,
     fetchNextPage: fetchNextRequests,
@@ -119,10 +126,7 @@ export default function MobileSettlePage() {
 
   useUsers(allCounterpartyIds);
 
-  const incomingTotal = incomingData?.total_cents ?? 0;
-  const outgoingTotal = outgoingData?.total_cents ?? 0;
   const pendingRequests = requestsItems.filter((s) => s.status === 'pending');
-  const pendingTotal = pendingRequests.reduce((s, r) => s + r.amount_cents, 0);
 
   const allSettled = incomingItems.length === 0 && outgoingItems.length === 0;
 
@@ -216,27 +220,81 @@ export default function MobileSettlePage() {
         subtitle={event?.name || ''}
         backgroundImage={bannerUrl}
       >
-        <Box sx={{ display: 'flex' }}>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <IncomingIcon sx={{ fontSize: 14, color: '#10b981' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Owed to You</Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(incomingTotal, currency)}</Typography>
-          </Box>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#ef4444', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <OutgoingIcon sx={{ fontSize: 14, color: '#ef4444' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>You Owe</Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>{formatAmount(outgoingTotal, currency)}</Typography>
-          </Box>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <PendingIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending</Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#F59E0B' }}>{formatAmount(pendingTotal, currency)}</Typography>
+        <Box sx={{ px: 1, py: 1.5 }}>
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: alpha('#1E1E1E', 0.5),
+              border: '1px solid',
+              borderColor: alpha(
+                !userBalance
+                  ? '#6b7280'
+                  : userBalance.balance_cents === 0
+                    ? '#6b7280'
+                    : userBalance.balance_cents > 0
+                      ? '#10b981'
+                      : '#ef4444',
+                0.3
+              ),
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                color: alpha('#fff', 0.5),
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                mb: 0.5,
+              }}
+            >
+              Net Balance
+            </Typography>
+
+            {userBalance === undefined ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+                <CircularProgress size={24} sx={{ color: alpha('#fff', 0.4) }} />
+              </Box>
+            ) : userBalance.balance_cents === 0 ? (
+              <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#9ca3af' }}>
+                All settled up
+              </Typography>
+            ) : userBalance.balance_cents > 0 ? (
+              <>
+                <Typography sx={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', lineHeight: 1.1 }}>
+                  {formatAmount(userBalance.balance_cents, currency)}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: alpha('#10b981', 0.7),
+                    mt: 0.25,
+                  }}
+                >
+                  People owe you overall
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography sx={{ fontSize: '1.75rem', fontWeight: 800, color: '#ef4444', lineHeight: 1.1 }}>
+                  {formatAmount(Math.abs(userBalance.balance_cents), currency)}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: alpha('#ef4444', 0.7),
+                    mt: 0.25,
+                  }}
+                >
+                  You owe overall
+                </Typography>
+              </>
+            )}
           </Box>
         </Box>
 
