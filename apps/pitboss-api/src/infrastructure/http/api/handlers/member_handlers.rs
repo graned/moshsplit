@@ -11,11 +11,13 @@ use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, MemberListItem};
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
+use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::services::balance_service::BalanceService;
 use crate::services::expense_service::ExpenseService;
 use crate::services::member_service::MemberService;
 
@@ -109,5 +111,12 @@ pub async fn remove_member(
     );
 
     member_svc.remove_member(event_id, user_id)?;
+
+    // After member removal, trigger balance recalculation
+    let _ = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        BalanceRepository::new(state.db_client.clone()),
+    ).recalculate_event_balances(event_id);
+
     Ok(StatusCode::NO_CONTENT)
 }

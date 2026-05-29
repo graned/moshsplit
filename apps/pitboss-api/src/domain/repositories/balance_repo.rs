@@ -316,6 +316,62 @@ impl BalanceRepository {
         Ok(results)
     }
 
+    /// Get expense breakdown between a user and a counterparty.
+    ///
+    /// Returns only expenses where the counterparty is either the payer or a participant.
+    /// The `user_id` parameter controls the LEFT JOIN on shares (to get the calling user's
+    /// share_cents and paid_cents), while `counterparty_id` filters which expenses appear.
+    pub fn expense_breakdown_between(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+        counterparty_id: Uuid,
+    ) -> Result<Vec<ExpenseBreakdownRow>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            WITH latest_versions AS (
+                SELECT DISTINCT ON (ev.expense_id) ev.id, ev.expense_id,
+                    ev.title, ev.amount_cents, ev.paid_by, ev.expense_type, ev.created_at
+                FROM app.expense_version ev
+                JOIN app.expense e ON e.id = ev.expense_id
+                WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                ORDER BY ev.expense_id, ev.version_number DESC
+            ),
+            participants AS (
+                SELECT sh.expense_version_id,
+                       array_agg(sh.user_id) AS user_ids
+                FROM app.expense_version_share sh
+                GROUP BY sh.expense_version_id
+            )
+            SELECT
+                lv.title,
+                lv.amount_cents,
+                CASE WHEN lv.paid_by = $2 THEN lv.amount_cents ELSE 0 END AS paid_cents,
+                COALESCE(sh.share_cents, 0) AS share_cents,
+                lv.paid_by,
+                lv.expense_type::TEXT,
+                COALESCE(p.user_ids, ARRAY[]::uuid[]) AS participants,
+                lv.created_at
+            FROM latest_versions lv
+            LEFT JOIN app.expense_version_share sh
+                ON sh.expense_version_id = lv.id AND sh.user_id = $2
+            LEFT JOIN participants p
+                ON p.expense_version_id = lv.id
+            WHERE (lv.paid_by = $3 OR $3 = ANY(COALESCE(p.user_ids, ARRAY[]::uuid[])))
+            ORDER BY lv.expense_id
+        "#;
+
+        let results = sql_query(sql)
+            .bind::<DUuid, _>(event_id)
+            .bind::<DUuid, _>(user_id)
+            .bind::<DUuid, _>(counterparty_id)
+            .load::<ExpenseBreakdownRow>(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
+    }
+
     /// Get payment breakdown for a user.
     pub fn payment_breakdown(
         &self,

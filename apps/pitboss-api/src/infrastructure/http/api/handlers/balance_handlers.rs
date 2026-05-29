@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
-    BalancesResponse, ExplainBalanceResponse, ExternalBalanceItem,
+    BalancesResponse, ExplainBalanceBetweenResponse, ExplainBalanceResponse, ExternalBalanceItem,
     ExternalBalanceSummaryRequest, ExternalBalanceSummaryResponse, SimplifiedDebtsResponse,
     UserBalanceResponse,
 };
@@ -124,6 +124,33 @@ pub async fn explain_balance(
     );
 
     let explanation = svc.explain_balance(event_id, user_id)?;
+    Ok(Json(explanation))
+}
+
+/// GET /v1/events/{id}/balances/{user_id}/explain/{counterparty_id} — expenses between two users.
+#[utoipa::path(
+    get,
+    path = "/v1/events/{id}/balances/{user_id}/explain/{counterparty_id}",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("user_id" = Uuid, Path, description = "User ID"),
+        ("counterparty_id" = Uuid, Path, description = "Counterparty User ID"),
+    ),
+    responses(
+        (status = 200, description = "Expenses breakdown between two users", body = ExplainBalanceBetweenResponse),
+        (status = 404, description = "Event not found"),
+    ),
+    tag = "Balances"
+)]
+pub async fn explain_balance_between(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, user_id, counterparty_id)): Path<(Uuid, Uuid, Uuid)>,
+) -> Result<Json<ExplainBalanceBetweenResponse>, ServiceError> {
+    let svc = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        BalanceRepository::new(state.db_client.clone()),
+    );
+    let explanation = svc.explain_balance_between(event_id, user_id, counterparty_id)?;
     Ok(Json(explanation))
 }
 

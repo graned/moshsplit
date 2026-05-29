@@ -124,6 +124,13 @@ pub async fn approve_settlement(
     );
 
     let settlement = svc.approve_settlement(event_id, settlement_id, user_id, req)?;
+
+    // After settlement approval, trigger balance recalculation
+    let _ = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        crate::domain::repositories::balance_repo::BalanceRepository::new(state.db_client.clone()),
+    ).recalculate_event_balances(event_id);
+
     Ok(Json(settlement))
 }
 
@@ -157,6 +164,13 @@ pub async fn reject_settlement(
     );
 
     let settlement = svc.reject_settlement(event_id, settlement_id, user_id, req)?;
+
+    // After settlement rejection, trigger balance recalculation
+    let _ = BalanceService::new(
+        EventRepository::new(state.db_client.clone()),
+        crate::domain::repositories::balance_repo::BalanceRepository::new(state.db_client.clone()),
+    ).recalculate_event_balances(event_id);
+
     Ok(Json(settlement))
 }
 

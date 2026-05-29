@@ -92,6 +92,12 @@ export interface ExplainBalanceResponse {
   settlements: SettlementBreakdown[];
 }
 
+export interface ExplainBalanceBetweenResponse {
+  user_id: string;
+  counterparty_id: string;
+  expenses: ExpenseBreakdown[];
+}
+
 // API calls
 export const balancesApi = {
   // Get all user balances for an event
@@ -138,6 +144,17 @@ export const balancesApi = {
     );
     if (!response.success) {
       throw new Error((response.error as string) || 'Failed to explain balance');
+    }
+    return response.data;
+  },
+
+  // Get expense breakdown between current user and a counterparty
+  explainUserBalanceBetween: async (eventId: string, userId: string, counterpartyId: string): Promise<ExplainBalanceBetweenResponse> => {
+    const response = await apiClient.get<{ success: boolean; data: ExplainBalanceBetweenResponse; error: unknown }>(
+      `/v1/events/${eventId}/balances/${userId}/explain/${counterpartyId}`
+    );
+    if (!response.success) {
+      throw new Error((response.error as string) || 'Failed to explain balance between users');
     }
     return response.data;
   },

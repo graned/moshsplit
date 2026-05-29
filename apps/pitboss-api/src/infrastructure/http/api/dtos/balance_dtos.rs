@@ -115,3 +115,11 @@ pub struct ExternalBalanceSummaryResponse {
     pub total_balance_cents: i32,
     pub items: Vec<ExternalBalanceItem>,
 }
+
+/// Expenses breakdown between the current user and a counterparty.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct ExplainBalanceBetweenResponse {
+    pub user_id: Uuid,
+    pub counterparty_id: Uuid,
+    pub expenses: Vec<ExpenseBreakdown>,
+}

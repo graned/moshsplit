@@ -174,6 +174,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(balance_handlers::user_balance),
         )
         .route(
+            "/v1/events/{id}/balances/{user_id}/explain/{counterparty_id}",
+            get(balance_handlers::explain_balance_between),
+        )
+        .route(
             "/v1/events/{id}/balances/{user_id}/explain",
             get(balance_handlers::explain_balance),
         );

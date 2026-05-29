@@ -8,13 +8,14 @@ use uuid::Uuid;
 
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
-    BalancesResponse, DebtTransfer, ExplainBalanceResponse, ExpenseBreakdown, PaymentBreakdown,
-    SettlementBreakdown, SimplifiedDebtsResponse, UserBalanceItem, UserBalanceResponse,
+    BalancesResponse, DebtTransfer, ExplainBalanceBetweenResponse, ExplainBalanceResponse,
+    ExpenseBreakdown, PaymentBreakdown, SettlementBreakdown, SimplifiedDebtsResponse,
+    UserBalanceItem, UserBalanceResponse,
 };
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
     IncomingBalanceItem, IncomingBalancesResponse, OutgoingBalanceItem, OutgoingBalancesResponse,
 };
-use crate::domain::repositories::balance_repo::BalanceRepository;
+use crate::domain::repositories::balance_repo::{BalanceRepository, UserBalanceRow};
 use crate::domain::repositories::event_repo::EventRepository;
 
 pub struct BalanceService {
@@ -25,6 +26,16 @@ pub struct BalanceService {
 impl BalanceService {
     pub fn new(event_repo: EventRepository, balance_repo: BalanceRepository) -> Self {
         Self { event_repo, balance_repo }
+    }
+
+    /// Compute the net balance for a user balance row.
+    fn calculate_balance(row: &UserBalanceRow) -> i32 {
+        compute_balance(
+            row.paid_cents,
+            row.owes_cents,
+            row.payments_out_cents + row.settlements_out_cents,
+            row.payments_in_cents + row.settlements_in_cents,
+        )
     }
 
     /// Get all user balances for an event.
@@ -41,12 +52,7 @@ impl BalanceService {
                 user_id: r.user_id,
                 paid_cents: r.paid_cents,
                 owes_cents: r.owes_cents,
-                balance_cents: compute_balance(
-                    r.paid_cents,
-                    r.owes_cents,
-                    r.payments_out_cents + r.settlements_out_cents,
-                    r.payments_in_cents + r.settlements_in_cents,
-                ),
+                balance_cents: Self::calculate_balance(&r),
             })
             .collect();
 
@@ -68,12 +74,7 @@ impl BalanceService {
             user_id: row.user_id,
             paid_cents: row.paid_cents,
             owes_cents: row.owes_cents,
-            balance_cents: compute_balance(
-                row.paid_cents,
-                row.owes_cents,
-                row.payments_out_cents + row.settlements_out_cents,
-                row.payments_in_cents + row.settlements_in_cents,
-            ),
+            balance_cents: Self::calculate_balance(&row),
         })
     }
 
@@ -91,12 +92,7 @@ impl BalanceService {
                 user_id: r.user_id,
                 paid_cents: r.paid_cents,
                 owes_cents: r.owes_cents,
-                balance_cents: compute_balance(
-                    r.paid_cents,
-                    r.owes_cents,
-                    r.payments_out_cents + r.settlements_out_cents,
-                    r.payments_in_cents + r.settlements_in_cents,
-                ),
+                balance_cents: Self::calculate_balance(r),
             })
             .collect();
 
@@ -177,16 +173,62 @@ impl BalanceService {
             user_id: balance.user_id,
             paid_cents: balance.paid_cents,
             owes_cents: balance.owes_cents,
-            balance_cents: compute_balance(
-                balance.paid_cents,
-                balance.owes_cents,
-                balance.payments_out_cents + balance.settlements_out_cents,
-                balance.payments_in_cents + balance.settlements_in_cents,
-            ),
+            balance_cents: Self::calculate_balance(&balance),
             expenses,
             payments,
             settlements,
         })
+    }
+
+    /// Get expense breakdown between two users.
+    pub fn explain_balance_between(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+        counterparty_id: Uuid,
+    ) -> Result<ExplainBalanceBetweenResponse, ServiceError> {
+        self.event_repo
+            .find_by_id(event_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
+
+        let expenses = self
+            .balance_repo
+            .expense_breakdown_between(event_id, user_id, counterparty_id)?
+            .into_iter()
+            .map(|r| ExpenseBreakdown {
+                title: r.title,
+                amount_cents: r.amount_cents,
+                paid_cents: r.paid_cents,
+                share_cents: r.share_cents,
+                paid_by: r.paid_by,
+                expense_type: r.expense_type,
+                participants: r.participants,
+                created_at: r.created_at,
+            })
+            .collect();
+
+        Ok(ExplainBalanceBetweenResponse {
+            user_id,
+            counterparty_id,
+            expenses,
+        })
+    }
+
+    /// Recalculate a single user's balance (convenience wrapper for cache invalidation).
+    pub fn recalculate_user_balance(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<UserBalanceResponse, ServiceError> {
+        self.user_balance(event_id, user_id)
+    }
+
+    /// Recalculate all event balances (convenience wrapper for cache invalidation).
+    pub fn recalculate_event_balances(
+        &self,
+        event_id: Uuid,
+    ) -> Result<BalancesResponse, ServiceError> {
+        self.all_balances(event_id)
     }
 
     /// Get incoming balances — users who owe the current user money.

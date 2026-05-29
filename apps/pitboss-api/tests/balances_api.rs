@@ -962,6 +962,105 @@ async fn test_p2_single_member_no_expenses() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// P2 — Explain balance between two users
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// P2.6: Explain balance between two users.
+/// Scenario: 3 users (A, B, C), A pays 3000 equal split A/B/C.
+///   - A→B: 1 expense where A paid 3000 and share is 1000
+///   - A→C: 1 expense where A paid 3000 and share is 1000
+///   - B→A: 1 expense where B paid 0 and share is 1000
+///   - B→C: 0 expenses (no shared expense between B and C)
+#[tokio::test]
+async fn test_p2_explain_balance_between() {
+    let mut s = ScenarioBuilder::new(&unique_name("p2-explain-between")).await;
+    let _a = s.add_member("A").await;
+    let _b = s.add_member("B").await;
+    let _c = s.add_member("C").await;
+
+    // A pays 3000, split equally among A, B, C
+    s.add_equal_expense("Dinner", 3000, "A", &["A", "B", "C"])
+        .await;
+
+    // Helper to call explain-between endpoint
+    async fn explain_between(
+        event_id: &str,
+        user_id: &str,
+        counterparty_id: &str,
+        token: &str,
+    ) -> serde_json::Value {
+        let (status, body) = get_json_with_auth(
+            &format!(
+                "/v1/events/{}/balances/{}/explain/{}",
+                event_id, user_id, counterparty_id
+            ),
+            token,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_valid_envelope(&body, true);
+        body["data"].clone()
+    }
+
+    // A→B: A paid 3000, share is 1000
+    let data = explain_between(&s.event_id, &s.members["A"], &s.members["B"], &s.token).await;
+    assert_eq!(data["user_id"], s.members["A"]);
+    assert_eq!(data["counterparty_id"], s.members["B"]);
+    let expenses = data["expenses"].as_array().unwrap();
+    assert_eq!(expenses.len(), 1, "A→B should have 1 expense");
+    assert_eq!(expenses[0]["paid_cents"].as_i64().unwrap(), 3000);
+    assert_eq!(expenses[0]["share_cents"].as_i64().unwrap(), 1000);
+    assert_eq!(expenses[0]["title"], "Dinner");
+
+    // A→C: A paid 3000, share is 1000
+    let data = explain_between(&s.event_id, &s.members["A"], &s.members["C"], &s.token).await;
+    assert_eq!(data["user_id"], s.members["A"]);
+    assert_eq!(data["counterparty_id"], s.members["C"]);
+    let expenses = data["expenses"].as_array().unwrap();
+    assert_eq!(expenses.len(), 1, "A→C should have 1 expense");
+    assert_eq!(expenses[0]["paid_cents"].as_i64().unwrap(), 3000);
+    assert_eq!(expenses[0]["share_cents"].as_i64().unwrap(), 1000);
+    assert_eq!(expenses[0]["title"], "Dinner");
+
+    // B→A: B paid 0, share is 1000
+    let data = explain_between(&s.event_id, &s.members["B"], &s.members["A"], &s.token).await;
+    assert_eq!(data["user_id"], s.members["B"]);
+    assert_eq!(data["counterparty_id"], s.members["A"]);
+    let expenses = data["expenses"].as_array().unwrap();
+    assert_eq!(expenses.len(), 1, "B→A should have 1 expense");
+    assert_eq!(expenses[0]["paid_cents"].as_i64().unwrap(), 0);
+    assert_eq!(expenses[0]["share_cents"].as_i64().unwrap(), 1000);
+    assert_eq!(expenses[0]["title"], "Dinner");
+
+    // B→C: no shared expense between B and C
+    let data = explain_between(&s.event_id, &s.members["B"], &s.members["C"], &s.token).await;
+    assert_eq!(data["user_id"], s.members["B"]);
+    assert_eq!(data["counterparty_id"], s.members["C"]);
+    let expenses = data["expenses"].as_array().unwrap();
+    assert_eq!(expenses.len(), 0, "B→C should have 0 expenses");
+}
+
+/// P2.7: Explain balance between nonexistent users/events — should return 404.
+#[tokio::test]
+async fn test_p2_explain_balance_between_nonexistent() {
+    let s = ScenarioBuilder::new(&unique_name("p2-explain-between-nonexistent")).await;
+
+    let fake_id = "00000000-0000-0000-0000-000000000000";
+    let real_user_id = &s.members["creator"];
+
+    // Bad event_id → 404
+    let (status, _) = get_json_with_auth(
+        &format!(
+            "/v1/events/{}/balances/{}/explain/{}",
+            fake_id, real_user_id, real_user_id
+        ),
+        &s.token,
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // F5: Reject min split
 // ═══════════════════════════════════════════════════════════════════════════
 
