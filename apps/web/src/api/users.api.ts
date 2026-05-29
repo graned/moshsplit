@@ -1,4 +1,4 @@
-import { useAuthStore } from '@moshsplit/auth-react';
+import { apiClient } from './client';
 
 export interface Profile {
   id: string;
@@ -32,60 +32,6 @@ export interface UpdateProfileResponse {
   message: string;
 }
 
-const SENTINEL_URL = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
-const runtimeConfig = (window as any).__MOSHSPLIT_CONFIG__ || {};
-const SENTINEL_API_TOKEN = runtimeConfig.VITE_SENTINEL_API_TOKEN || import.meta.env.VITE_SENTINEL_API_TOKEN;
-
-async function sentinelFetch(endpoint: string, options?: RequestInit): Promise<Response> {
-  const token = endpoint.startsWith('/v1/api/admin')
-    ? SENTINEL_API_TOKEN ?? useAuthStore.getState().accessToken ?? undefined
-    : useAuthStore.getState().accessToken ?? undefined;
-  if (!token) throw new Error('Not authenticated');
-
-  const response = await fetch(`${SENTINEL_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: { message: 'Request failed' } }));
-    throw new Error(error.error?.message || `HTTP ${response.status}`);
-  }
-
-  return response;
-}
-
-async function fetchAllUsers(): Promise<UserInfo[]> {
-  const pageSize = 100;
-  let page = 1;
-  let total = Infinity;
-  const users: UserInfo[] = [];
-
-  while ((page - 1) * pageSize < total) {
-    const response = await sentinelFetch(`/v1/api/admin/users?page=${page}&page_size=${pageSize}`);
-    const result = await response.json();
-    const items = result.data?.items || [];
-    total = result.data?.total ?? items.length;
-
-    items.forEach((user: any) => {
-      users.push({
-        id: user.user_id,
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        email: user.email || '',
-      });
-    });
-
-    page++;
-  }
-
-  return users;
-}
-
 export const usersApi = {
   getProfile: async (): Promise<Profile> => {
     throw new Error('Not implemented');
@@ -96,11 +42,18 @@ export const usersApi = {
   },
 
   listAll: async (): Promise<UserInfo[]> => {
-    return fetchAllUsers();
+    const response = await apiClient.get<{ success: boolean; data: any[]; error: unknown }>('/v1/users');
+    const users = response.data || response;
+    return (Array.isArray(users) ? users : []).map((user: any) => ({
+      id: user.id,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      email: user.email,
+    }));
   },
 
   list: async (): Promise<UserListItem[]> => {
-    const users = await fetchAllUsers();
+    const users = await usersApi.listAll();
     return users.map((u) => ({
       id: u.id,
       email: u.email,
@@ -109,14 +62,14 @@ export const usersApi = {
   },
 
   get: async (userId: string): Promise<UserInfo> => {
-    const users = await fetchAllUsers();
+    const users = await usersApi.listAll();
     const user = users.find((u) => u.id === userId);
     if (!user) throw new Error(`User ${userId} not found`);
     return user;
   },
 
   getMany: async (userIds: string[]): Promise<Record<string, UserInfo>> => {
-    const users = await fetchAllUsers();
+    const users = await usersApi.listAll();
     const result: Record<string, UserInfo> = {};
     userIds.forEach((id) => {
       const found = users.find((u) => u.id === id);

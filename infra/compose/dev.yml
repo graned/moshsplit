@@ -123,6 +123,7 @@ services:
       PGOPTIONS: "-c search_path=app"
       RUST_LOG: debug
       SENTINEL_URL: http://sentinel:8000
+      FRONTEND_BASE_URL: http://${MOSHSPLIT_URL:-moshsplit.localhost}
     command: ["cargo", "run", "--manifest-path", "/app/apps/pitboss-api/Cargo.toml"]
     depends_on:
       pitboss-api-migrations:

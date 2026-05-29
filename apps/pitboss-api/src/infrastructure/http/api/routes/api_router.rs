@@ -34,6 +34,7 @@ use crate::infrastructure::http::api::handlers::payment_handlers;
 use crate::infrastructure::http::api::handlers::settlement_handlers;
 use crate::infrastructure::http::api::handlers::stats_handlers;
 use crate::infrastructure::http::api::handlers::system_handlers;
+use crate::infrastructure::http::api::handlers::user_handlers;
 use crate::infrastructure::http::api::middlewares::cookie_auth;
 use crate::infrastructure::http::api::middlewares::request_id_middleware;
 use crate::infrastructure::http::api::middlewares::response_wrapper;
@@ -190,6 +191,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let stats_routes = Router::new()
         .route("/v1/events/{id}/stats", get(stats_handlers::get_event_stats));
 
+    // ── Users ──────────────────────────────────────────────────────────
+    let user_routes = Router::new()
+        .route("/v1/users", get(user_handlers::list_users));
+
     // ── Event Images ───────────────────────────────────────────────────
     let event_image_routes = Router::new()
         .route(
@@ -218,6 +223,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(balance_routes)
         .merge(activity_routes)
         .merge(stats_routes)
+        .merge(user_routes)
         .merge(event_image_routes)
         .merge(admin_router::build_admin_router());
 

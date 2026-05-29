@@ -8,6 +8,7 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel::sql_query;
 use diesel::RunQueryDsl;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// The embedded Diesel migrations (discovered at compile time from
@@ -49,6 +50,25 @@ impl DbClient {
         &self.pool
     }
 
+    /// Get all distinct user IDs that are members of at least one event.
+    pub fn get_moshsplit_user_ids(&self) -> Result<Vec<Uuid>, crate::errors::RepositoryError> {
+        use diesel::deserialize::QueryableByName;
+
+        let mut conn = self.get_conn()?;
+
+        #[derive(QueryableByName)]
+        struct IdRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            pub user_id: Uuid,
+        }
+
+        let rows: Vec<IdRow> = sql_query("SELECT DISTINCT user_id FROM app.event_member")
+            .get_results(&mut conn)
+            .map_err(crate::errors::RepositoryError::from)?;
+
+        Ok(rows.into_iter().map(|r| r.user_id).collect())
+    }
+
     /// Get a single connection from the pool with `search_path` set to `app, public`.
     pub fn get_conn(
         &self,
@@ -70,9 +90,30 @@ pub struct SentinelAuthClient {
 
 impl SentinelAuthClient {
     /// Create a new connection pool for sentinel_auth database.
+    /// Also ensures the pitboss user has SELECT access on auth tables (idempotent).
     pub fn new(database_url: &str) -> Result<Self, r2d2::PoolError> {
         let client = DbClient::new(database_url)?;
-        Ok(Self { pool: client.pool })
+        let pool = client.pool.clone();
+        let result = Self { pool };
+
+        let _ = result.ensure_permissions();
+
+        Ok(result)
+    }
+
+    /// Grant SELECT permissions to the pitboss role on sentinel_auth tables.
+    /// Idempotent — safe to call on every startup.
+    fn ensure_permissions(&self) -> Result<(), crate::errors::RepositoryError> {
+        let mut conn = self.pool.get().map_err(|e| {
+            crate::errors::RepositoryError::Database(format!("Connection pool error: {}", e))
+        })?;
+        sql_query("GRANT USAGE ON SCHEMA public TO pitboss")
+            .execute(&mut conn)
+            .ok();
+        sql_query("GRANT SELECT ON ALL TABLES IN SCHEMA public TO pitboss")
+            .execute(&mut conn)
+            .ok();
+        Ok(())
     }
 
     /// Get a connection with search_path set to auth schema.
@@ -121,4 +162,48 @@ impl SentinelAuthClient {
 
         Ok(result.map(|r| r.id))
     }
+
+    /// Fetch active users from the Sentinel auth database, filtered by the
+    /// given set of user IDs (must be members of at least one MoshSplit event).
+    /// Joins `public.users` and `public.user_identities` on `user_id`.
+    pub fn list_users(&self, user_ids: &[Uuid]) -> Result<Vec<UserRow>, crate::errors::RepositoryError> {
+        use diesel::sql_types::{Array, Uuid as SqlUuid};
+
+        if user_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self.get_conn().map_err(|e| {
+            crate::errors::RepositoryError::Database(format!("Connection pool error: {}", e))
+        })?;
+
+        let ids: Vec<Uuid> = user_ids.to_vec();
+
+        let sql = "\
+            SELECT u.user_id, u.first_name, u.last_name, ui.email \
+            FROM public.users u \
+            JOIN public.user_identities ui ON u.user_id = ui.user_id \
+            WHERE u.status = 'active' AND ui.is_primary = true \
+              AND u.user_id = ANY($1) \
+            ORDER BY u.first_name, u.last_name";
+        let rows: Vec<UserRow> = sql_query(sql)
+            .bind::<Array<SqlUuid>, _>(&ids)
+            .get_results(&mut conn)
+            .map_err(|e| crate::errors::RepositoryError::Database(e.to_string()))?;
+
+        Ok(rows)
+    }
+}
+
+/// A raw user row from the `public.users` + `public.user_identities` join.
+#[derive(Debug, Clone, Serialize, diesel::QueryableByName)]
+pub struct UserRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub user_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub first_name: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub last_name: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub email: String,
 }
