@@ -25,20 +25,14 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
         .map_err(|e| anyhow::anyhow!("Migration failed: {}", e))?;
 
     // ── Sentinel Client ──────────────────────────────────────────────
-    let sentinel_url = std::env::var("SENTINEL_URL")
-        .unwrap_or_else(|_| "http://localhost:9000".to_string());
+    let sentinel_url =
+        std::env::var("SENTINEL_URL").unwrap_or_else(|_| "http://localhost:9000".to_string());
     let sentinel_config = SentinelConfig::new(&sentinel_url);
     let sentinel_client = SentinelClient::new(sentinel_config)
         .map_err(|e| anyhow::anyhow!("Failed to create Sentinel client: {}", e))?;
 
     tracing::info!("Sentinel client configured with URL: {}", sentinel_url);
 
-    // ── Sentinel Auth Client (for reading users from sentinel_auth DB) ─
-    // Extract base URL from database_url and replace db name with sentinel_auth
-    let sentinel_auth_url = format!(
-        "postgres://{}@postgres:5432/sentinel_auth",
-        database_url.split('@').last().unwrap_or("").split('/').next().unwrap_or("postgres:password")
-    );
     // Use simpler approach - parse the original URL
     let auth_db_url = if database_url.contains("@") {
         let parts: Vec<&str> = database_url.split('@').collect();
@@ -47,7 +41,7 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     } else {
         "postgres://postgres:password@postgres:5432/sentinel_auth".to_string()
     };
-    
+
     let sentinel_auth_client = SentinelAuthClient::new(&auth_db_url)
         .map_err(|e| anyhow::anyhow!("Failed to connect to sentinel_auth: {}", e))?;
 
@@ -64,8 +58,8 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
     //   ));
 
     // ── Shared state ─────────────────────────────────────────────────
-    let frontend_base_url = std::env::var("FRONTEND_BASE_URL")
-        .unwrap_or_else(|_| "http://localhost:5173".to_string());
+    let frontend_base_url =
+        std::env::var("FRONTEND_BASE_URL").unwrap_or_else(|_| "http://localhost:5173".to_string());
 
     let state = Arc::new(AppState {
         db_client,
