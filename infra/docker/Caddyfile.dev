@@ -21,7 +21,6 @@
 {
     # Skip ACME challenges for *.localhost — RFC 6761 reserved, no CA issues certs.
     # Explicitly using an http:// site block below, so this is belt-and-suspenders.
-    admin off
 }
 
 # ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────

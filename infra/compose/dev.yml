@@ -48,15 +48,19 @@ services:
     environment:
       MOSHSPLIT_URL: ${MOSHSPLIT_URL:-moshsplit.localhost}
     depends_on:
-      - pitboss-api
-      - sentinel
-      - sentinel-ui
-      - web
+      pitboss-api:
+        condition: service_healthy
+      sentinel:
+        condition: service_healthy
+      sentinel-ui:
+        condition: service_healthy
+      web:
+        condition: service_healthy
     networks:
       - app-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/config/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -129,9 +133,15 @@ services:
       pitboss-api-migrations:
         condition: service_completed_successfully
       sentinel:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-net
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 300s
 
   # ── Sentinel (auth service) ─────────────────────────────────────────────────
   sentinel:
@@ -175,48 +185,45 @@ services:
         condition: service_healthy
     networks:
       - app-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ── Web (React PWA / Vite) — DEV MODE ───────────────────────────────────────
   # Runs Vite dev server directly (not nginx) for hot module replacement.
   # Vite HMR traffic flows through Caddy via WebSocket upgrade.
   web:
-    image: node:20-alpine
+    build:
+      context: ../../
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
     container_name: moshsplit-web
-    working_dir: /app
     # No ports published — HMR works through Caddy's reverse proxy on :80.
     volumes:
-      # Mount entire web app for HMR
       - ../../apps/web:/app/apps/web
-      # Mount packages for HMR
-      - ../../packages/sentinel-sdk:/app/packages/sentinel-sdk
-      - ../../packages/sentinel-auth-react:/app/packages/sentinel-auth-react
-      # Mount root workspace files
       - ../../package.json:/app/package.json
       - ../../pnpm-workspace.yaml:/app/pnpm-workspace.yaml
       - ../../pnpm-lock.yaml:/app/pnpm-lock.yaml
       - ../../.npmrc:/app/.npmrc
     environment:
-      # Same relative paths as production — all requests are same-origin via Caddy.
       VITE_API_BASE_URL: /pitboss
       VITE_SENTINEL_URL: /sentinel
-      # MOSHSPLIT_URL mirrors production so Vite can construct HMR WS URLs.
       MOSHSPLIT_URL: ${MOSHSPLIT_URL:-moshsplit.localhost}
-      # Vite runs on 0.0.0.0 inside the container; Caddy connects to it.
       VITE_DEV_HOST: "0.0.0.0"
-    command: >
-      sh -c "
-        corepack enable &&
-        corepack prepare pnpm@latest --activate &&
-        pnpm install --frozen-lockfile &&
-        pnpm --filter @moshsplit/sentinel-sdk build &&
-        pnpm --filter @moshsplit/auth-react build &&
-        pnpm --filter web dev --host 0.0.0.0
-      "
     depends_on:
       pitboss-api:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
 volumes:
   pgdata:
