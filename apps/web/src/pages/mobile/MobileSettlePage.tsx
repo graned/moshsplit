@@ -587,6 +587,7 @@ export default function MobileSettlePage() {
         onSettle={handleOpenRestoreHonor}
         breakdownItems={incomingBreakdownItems}
         breakdownTotal={incomingDrawerItem?.amount_cents ?? 0}
+        fullScreen
       />
 
       <MobileOutgoingBalanceDrawer
@@ -597,6 +598,7 @@ export default function MobileSettlePage() {
         onSettle={handleOpenRestoreHonor}
         breakdownItems={outgoingBreakdownItems}
         breakdownTotal={outgoingDrawerItem?.amount_cents ?? 0}
+        fullScreen
       />
 
       {reviewSettlement && (
