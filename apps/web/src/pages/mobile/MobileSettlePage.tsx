@@ -8,7 +8,7 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, type SettlementListItem } from '../../api/settlements.api';
-import { useUsers } from '../../hooks/useUserCache';
+import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
 import { MobileFeedList, type FeedDisplayItem } from '../../components/feed/mobile/MobileFeedList';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
@@ -17,6 +17,7 @@ import { MobileIncomingBalanceDrawer } from '../../components/settlements/mobile
 import { MobileOutgoingBalanceDrawer } from '../../components/settlements/mobile/MobileOutgoingBalanceDrawer';
 import { SettlementReviewPanel } from '../../components/settlements/SettlementReviewPanel';
 import { MobileSettlementHistoryDrawer } from '../../components/settlements/mobile/MobileSettlementHistoryDrawer';
+import { MobileStatsBreakdownDrawer, type BreakdownItem } from '../../components/settlements/mobile/MobileStatsBreakdownDrawer';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -52,6 +53,7 @@ export default function MobileSettlePage() {
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   useUsers(memberUserIds);
+  const { getUser } = useUserCache();
 
   const { data: incomingData } = useQuery({
     queryKey: ['settlements-incoming', eventId],
@@ -77,6 +79,12 @@ export default function MobileSettlePage() {
     enabled: !!eventId && !!userId,
   });
 
+  const { data: explainBalance } = useQuery({
+    queryKey: ['explain-balance', eventId, userId],
+    queryFn: () => balancesApi.explainUserBalance(eventId!, userId!),
+    enabled: !!eventId && !!userId,
+  });
+
   const { data: requestsPage } = useQuery({
     queryKey: ['settlements-requests-count', eventId],
     queryFn: () => settlementsApi.listSettlementRequests(eventId!, undefined),
@@ -87,6 +95,94 @@ export default function MobileSettlePage() {
     () => requestsPage?.data.filter((s) => s.status === 'pending').length ?? 0,
     [requestsPage],
   );
+
+  const oweToYouItems: BreakdownItem[] = useMemo(() => {
+    if (!explainBalance) return [];
+    const items: BreakdownItem[] = [];
+    for (const expense of explainBalance.expenses) {
+      if (expense.paid_by === userId && (expense.participants?.length ?? 0) > 1) {
+        const amount = expense.amount_cents - expense.share_cents;
+        if (amount > 0) {
+          items.push({ label: expense.title, amount, type: 'expense' });
+        }
+      }
+    }
+    for (const settlement of explainBalance.settlements) {
+      if (settlement.to_user === userId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user });
+      }
+    }
+    return items;
+  }, [explainBalance, userId]);
+
+  const youOweItems: BreakdownItem[] = useMemo(() => {
+    if (!explainBalance) return [];
+    const items: BreakdownItem[] = [];
+    for (const expense of explainBalance.expenses) {
+      if (expense.paid_by !== userId && expense.share_cents > 0) {
+        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense' });
+      }
+    }
+    for (const settlement of explainBalance.settlements) {
+      if (settlement.from_user === userId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user });
+      }
+    }
+    return items;
+  }, [explainBalance, userId]);
+
+  const settledItems: BreakdownItem[] = useMemo(() => {
+    if (!explainBalance) return [];
+    const items: BreakdownItem[] = [];
+    for (const settlement of explainBalance.settlements) {
+      if (settlement.to_user === userId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user });
+      }
+    }
+    return items;
+  }, [explainBalance, userId]);
+
+  const [incomingDrawerItem, setIncomingDrawerItem] = useState<IncomingBalanceItem | null>(null);
+  const [incomingDrawerOpen, setIncomingDrawerOpen] = useState(false);
+
+  const [outgoingDrawerItem, setOutgoingDrawerItem] = useState<OutgoingBalanceItem | null>(null);
+  const [outgoingDrawerOpen, setOutgoingDrawerOpen] = useState(false);
+
+  const [breakdownCard, setBreakdownCard] = useState<'owe-to-you' | 'you-owe' | 'settled' | null>(null);
+
+  const incomingBreakdownItems: BreakdownItem[] = useMemo(() => {
+    if (!explainBalance || !incomingDrawerItem) return [];
+    const cpId = incomingDrawerItem.user_id;
+    const items: BreakdownItem[] = [];
+    for (const expense of explainBalance.expenses) {
+      if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
+        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense' });
+      }
+    }
+    for (const settlement of explainBalance.settlements) {
+      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId });
+      }
+    }
+    return items;
+  }, [explainBalance, incomingDrawerItem, userId]);
+
+  const outgoingBreakdownItems: BreakdownItem[] = useMemo(() => {
+    if (!explainBalance || !outgoingDrawerItem) return [];
+    const cpId = outgoingDrawerItem.user_id;
+    const items: BreakdownItem[] = [];
+    for (const expense of explainBalance.expenses) {
+      if (expense.paid_by === cpId && expense.share_cents > 0) {
+        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense' });
+      }
+    }
+    for (const settlement of explainBalance.settlements) {
+      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId });
+      }
+    }
+    return items;
+  }, [explainBalance, outgoingDrawerItem, userId]);
 
   const incomingItems: IncomingBalanceItem[] = incomingData?.items ?? [];
   const outgoingItems: OutgoingBalanceItem[] = outgoingData?.items ?? [];
@@ -100,12 +196,6 @@ export default function MobileSettlePage() {
   const [restoreHonorTarget, setRestoreHonorTarget] = useState<{ userId: string; amountCents: number } | null>(null);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [reviewSettlement, setReviewSettlement] = useState<SettlementListItem | null>(null);
-
-  const [incomingDrawerItem, setIncomingDrawerItem] = useState<IncomingBalanceItem | null>(null);
-  const [incomingDrawerOpen, setIncomingDrawerOpen] = useState(false);
-
-  const [outgoingDrawerItem, setOutgoingDrawerItem] = useState<OutgoingBalanceItem | null>(null);
-  const [outgoingDrawerOpen, setOutgoingDrawerOpen] = useState(false);
 
   const handleOpenRestoreHonor = (userId: string, amountCents: number) => {
     setRestoreHonorTarget({ userId, amountCents });
@@ -286,16 +376,19 @@ export default function MobileSettlePage() {
                     const settled = stats?.your_incoming_settled_cents ?? 0;
                     return [
                       {
+                        key: 'owe-to-you' as const,
                         label: 'Owe to You',
                         value: oweToYou,
                         valueColor: oweToYou > 0 ? '#22c55e' : '#9ca3af',
                       },
                       {
+                        key: 'you-owe' as const,
                         label: 'You Owe',
                         value: youOwe,
                         valueColor: youOwe > 0 ? '#ef4444' : '#9ca3af',
                       },
                       {
+                        key: 'settled' as const,
                         label: 'Settled',
                         value: settled,
                         valueColor: '#22c55e',
@@ -303,8 +396,15 @@ export default function MobileSettlePage() {
                     ].map((stat, idx) => (
                       <Box
                         key={stat.label}
+                        onClick={() => setBreakdownCard(stat.key)}
                         sx={{
                           textAlign: 'center',
+                          cursor: 'pointer',
+                          borderRadius: 1.5,
+                          p: 0.75,
+                          mx: -0.75,
+                          transition: 'background 0.15s',
+                          '&:hover': { bgcolor: alpha('#fff', 0.04) },
                           animation: 'fadeSlideUp 0.35s ease-out both',
                           animationDelay: `${idx * 0.08}s`,
                         }}
@@ -385,9 +485,6 @@ export default function MobileSettlePage() {
                     isIncoming={true}
                     currency={currency}
                     onClick={() => handleOpenIncomingDrawer(item)}
-                    onBreakdown={() => {
-                      console.log('Breakdown clicked for', item.user_id);
-                    }}
                   />
                 )
               })) as FeedDisplayItem[]}
@@ -445,9 +542,6 @@ export default function MobileSettlePage() {
                     isIncoming={false}
                     currency={currency}
                     onClick={() => handleOpenOutgoingDrawer(item)}
-                    onBreakdown={() => {
-                      console.log('Breakdown clicked for', item.user_id);
-                    }}
                   />
                 )
               })) as FeedDisplayItem[]}
@@ -491,6 +585,8 @@ export default function MobileSettlePage() {
         balanceItem={incomingDrawerItem}
         currency={currency}
         onSettle={handleOpenRestoreHonor}
+        breakdownItems={incomingBreakdownItems}
+        breakdownTotal={incomingDrawerItem?.amount_cents ?? 0}
       />
 
       <MobileOutgoingBalanceDrawer
@@ -499,6 +595,8 @@ export default function MobileSettlePage() {
         balanceItem={outgoingDrawerItem}
         currency={currency}
         onSettle={handleOpenRestoreHonor}
+        breakdownItems={outgoingBreakdownItems}
+        breakdownTotal={outgoingDrawerItem?.amount_cents ?? 0}
       />
 
       {reviewSettlement && (
@@ -522,6 +620,30 @@ export default function MobileSettlePage() {
         userId={userId!}
         currency={currency}
       />
+
+      {(() => {
+        const breakdownItems = breakdownCard === 'owe-to-you' ? oweToYouItems : breakdownCard === 'you-owe' ? youOweItems : settledItems;
+        const oweToYou = (stats?.your_incoming_cents ?? 0) - (stats?.your_incoming_settled_cents ?? 0);
+        const youOwe = stats?.your_outstanding_cents ?? 0;
+        const settled = stats?.your_incoming_settled_cents ?? 0;
+        const breakdownTotal = breakdownCard === 'owe-to-you' ? oweToYou : breakdownCard === 'you-owe' ? youOwe : settled;
+        const breakdownTitle = breakdownCard === 'owe-to-you' ? 'Owe to You' : breakdownCard === 'you-owe' ? 'You Owe' : 'Settled';
+        const breakdownColor = breakdownCard === 'owe-to-you' ? '#22c55e' : breakdownCard === 'you-owe' ? '#ef4444' : '#22c55e';
+
+        return (
+          <MobileStatsBreakdownDrawer
+            open={breakdownCard !== null}
+            onClose={() => setBreakdownCard(null)}
+            title={breakdownTitle}
+            items={breakdownItems}
+            total={breakdownTotal}
+            currency={currency}
+            totalColor={breakdownColor}
+          />
+        );
+      })()}
+
+
     </Box>
   );
 }

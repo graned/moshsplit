@@ -19,7 +19,6 @@ interface MobileBalanceCardProps {
   isIncoming: boolean;
   currency?: string;
   onClick?: () => void;
-  onBreakdown?: () => void;
 }
 
 export function MobileBalanceCard({
@@ -29,7 +28,6 @@ export function MobileBalanceCard({
   isIncoming,
   currency = 'EUR',
   onClick,
-  onBreakdown,
 }: MobileBalanceCardProps) {
   const userMap = useUsers([userId]);
   const user = userMap[userId];
@@ -90,28 +88,6 @@ export function MobileBalanceCard({
               }}
             >
               {isIncoming ? 'owed' : 'due'}
-            </Typography>
-          </Box>
-          <Box
-            onClick={(e) => {
-              e.stopPropagation();
-              onBreakdown?.();
-            }}
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              px: 0.75,
-              py: 0.25,
-              borderRadius: 1,
-              bgcolor: alpha(accentColor, 0.12),
-              border: '1px solid',
-              borderColor: alpha(accentColor, 0.25),
-              mt: 0.75,
-              cursor: 'pointer',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
-              Breakdown
             </Typography>
           </Box>
         </Box>
