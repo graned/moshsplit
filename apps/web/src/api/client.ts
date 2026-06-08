@@ -54,10 +54,15 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json().catch(() => ({
-        message: 'An unexpected error occurred',
+      // Always include the HTTP status in the thrown error, regardless of
+      // what the server returns. This ensures is401Error() in
+      // createSentinelQueryClient.ts can always detect 401 responses.
+      const body = await response.json().catch(() => ({}));
+      const error: ApiError = {
+        message: body.message || 'An unexpected error occurred',
+        ...body,
         status: response.status,
-      }));
+      };
       throw error;
     }
 
