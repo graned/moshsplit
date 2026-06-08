@@ -272,60 +272,68 @@ export default function MobileSettlePage() {
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: 2,
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: 1.5,
                     '@keyframes fadeSlideUp': {
                       from: { opacity: 0, transform: 'translateY(8px)' },
                       to: { opacity: 1, transform: 'translateY(0)' },
                     },
                   }}
                 >
-                  {[
-                    { label: 'Total', value: stats?.total_spent_cents ?? 0, valueColor: '#fff' },
-                    { label: 'My Share', value: stats?.your_share_cents ?? 0, valueColor: '#fff' },
-                    {
-                      label: 'Still Owe',
-                      value: stats?.your_outstanding_cents ?? 0,
-                      valueColor: stats && stats.your_outstanding_cents > 0 ? '#ef4444' : '#9ca3af',
-                    },
-                    {
-                      label: 'Settled',
-                      value: stats?.your_incoming_settled_cents ?? 0,
-                      valueColor: '#22c55e',
-                    },
-                  ].map((stat, idx) => (
-                    <Box
-                      key={stat.label}
-                      sx={{
-                        textAlign: 'center',
-                        animation: 'fadeSlideUp 0.35s ease-out both',
-                        animationDelay: `${idx * 0.08}s`,
-                      }}
-                    >
-                      <Typography
+                  {(() => {
+                    const oweToYou = (stats?.your_incoming_cents ?? 0) - (stats?.your_incoming_settled_cents ?? 0);
+                    const youOwe = stats?.your_outstanding_cents ?? 0;
+                    const settled = stats?.your_incoming_settled_cents ?? 0;
+                    return [
+                      {
+                        label: 'Owe to You',
+                        value: oweToYou,
+                        valueColor: oweToYou > 0 ? '#22c55e' : '#9ca3af',
+                      },
+                      {
+                        label: 'You Owe',
+                        value: youOwe,
+                        valueColor: youOwe > 0 ? '#ef4444' : '#9ca3af',
+                      },
+                      {
+                        label: 'Settled',
+                        value: settled,
+                        valueColor: '#22c55e',
+                      },
+                    ].map((stat, idx) => (
+                      <Box
+                        key={stat.label}
                         sx={{
-                          fontSize: '0.6rem',
-                          fontWeight: 700,
-                          color: alpha('#fff', 0.5),
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em',
-                          mb: 0.25,
+                          textAlign: 'center',
+                          animation: 'fadeSlideUp 0.35s ease-out both',
+                          animationDelay: `${idx * 0.08}s`,
                         }}
                       >
-                        {stat.label}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontSize: '1rem',
-                          fontWeight: 700,
-                          color: stat.valueColor,
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {formatAmount(stat.value, currency)}
-                      </Typography>
-                    </Box>
-                  ))}
+                        <Typography
+                          sx={{
+                            fontSize: '0.6rem',
+                            fontWeight: 700,
+                            color: alpha('#fff', 0.5),
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            mb: 0.25,
+                          }}
+                        >
+                          {stat.label}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            color: stat.valueColor,
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {formatAmount(stat.value, currency)}
+                        </Typography>
+                      </Box>
+                    ));
+                  })()}
                 </Box>
               </Box>
             );
