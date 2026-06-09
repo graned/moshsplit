@@ -108,7 +108,7 @@ export default function MobileSettlePage() {
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming' });
       }
     }
     return items;
@@ -124,7 +124,7 @@ export default function MobileSettlePage() {
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing' });
       }
     }
     return items;
@@ -163,7 +163,7 @@ export default function MobileSettlePage() {
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming' });
       }
     }
     return items;
@@ -180,7 +180,7 @@ export default function MobileSettlePage() {
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing' });
       }
     }
     return items;

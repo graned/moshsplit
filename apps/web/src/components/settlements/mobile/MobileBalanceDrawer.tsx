@@ -238,6 +238,20 @@ export function MobileBalanceDrawer({
     resetSettleState();
   };
 
+  const resolvedBreakdownItems = useMemo(() => {
+    return breakdownItems.map((item) => {
+      if (item.counterparty && item.type === 'settlement') {
+        const user = getUser(item.counterparty);
+        const name = user
+          ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0]
+          : item.counterparty.slice(0, 8);
+        const isIncoming = item.direction === 'incoming';
+        return { ...item, label: isIncoming ? `Paid by ${name}` : `Paid to ${name}` };
+      }
+      return item;
+    });
+  }, [breakdownItems, getUser]);
+
   // ------------------------------------------------------------------
   // Render: breakdown view (existing layout)
   // ------------------------------------------------------------------
@@ -265,12 +279,12 @@ export function MobileBalanceDrawer({
       </Typography>
 
       <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-        {breakdownItems.length > 0 && (
+        {resolvedBreakdownItems.length > 0 && (
           <>
             <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.4), textTransform: 'uppercase', letterSpacing: '0.06em', mt: 1, mb: 0.5 }}>
               Breakdown
             </Typography>
-            {breakdownItems.map((item, idx) => {
+            {resolvedBreakdownItems.map((item, idx) => {
               const isPositive = item.amount >= 0;
               const isSettlement = item.type === 'settlement';
               return (
@@ -278,7 +292,7 @@ export function MobileBalanceDrawer({
                   key={`${item.label}-${idx}`}
                   sx={{
                     display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75,
-                    borderBottom: idx < breakdownItems.length - 1 ? `1px solid ${alpha('#fff', 0.05)}` : 'none',
+                    borderBottom: idx < resolvedBreakdownItems.length - 1 ? `1px solid ${alpha('#fff', 0.05)}` : 'none',
                   }}
                 >
                   <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isSettlement ? alpha('#F59E0B', 0.12) : alpha(amountColor, 0.12), flexShrink: 0 }}>
@@ -288,9 +302,16 @@ export function MobileBalanceDrawer({
                       <ReceiptIcon sx={{ fontSize: 14, color: amountColor }} />
                     )}
                   </Box>
-                  <Typography sx={{ flex: 1, fontSize: '0.8rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.label}
-                  </Typography>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.label}
+                    </Typography>
+                    {isSettlement && (
+                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: alpha('#F59E0B', 0.7), textTransform: 'uppercase', letterSpacing: '0.04em', mt: 0.1 }}>
+                        Settlement
+                      </Typography>
+                    )}
+                  </Box>
                   <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: amountColor, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                     {isPositive ? '' : '−'}{formatAmount(item.amount, currency)}
                   </Typography>
