@@ -136,9 +136,9 @@ export default function MobileSettlePage() {
     for (const settlement of explainBalance.settlements) {
       if (settlement.status !== 'confirmed') continue;
       if (settlement.to_user === userId) {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user });
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming' });
       } else if (settlement.from_user === userId) {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user });
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing' });
       }
     }
     return items;

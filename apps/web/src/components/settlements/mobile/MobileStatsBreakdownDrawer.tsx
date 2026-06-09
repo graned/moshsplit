@@ -19,6 +19,7 @@ export interface BreakdownItem {
   amount: number;
   type: 'expense' | 'settlement';
   counterparty?: string;
+  direction?: 'incoming' | 'outgoing';
 }
 
 interface MobileStatsBreakdownDrawerProps {
@@ -50,9 +51,10 @@ export function MobileStatsBreakdownDrawer({
           ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0]
           : item.counterparty.slice(0, 8);
         if (item.type === 'settlement') {
+          const isIncoming = item.direction === 'incoming' || item.amount >= 0;
           return {
             ...item,
-            label: item.amount >= 0 ? `Paid by ${name}` : `Paid to ${name}`,
+            label: isIncoming ? `Paid by ${name}` : `Paid to ${name}`,
           };
         }
       }
