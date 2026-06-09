@@ -23,9 +23,12 @@ export const useSettlementStore = create<SettlementState>((set) => ({
     set({ isCreating: true, error: null });
     try {
       const result = await settlementsApi.create(eventId, data);
-      queryClient.invalidateQueries({ queryKey: ['settlements', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
       queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
       set({ isCreating: false });
       return result;
     } catch (err) {
@@ -39,10 +42,12 @@ export const useSettlementStore = create<SettlementState>((set) => ({
     set({ isApproving: true, error: null });
     try {
       const result = await settlementsApi.approve(eventId, settlementId);
-      queryClient.invalidateQueries({ queryKey: ['settlements', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
       queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['balances', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
       queryClient.invalidateQueries({ queryKey: ['event-stats', eventId] });
       set({ isApproving: false });
       return result;
@@ -57,9 +62,12 @@ export const useSettlementStore = create<SettlementState>((set) => ({
     set({ isRejecting: true, error: null });
     try {
       const result = await settlementsApi.reject(eventId, settlementId, note);
-      queryClient.invalidateQueries({ queryKey: ['settlements', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
       queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['balance-explain', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
       set({ isRejecting: false });
       return result;
     } catch (err) {
