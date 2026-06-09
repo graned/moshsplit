@@ -281,7 +281,7 @@ impl BalanceService {
                     .and_modify(|t| *t = (*t).max(settlement.created_at))
                     .or_insert(settlement.created_at);
             } else if settlement.from_user == user_id {
-                *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+                *balances.entry(settlement.to_user).or_insert(0) += settlement.amount_cents;
                 latest_timestamps
                     .entry(settlement.to_user)
                     .and_modify(|t| *t = (*t).max(settlement.created_at))
@@ -360,7 +360,7 @@ impl BalanceService {
                     .and_modify(|t| *t = (*t).max(settlement.created_at))
                     .or_insert(settlement.created_at);
             } else if settlement.from_user == user_id {
-                *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+                *balances.entry(settlement.to_user).or_insert(0) += settlement.amount_cents;
                 latest_timestamps
                     .entry(settlement.to_user)
                     .and_modify(|t| *t = (*t).max(settlement.created_at))
