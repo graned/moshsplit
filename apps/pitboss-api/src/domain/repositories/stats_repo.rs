@@ -29,6 +29,8 @@ pub struct EventStatsRow {
     pub your_incoming_cents: i64,
     #[diesel(sql_type = BigInt)]
     pub your_incoming_settled_cents: i64,
+    #[diesel(sql_type = BigInt)]
+    pub your_outgoing_settled_cents: i64,
     #[diesel(sql_type = Nullable<DUuid>)]
     pub top_spender_id: Option<Uuid>,
     #[diesel(sql_type = Nullable<BigInt>)]
@@ -111,7 +113,12 @@ impl StatsRepository {
             user_incoming_settled AS (
                 SELECT COALESCE(SUM(amount_cents), 0) AS amount
                 FROM app.settlement
-                WHERE event_id = $1 AND (from_user = $2 OR to_user = $2) AND status = 'confirmed'
+                WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
+            ),
+            user_outgoing_settled AS (
+                SELECT COALESCE(SUM(amount_cents), 0) AS amount
+                FROM app.settlement
+                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed'
             ),
             top_spender AS (
                 SELECT paid_by AS user_id, SUM(amount_cents) AS total_paid
@@ -128,6 +135,7 @@ impl StatsRepository {
                 uo.amount AS your_outstanding_cents,
                 uie.amount AS your_incoming_cents,
                 uis.amount AS your_incoming_settled_cents,
+                uos.amount AS your_outgoing_settled_cents,
                 tsp.user_id AS top_spender_id,
                 tsp.total_paid AS top_spender_amount_cents
             FROM total_spent ts
@@ -137,6 +145,7 @@ impl StatsRepository {
             CROSS JOIN user_outstanding uo
             CROSS JOIN user_incoming_expected uie
             CROSS JOIN user_incoming_settled uis
+            CROSS JOIN user_outgoing_settled uos
             LEFT JOIN top_spender tsp ON 1=1
         "#;
 

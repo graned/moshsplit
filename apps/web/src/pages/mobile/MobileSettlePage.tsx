@@ -375,7 +375,7 @@ export default function MobileSettlePage() {
                   {(() => {
                     const oweToYou = (stats?.your_incoming_cents ?? 0) - (stats?.your_incoming_settled_cents ?? 0);
                     const youOwe = stats?.your_outstanding_cents ?? 0;
-                    const settled = stats?.your_incoming_settled_cents ?? 0;
+                    const settled = (stats?.your_incoming_settled_cents ?? 0) + (stats?.your_outgoing_settled_cents ?? 0);
                     return [
                       {
                         key: 'owe-to-you' as const,
@@ -635,7 +635,7 @@ export default function MobileSettlePage() {
         const breakdownItems = breakdownCard === 'owe-to-you' ? oweToYouItems : breakdownCard === 'you-owe' ? youOweItems : settledItems;
         const oweToYou = (stats?.your_incoming_cents ?? 0) - (stats?.your_incoming_settled_cents ?? 0);
         const youOwe = stats?.your_outstanding_cents ?? 0;
-        const settled = stats?.your_incoming_settled_cents ?? 0;
+        const settled = (stats?.your_incoming_settled_cents ?? 0) + (stats?.your_outgoing_settled_cents ?? 0);
         const breakdownTotal = breakdownCard === 'owe-to-you' ? oweToYou : breakdownCard === 'you-owe' ? youOwe : settled;
         const breakdownTitle = breakdownCard === 'owe-to-you' ? 'Owe to You' : breakdownCard === 'you-owe' ? 'You Owe' : 'Settled';
         const breakdownColor = breakdownCard === 'owe-to-you' ? '#22c55e' : breakdownCard === 'you-owe' ? '#ef4444' : '#22c55e';

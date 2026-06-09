@@ -24,6 +24,8 @@ pub struct EventStats {
     pub your_incoming_cents: i64,
     /// How much of incoming has been settled (confirmed settlements to user).
     pub your_incoming_settled_cents: i64,
+    /// How much the user has sent in confirmed settlements.
+    pub your_outgoing_settled_cents: i64,
     /// Settlement progress as a ratio from 0.0 to 1.0.
     /// 1.0 means all expenses are fully settled.
     pub settlement_progress: f64,

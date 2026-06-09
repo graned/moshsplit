@@ -77,6 +77,7 @@ export interface EventStats {
   your_outstanding_cents: number;
   your_incoming_cents: number;
   your_incoming_settled_cents: number;
+  your_outgoing_settled_cents: number;
   settlement_progress: number;
   top_spender_id: string | null;
   top_spender_amount_cents: number | null;
