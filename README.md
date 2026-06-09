@@ -425,6 +425,29 @@ For complete CI/CD and deployment documentation, see [DEPLOYMENT.md](DEPLOYMENT.
 
 ---
 
+## Common Errors & Fixes
+
+### Docker build fails with `getaddrinfo EAI_AGAIN registry.npmjs.org`
+
+Build containers can't reach the npm registry because the `docker0` bridge lost its IP address. This is common on Arch-based distros where NetworkManager may reset bridge interfaces.
+
+**Error:**
+```
+Error: Error when performing the request to https://registry.npmjs.org/pnpm/-/pnpm-9.15.4.tgz
+...
+getaddrinfo EAI_AGAIN registry.npmjs.org
+```
+
+**Fix:**
+```bash
+sudo ip addr add 172.17.0.1/16 dev docker0
+sudo ip link set docker0 up
+```
+
+Verify with `ip addr show docker0` — should show `inet 172.17.0.1/16` and `state UP`. No Docker restart needed; running containers are unaffected.
+
+---
+
 ## License
 
 MIT — because splitting expenses shouldn't cost money.

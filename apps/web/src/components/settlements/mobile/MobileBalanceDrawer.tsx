@@ -136,9 +136,35 @@ export function MobileBalanceDrawer({
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const remainingExpenseItems = useMemo(() => {
+    const settlementTotal = breakdownItems
+      .filter((i) => i.type === 'settlement')
+      .reduce((sum, i) => sum + Math.abs(i.amount), 0);
+
+    const sorted = [...breakdownItems]
+      .filter((i) => i.type === 'expense')
+      .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+
+    let remaining = settlementTotal;
+    const result: typeof breakdownItems = [];
+
+    for (const exp of sorted) {
+      if (remaining >= exp.amount) {
+        remaining -= exp.amount;
+      } else if (remaining > 0) {
+        result.push({ ...exp, amount: exp.amount - remaining });
+        remaining = 0;
+      } else {
+        result.push({ ...exp });
+      }
+    }
+
+    return result;
+  }, [breakdownItems]);
+
   const expenseItems = useMemo(
-    () => breakdownItems.filter((item) => item.type === 'expense'),
-    [breakdownItems],
+    () => remainingExpenseItems,
+    [remainingExpenseItems],
   );
 
   const totalSelectedCents = useMemo(

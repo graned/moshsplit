@@ -11,8 +11,7 @@ FROM node:20-alpine AS dev
 
 WORKDIR /app
 
-# Enable pnpm via corepack
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@9.15.4
 
 # Copy root workspace files so pnpm can resolve the monorepo layout.
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc /app/
@@ -58,7 +57,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@9.15.4
 
 # Copy root workspace files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc /app/

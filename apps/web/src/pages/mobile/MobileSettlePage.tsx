@@ -102,13 +102,13 @@ export default function MobileSettlePage() {
       if (expense.paid_by === userId && (expense.participants?.length ?? 0) > 1) {
         const amount = expense.amount_cents - expense.share_cents;
         if (amount > 0) {
-          items.push({ label: expense.title, amount, type: 'expense' });
+          items.push({ label: expense.title, amount, type: 'expense', created_at: expense.created_at });
         }
       }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming' });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming', created_at: settlement.created_at });
       }
     }
     return items;
@@ -119,12 +119,12 @@ export default function MobileSettlePage() {
     const items: BreakdownItem[] = [];
     for (const expense of explainBalance.expenses) {
       if (expense.paid_by !== userId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense' });
+        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing' });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing', created_at: settlement.created_at });
       }
     }
     return items;
@@ -136,9 +136,9 @@ export default function MobileSettlePage() {
     for (const settlement of explainBalance.settlements) {
       if (settlement.status !== 'confirmed') continue;
       if (settlement.to_user === userId) {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming' });
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming', created_at: settlement.created_at });
       } else if (settlement.from_user === userId) {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing' });
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing', created_at: settlement.created_at });
       }
     }
     return items;
@@ -158,12 +158,12 @@ export default function MobileSettlePage() {
     const items: BreakdownItem[] = [];
     for (const expense of explainBalance.expenses) {
       if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense' });
+        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming' });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
       }
     }
     return items;
@@ -175,12 +175,12 @@ export default function MobileSettlePage() {
     const items: BreakdownItem[] = [];
     for (const expense of explainBalance.expenses) {
       if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense' });
+        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing' });
+        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
       }
     }
     return items;

@@ -20,6 +20,7 @@ export interface BreakdownItem {
   type: 'expense' | 'settlement';
   counterparty?: string;
   direction?: 'incoming' | 'outgoing';
+  created_at?: string;
 }
 
 interface MobileStatsBreakdownDrawerProps {
