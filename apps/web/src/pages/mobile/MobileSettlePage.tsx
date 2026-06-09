@@ -13,8 +13,7 @@ import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
 import { MobileFeedList, type FeedDisplayItem } from '../../components/feed/mobile/MobileFeedList';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
 import { RestoreHonorModal } from '../../components/settlements/RestoreHonorModal';
-import { MobileIncomingBalanceDrawer } from '../../components/settlements/mobile/MobileIncomingBalanceDrawer';
-import { MobileOutgoingBalanceDrawer } from '../../components/settlements/mobile/MobileOutgoingBalanceDrawer';
+import { MobileBalanceDrawer } from '../../components/settlements/mobile/MobileBalanceDrawer';
 import { SettlementReviewPanel } from '../../components/settlements/SettlementReviewPanel';
 import { MobileSettlementHistoryDrawer } from '../../components/settlements/mobile/MobileSettlementHistoryDrawer';
 import { MobileStatsBreakdownDrawer, type BreakdownItem } from '../../components/settlements/mobile/MobileStatsBreakdownDrawer';
@@ -579,10 +578,11 @@ export default function MobileSettlePage() {
         />
       )}
 
-      <MobileIncomingBalanceDrawer
+      <MobileBalanceDrawer
         open={incomingDrawerOpen}
         onClose={() => setIncomingDrawerOpen(false)}
         balanceItem={incomingDrawerItem}
+        direction="incoming"
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={incomingBreakdownItems}
@@ -590,10 +590,11 @@ export default function MobileSettlePage() {
         fullScreen
       />
 
-      <MobileOutgoingBalanceDrawer
+      <MobileBalanceDrawer
         open={outgoingDrawerOpen}
         onClose={() => setOutgoingDrawerOpen(false)}
         balanceItem={outgoingDrawerItem}
+        direction="outgoing"
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={outgoingBreakdownItems}
