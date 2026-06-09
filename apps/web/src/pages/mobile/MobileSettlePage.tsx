@@ -52,7 +52,7 @@ export default function MobileSettlePage() {
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   useUsers(memberUserIds);
-  const { getUser } = useUserCache();
+  useUserCache();
 
   const { data: incomingData } = useQuery({
     queryKey: ['settlements-incoming', eventId],
@@ -588,6 +588,8 @@ export default function MobileSettlePage() {
         breakdownItems={incomingBreakdownItems}
         breakdownTotal={incomingDrawerItem?.amount_cents ?? 0}
         fullScreen
+        eventId={eventId!}
+        currentUserId={userId!}
       />
 
       <MobileBalanceDrawer
@@ -600,6 +602,8 @@ export default function MobileSettlePage() {
         breakdownItems={outgoingBreakdownItems}
         breakdownTotal={outgoingDrawerItem?.amount_cents ?? 0}
         fullScreen
+        eventId={eventId!}
+        currentUserId={userId!}
       />
 
       {reviewSettlement && (
