@@ -111,7 +111,7 @@ impl StatsRepository {
             user_incoming_settled AS (
                 SELECT COALESCE(SUM(amount_cents), 0) AS amount
                 FROM app.settlement
-                WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
+                WHERE event_id = $1 AND (from_user = $2 OR to_user = $2) AND status = 'confirmed'
             ),
             top_spender AS (
                 SELECT paid_by AS user_id, SUM(amount_cents) AS total_paid

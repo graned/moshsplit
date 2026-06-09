@@ -134,8 +134,11 @@ export default function MobileSettlePage() {
     if (!explainBalance) return [];
     const items: BreakdownItem[] = [];
     for (const settlement of explainBalance.settlements) {
-      if (settlement.to_user === userId && settlement.status === 'confirmed') {
+      if (settlement.status !== 'confirmed') continue;
+      if (settlement.to_user === userId) {
         items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user });
+      } else if (settlement.from_user === userId) {
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user });
       }
     }
     return items;
