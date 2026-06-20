@@ -10,7 +10,6 @@ import { balancesApi } from '../../api/balances.api';
 import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, type SettlementListItem } from '../../api/settlements.api';
 import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
-import { MobileFeedList, type FeedDisplayItem } from '../../components/feed/mobile/MobileFeedList';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
 import { RestoreHonorModal } from '../../components/settlements/RestoreHonorModal';
 import { MobileBalanceDrawer } from '../../components/settlements/mobile/MobileBalanceDrawer';
@@ -106,33 +105,36 @@ export default function MobileSettlePage() {
         }
       }
     }
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming', created_at: settlement.created_at });
-      }
-    }
-    return items;
-  }, [explainBalance, userId]);
-
-  const youOweItems: BreakdownItem[] = useMemo(() => {
-    if (!explainBalance) return [];
-    const items: BreakdownItem[] = [];
-    for (const expense of explainBalance.expenses) {
-      if (expense.paid_by !== userId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-    }
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.from_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing', created_at: settlement.created_at });
-      }
-    }
     return items;
   }, [explainBalance, userId]);
 
   const settledItems: BreakdownItem[] = useMemo(() => {
     if (!explainBalance) return [];
     const items: BreakdownItem[] = [];
+
+    for (const expense of explainBalance.expenses) {
+      if (expense.paid_by === userId && (expense.participants?.length ?? 0) > 1) {
+        const amount = expense.amount_cents - expense.share_cents;
+        if (amount > 0) {
+          items.push({
+            label: expense.title,
+            amount,
+            type: 'expense',
+            direction: 'incoming',
+            created_at: expense.created_at,
+          });
+        }
+      } else if (expense.paid_by !== userId && expense.share_cents > 0) {
+        items.push({
+          label: expense.title,
+          amount: expense.share_cents,
+          type: 'expense',
+          direction: 'outgoing',
+          created_at: expense.created_at,
+        });
+      }
+    }
+
     for (const settlement of explainBalance.settlements) {
       if (settlement.status !== 'confirmed') continue;
       if (settlement.to_user === userId) {
@@ -160,10 +162,16 @@ export default function MobileSettlePage() {
       if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
         items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
+      if (expense.paid_by === cpId && expense.share_cents > 0) {
+        items.push({ label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+      }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
         items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
+      }
+      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
       }
     }
     return items;
@@ -177,10 +185,16 @@ export default function MobileSettlePage() {
       if (expense.paid_by === cpId && expense.share_cents > 0) {
         items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
+      if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
+        items.push({ label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+      }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
         items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
+      }
+      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
+        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
       }
     }
     return items;
@@ -190,6 +204,33 @@ export default function MobileSettlePage() {
   const outgoingItems: OutgoingBalanceItem[] = outgoingData?.items ?? [];
 
   const allSettled = incomingItems.length === 0 && outgoingItems.length === 0;
+
+  const counterpartyNetMap: Record<string, number> = useMemo(() => {
+    if (!explainBalance || !userId) return {};
+    const map: Record<string, number> = {};
+    for (const expense of explainBalance.expenses) {
+      const participants = expense.participants ?? [];
+      for (const pId of participants) {
+        if (pId === userId) continue;
+        if (expense.paid_by === userId) {
+          map[pId] = (map[pId] ?? 0) + expense.share_cents;
+        }
+      }
+      if (expense.paid_by !== userId && expense.share_cents > 0 && participants.includes(userId)) {
+        map[expense.paid_by] = (map[expense.paid_by] ?? 0) - expense.share_cents;
+      }
+    }
+    for (const settlement of explainBalance.settlements) {
+      if (settlement.status !== 'confirmed') continue;
+      if (settlement.to_user === userId && settlement.from_user !== userId) {
+        map[settlement.from_user] = (map[settlement.from_user] ?? 0) - settlement.amount_cents;
+      }
+      if (settlement.from_user === userId && settlement.to_user !== userId) {
+        map[settlement.to_user] = (map[settlement.to_user] ?? 0) + settlement.amount_cents;
+      }
+    }
+    return map;
+  }, [explainBalance, userId]);
 
   const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
   const currency = event?.currency || 'EUR';
@@ -250,14 +291,6 @@ export default function MobileSettlePage() {
       </Box>
     );
   }
-
-  const emptyState = (message: string) => (
-    <Box sx={{ textAlign: 'center', py: 6 }}>
-      <Typography variant="body1" color="text.secondary">
-        {message}
-      </Typography>
-    </Box>
-  );
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -361,82 +394,6 @@ export default function MobileSettlePage() {
 
                 <Box sx={{ height: 1, bgcolor: alpha('#fff', 0.1), mb: 1.5 }} />
 
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: 1.5,
-                    '@keyframes fadeSlideUp': {
-                      from: { opacity: 0, transform: 'translateY(8px)' },
-                      to: { opacity: 1, transform: 'translateY(0)' },
-                    },
-                  }}
-                >
-                  {(() => {
-                    const oweToYou = (stats?.your_incoming_cents ?? 0) - (stats?.your_incoming_settled_cents ?? 0);
-                    const youOwe = stats?.your_outstanding_cents ?? 0;
-                    const settled = (stats?.your_incoming_settled_cents ?? 0) + (stats?.your_outgoing_settled_cents ?? 0);
-                    return [
-                      {
-                        key: 'owe-to-you' as const,
-                        label: 'Owe to You',
-                        value: oweToYou,
-                        valueColor: oweToYou > 0 ? '#22c55e' : '#9ca3af',
-                      },
-                      {
-                        key: 'you-owe' as const,
-                        label: 'You Owe',
-                        value: youOwe,
-                        valueColor: youOwe > 0 ? '#ef4444' : '#9ca3af',
-                      },
-                      {
-                        key: 'settled' as const,
-                        label: 'Settled',
-                        value: settled,
-                        valueColor: '#22c55e',
-                      },
-                    ].map((stat, idx) => (
-                      <Box
-                        key={stat.label}
-                        onClick={() => setBreakdownCard(stat.key)}
-                        sx={{
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                          borderRadius: 1.5,
-                          p: 0.75,
-                          mx: -0.75,
-                          transition: 'background 0.15s',
-                          '&:hover': { bgcolor: alpha('#fff', 0.04) },
-                          animation: 'fadeSlideUp 0.35s ease-out both',
-                          animationDelay: `${idx * 0.08}s`,
-                        }}
-                      >
-                        <Typography
-                          sx={{
-                            fontSize: '0.6rem',
-                            fontWeight: 700,
-                            color: alpha('#fff', 0.5),
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
-                            mb: 0.25,
-                          }}
-                        >
-                          {stat.label}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: '1rem',
-                            fontWeight: 700,
-                            color: stat.valueColor,
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {formatAmount(stat.value, currency)}
-                        </Typography>
-                      </Box>
-                    ));
-                  })()}
-                </Box>
               </Box>
             );
           })()}
@@ -477,27 +434,19 @@ export default function MobileSettlePage() {
                 </Typography>
               )}
             </Typography>
-            <MobileFeedList
-              items={incomingItems.map((item) => ({
-                kind: 'custom' as const, id: `incoming-${item.user_id}`, node: (
-                  <MobileBalanceCard
-                    balanceItem={item}
-                    userId={item.user_id}
-                    amountCents={item.amount_cents}
-                    isIncoming={true}
-                    currency={currency}
-                    onClick={() => handleOpenIncomingDrawer(item)}
-                  />
-                )
-              })) as FeedDisplayItem[]}
-              customDateKey={(item: any) => {
-                const displayItem = item as FeedDisplayItem;
-                const el = displayItem.kind === 'custom' ? displayItem.node as React.ReactElement<{ balanceItem?: { created_at?: string } }> : null;
-                return el?.props?.balanceItem?.created_at ?? 'today';
-              }}
-              userMap={{}}
-              emptyState={emptyState('No one owes you. The pit is quiet.')}
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {incomingItems.map((item) => (
+                <MobileBalanceCard
+                  balanceItem={item}
+                  userId={item.user_id}
+                  amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
+                  isIncoming={true}
+                  currency={currency}
+                  onClick={() => handleOpenIncomingDrawer(item)}
+                  key={item.user_id}
+                />
+              ))}
+            </Box>
           </>
         )}
 
@@ -534,27 +483,19 @@ export default function MobileSettlePage() {
                 </Typography>
               )}
             </Typography>
-            <MobileFeedList
-              items={outgoingItems.map((item) => ({
-                kind: 'custom' as const, id: `outgoing-${item.user_id}`, node: (
-                  <MobileBalanceCard
-                    balanceItem={item}
-                    userId={item.user_id}
-                    amountCents={item.amount_cents}
-                    isIncoming={false}
-                    currency={currency}
-                    onClick={() => handleOpenOutgoingDrawer(item)}
-                  />
-                )
-              })) as FeedDisplayItem[]}
-              customDateKey={(item: any) => {
-                const displayItem = item as FeedDisplayItem;
-                const el = displayItem.kind === 'custom' ? displayItem.node as React.ReactElement<{ balanceItem?: { created_at?: string } }> : null;
-                return el?.props?.balanceItem?.created_at ?? 'today';
-              }}
-              userMap={{}}
-              emptyState={emptyState("You don't owe anyone. Your honor is intact.")}
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {outgoingItems.map((item) => (
+                <MobileBalanceCard
+                  balanceItem={item}
+                  userId={item.user_id}
+                  amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
+                  isIncoming={false}
+                  currency={currency}
+                  onClick={() => handleOpenOutgoingDrawer(item)}
+                  key={item.user_id}
+                />
+              ))}
+            </Box>
           </>
         )}
 
@@ -589,7 +530,7 @@ export default function MobileSettlePage() {
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={incomingBreakdownItems}
-        breakdownTotal={incomingDrawerItem?.amount_cents ?? 0}
+          breakdownTotal={incomingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
@@ -603,7 +544,7 @@ export default function MobileSettlePage() {
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={outgoingBreakdownItems}
-        breakdownTotal={outgoingDrawerItem?.amount_cents ?? 0}
+          breakdownTotal={outgoingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
@@ -632,13 +573,12 @@ export default function MobileSettlePage() {
       />
 
       {(() => {
-        const breakdownItems = breakdownCard === 'owe-to-you' ? oweToYouItems : breakdownCard === 'you-owe' ? youOweItems : settledItems;
-        const oweToYou = (stats?.your_incoming_cents ?? 0) - (stats?.your_incoming_settled_cents ?? 0);
-        const youOwe = stats?.your_outstanding_cents ?? 0;
-        const settled = (stats?.your_incoming_settled_cents ?? 0) + (stats?.your_outgoing_settled_cents ?? 0);
-        const breakdownTotal = breakdownCard === 'owe-to-you' ? oweToYou : breakdownCard === 'you-owe' ? youOwe : settled;
-        const breakdownTitle = breakdownCard === 'owe-to-you' ? 'Owe to You' : breakdownCard === 'you-owe' ? 'You Owe' : 'Settled';
-        const breakdownColor = breakdownCard === 'owe-to-you' ? '#22c55e' : breakdownCard === 'you-owe' ? '#ef4444' : '#22c55e';
+        const breakdownItems = breakdownCard === 'settled' ? settledItems : oweToYouItems;
+        const breakdownTotal = breakdownCard === 'settled'
+          ? settledItems.reduce((sum, item) => sum + item.amount, 0)
+          : oweToYouItems.reduce((sum, item) => sum + item.amount, 0);
+        const breakdownTitle = breakdownCard === 'settled' ? 'Settled' : 'Owe to You';
+        const breakdownColor = '#22c55e';
 
         return (
           <MobileStatsBreakdownDrawer

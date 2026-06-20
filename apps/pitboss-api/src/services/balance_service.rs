@@ -270,25 +270,6 @@ impl BalanceService {
             }
         }
 
-        for settlement in &explanation.settlements {
-            if settlement.status != "confirmed" {
-                continue;
-            }
-            if settlement.to_user == user_id {
-                *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
-                latest_timestamps
-                    .entry(settlement.from_user)
-                    .and_modify(|t| *t = (*t).max(settlement.created_at))
-                    .or_insert(settlement.created_at);
-            } else if settlement.from_user == user_id {
-                *balances.entry(settlement.to_user).or_insert(0) += settlement.amount_cents;
-                latest_timestamps
-                    .entry(settlement.to_user)
-                    .and_modify(|t| *t = (*t).max(settlement.created_at))
-                    .or_insert(settlement.created_at);
-            }
-        }
-
         let incoming: Vec<(Uuid, i32)> = balances
             .into_iter()
             .filter(|(_, balance)| *balance > 0)
@@ -346,25 +327,6 @@ impl BalanceService {
                     .entry(expense.paid_by)
                     .and_modify(|t| *t = (*t).max(expense.created_at))
                     .or_insert(expense.created_at);
-            }
-        }
-
-        for settlement in &explanation.settlements {
-            if settlement.status != "confirmed" {
-                continue;
-            }
-            if settlement.to_user == user_id {
-                *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
-                latest_timestamps
-                    .entry(settlement.from_user)
-                    .and_modify(|t| *t = (*t).max(settlement.created_at))
-                    .or_insert(settlement.created_at);
-            } else if settlement.from_user == user_id {
-                *balances.entry(settlement.to_user).or_insert(0) += settlement.amount_cents;
-                latest_timestamps
-                    .entry(settlement.to_user)
-                    .and_modify(|t| *t = (*t).max(settlement.created_at))
-                    .or_insert(settlement.created_at);
             }
         }
 

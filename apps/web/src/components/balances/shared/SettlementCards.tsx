@@ -29,9 +29,37 @@ import { SettlementReviewPanel } from '../../settlements/SettlementReviewPanel';
 import { MobileRelationshipCard } from '../../feed/mobile/cards/MobileRelationshipCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
 import { RelationshipDetailDrawer } from '../mobile/RelationshipDetailDrawer';
+import { MobileStatsBreakdownDrawer, type BreakdownItem } from '../../settlements/mobile/MobileStatsBreakdownDrawer';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Math.abs(cents) / 100);
+
+function buildBreakdownItems(rel: RelationshipSummary, currentUserId: string): BreakdownItem[] {
+  const items: BreakdownItem[] = [];
+  const isIncoming = rel.isIncoming;
+  for (const expense of rel.expenses) {
+    items.push({
+      label: expense.title,
+      amount: isIncoming ? expense.share_cents : expense.share_cents,
+      type: 'expense',
+      direction: isIncoming ? 'incoming' : 'outgoing',
+      created_at: expense.created_at,
+    });
+  }
+  for (const settlement of rel.settlements) {
+    if (settlement.status !== 'confirmed') continue;
+    const isOutgoing = settlement.from_user === currentUserId;
+    items.push({
+      label: '',
+      amount: settlement.amount_cents,
+      type: 'settlement',
+      counterparty: isOutgoing ? settlement.to_user : settlement.from_user,
+      direction: isOutgoing ? 'outgoing' : 'incoming',
+      created_at: settlement.created_at,
+    });
+  }
+  return items;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,6 +120,12 @@ export function SettlementCards({
   
   // Drawer state for mobile - replaces inline expansion
   const [drawerRelationship, setDrawerRelationship] = useState<RelationshipSummary | null>(null);
+
+  // Stats-style breakdown drawer
+  const [breakdownDrawerOpen, setBreakdownDrawerOpen] = useState(false);
+  const [breakdownItems, setBreakdownItems] = useState<BreakdownItem[]>([]);
+  const [breakdownTotal, setBreakdownTotal] = useState(0);
+  const [breakdownTitle, setBreakdownTitle] = useState('');
   
   const { getAllUsers } = useUserCache();
   const allUsers = getAllUsers();
@@ -258,6 +292,7 @@ export function SettlementCards({
           items={displayList}
           renderItem={(rel) => {
             const name = getMemberName(rel.userId);
+            const items = buildBreakdownItems(rel, currentUserId);
             return (
               <Box key={rel.userId}>
                 <MobileRelationshipCard
@@ -265,7 +300,12 @@ export function SettlementCards({
                   displayName={name}
                   currency={currency}
                   currentUserId={currentUserId}
-                  onClick={() => setDrawerRelationship(rel)}
+                  onClick={() => {
+                    setBreakdownTitle(`${name}: ${rel.isIncoming ? 'Owed to you' : 'You owe'}`);
+                    setBreakdownItems(items);
+                    setBreakdownTotal(rel.totalCents);
+                    setBreakdownDrawerOpen(true);
+                  }}
                 />
               </Box>
             );
@@ -328,6 +368,16 @@ export function SettlementCards({
           currentUserId={currentUserId}
         />
       )}
+
+      {/* Breakdown drawer */}
+      <MobileStatsBreakdownDrawer
+        open={breakdownDrawerOpen}
+        onClose={() => setBreakdownDrawerOpen(false)}
+        title={breakdownTitle}
+        items={breakdownItems}
+        total={breakdownTotal}
+        currency={currency}
+      />
     </Box>
   );
 }

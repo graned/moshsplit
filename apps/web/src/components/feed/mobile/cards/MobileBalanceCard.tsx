@@ -39,7 +39,21 @@ export function MobileBalanceCard({
   const Icon = isIncoming ? TrendingUpIcon : TrendingDownIcon;
 
   return (
-    <Box data-balance={balanceItem ? JSON.stringify(balanceItem) : undefined}>
+    <Box
+      data-balance={balanceItem ? JSON.stringify(balanceItem) : undefined}
+      sx={{
+        borderRadius: 2,
+        '@keyframes glowPulse': {
+          '0%, 100%': {
+            boxShadow: `0 0 6px ${alpha(accentColor, 0.15)}`,
+          },
+          '50%': {
+            boxShadow: `0 0 14px ${alpha(accentColor, 0.15)}`,
+          },
+        },
+        animation: 'glowPulse 3s ease-in-out infinite',
+      }}
+    >
     <MobileFeedCard
       accentColor={accentColor}
       icon={

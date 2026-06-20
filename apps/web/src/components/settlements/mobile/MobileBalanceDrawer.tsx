@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -30,6 +30,17 @@ function formatAmount(cents: number, currency = 'EUR') {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(Math.abs(cents) / 100);
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
 }
 
 type DrawerDirection = 'incoming' | 'outgoing';
@@ -282,99 +293,148 @@ export function MobileBalanceDrawer({
   // Render: breakdown view (existing layout)
   // ------------------------------------------------------------------
   const renderBreakdownView = () => {
-    const item = displayItem!;
     return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: 0 }}>
-      <Typography
-        sx={{
-          fontSize: '1rem', fontWeight: 600, color: 'text.secondary',
-          textAlign: 'center', pt: 2, pb: 0.5,
-        }}
-      >
-        {cfg.headerText(displayName)}
-      </Typography>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: 0 }}>
+        <Typography
+          sx={{
+            fontSize: '1rem', fontWeight: 600, color: 'text.secondary',
+            textAlign: 'center', pt: 2, pb: 0.5,
+          }}
+        >
+          {cfg.headerText(displayName)}
+        </Typography>
 
-      <Typography
-        sx={{
-          fontSize: '2.5rem', fontWeight: 800, background: gradient,
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          lineHeight: 1.1, textAlign: 'center', pb: 1.5,
-        }}
-      >
-        {formatAmount(item.amount_cents, currency)}
-      </Typography>
+        <Typography
+          sx={{
+            fontSize: '2.5rem', fontWeight: 800, background: gradient,
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            lineHeight: 1.1, textAlign: 'center', pb: 1.5,
+          }}
+        >
+          {formatAmount(Math.abs(breakdownTotal), currency)}
+        </Typography>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-        {resolvedBreakdownItems.length > 0 && (
-          <>
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.4), textTransform: 'uppercase', letterSpacing: '0.06em', mt: 1, mb: 0.5 }}>
-              Breakdown
-            </Typography>
-            {resolvedBreakdownItems.map((item, idx) => {
-              const isPositive = item.amount >= 0;
-              const isSettlement = item.type === 'settlement';
-              return (
-                <Box
-                  key={`${item.label}-${idx}`}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75,
-                    borderBottom: idx < resolvedBreakdownItems.length - 1 ? `1px solid ${alpha('#fff', 0.05)}` : 'none',
-                  }}
-                >
-                  <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isSettlement ? alpha('#F59E0B', 0.12) : alpha(amountColor, 0.12), flexShrink: 0 }}>
-                    {isSettlement ? (
-                      <HandshakeIcon sx={{ fontSize: 14, color: alpha('#F59E0B', 0.7) }} />
-                    ) : (
-                      <ReceiptIcon sx={{ fontSize: 14, color: amountColor }} />
-                    )}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.label}
-                    </Typography>
-                    {isSettlement && (
-                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: alpha('#F59E0B', 0.7), textTransform: 'uppercase', letterSpacing: '0.04em', mt: 0.1 }}>
-                        Settlement
+        <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {resolvedBreakdownItems.length > 0 && (
+            <>
+              {(() => {
+                const groups: { title: string; items: typeof resolvedBreakdownItems }[] = [];
+                const youPaid: typeof resolvedBreakdownItems = [];
+                const theyPaid: typeof resolvedBreakdownItems = [];
+                const settlements: typeof resolvedBreakdownItems = [];
+
+                for (const item of resolvedBreakdownItems) {
+                  if (item.type === 'settlement') {
+                    settlements.push(item);
+                  } else if (direction === 'incoming') {
+                    if (item.amount >= 0) {
+                      youPaid.push(item);
+                    } else {
+                      theyPaid.push(item);
+                    }
+                  } else {
+                    if (item.amount >= 0) {
+                      theyPaid.push(item);
+                    } else {
+                      youPaid.push(item);
+                    }
+                  }
+                }
+                if (direction === 'incoming') {
+                  if (youPaid.length > 0) groups.push({ title: 'You Paid', items: youPaid });
+                  if (theyPaid.length > 0) groups.push({ title: 'Paid by Them', items: theyPaid });
+                } else {
+                  if (theyPaid.length > 0) groups.push({ title: 'Paid by Them', items: theyPaid });
+                  if (youPaid.length > 0) groups.push({ title: 'You Paid', items: youPaid });
+                }
+                if (settlements.length > 0) groups.push({ title: 'Settlements', items: settlements });
+
+                return groups.map((section, si) => (
+                  <React.Fragment key={section.title}>
+                    {si > 0 && <Box sx={{ height: 0, bgcolor: alpha('#fff', 0.08), my: 1.5 }} />}
+                    <Box sx={{ textAlign: 'center', mb: 0.75 }}>
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.45), textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {section.title}
                       </Typography>
-                    )}
-                  </Box>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: amountColor, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                    {isPositive ? '' : '−'}{formatAmount(item.amount, currency)}
-                  </Typography>
-                </Box>
-              );
-            })}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.75, mt: 0.25 }}>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Total
-              </Typography>
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: amountColor, fontVariantNumeric: 'tabular-nums' }}>
-                {formatAmount(breakdownTotal, currency)}
-              </Typography>
-            </Box>
-          </>
+                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: alpha('#fff', 0.35), fontVariantNumeric: 'tabular-nums', mt: 0.15 }}>
+                        {formatAmount(section.items.reduce((sum, i) => sum + i.amount, 0), currency)}
+                      </Typography>
+                    </Box>
+                    {section.items.map((item, idx) => {
+                      const isPositive = item.amount >= 0;
+                      const isSettlement = item.type === 'settlement';
+                      return (
+                        <Box
+                          key={`${item.label}-${idx}`}
+                          sx={{
+                            display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75,
+                            borderBottom: idx < section.items.length - 1 ? `1px solid ${alpha('#fff', 0.05)}` : 'none',
+                          }}
+                        >
+                          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isSettlement ? alpha('#F59E0B', 0.12) : alpha(amountColor, 0.12), flexShrink: 0 }}>
+                            {isSettlement ? (
+                              <HandshakeIcon sx={{ fontSize: 14, color: alpha('#F59E0B', 0.7) }} />
+                            ) : (
+                              <ReceiptIcon sx={{ fontSize: 14, color: amountColor }} />
+                            )}
+                          </Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.label}
+                            </Typography>
+                            <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.1 }}>
+                              {item.created_at && (
+                                <Typography component="span" sx={{ fontSize: '0.6rem', fontWeight: 500, color: alpha('#fff', 0.3) }}>
+                                  {formatDate(item.created_at)}
+                                </Typography>
+                              )}
+                              {isSettlement && (
+                                <Typography component="span" sx={{ fontSize: '0.55rem', fontWeight: 600, color: alpha('#F59E0B', 0.6), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  · Settlement
+                                </Typography>
+                              )}
+                            </Typography>
+                          </Box>
+                          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                            {isPositive ? '' : '−'}{formatAmount(item.amount, currency)}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </React.Fragment>
+                ));
+              })()}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.75, mt: 0.25 }}>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total
+                </Typography>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
+                  {formatAmount(breakdownTotal, currency)}
+                </Typography>
+              </Box>
+            </>
+          )}
+        </Box>
+
+        {direction === 'outgoing' && (
+          <Box sx={{ flexShrink: 0, pt: 1, pb: 3 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleStartSettle}
+              sx={{
+                height: 56, borderRadius: 2, bgcolor: buttonBg, color: buttonText,
+                fontWeight: 800, letterSpacing: '0.05em', fontSize: '1rem',
+                boxShadow: `0 0 20px ${alpha(buttonBg, 0.25)}`,
+                '&:hover': { bgcolor: buttonHover, boxShadow: `0 0 30px ${alpha(buttonBg, 0.35)}` },
+              }}
+            >
+              Settle Up
+            </Button>
+          </Box>
         )}
       </Box>
-
-      {direction === 'outgoing' && (
-        <Box sx={{ flexShrink: 0, pt: 1, pb: 3 }}>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleStartSettle}
-            sx={{
-              height: 56, borderRadius: 2, bgcolor: buttonBg, color: buttonText,
-              fontWeight: 800, letterSpacing: '0.05em', fontSize: '1rem',
-              boxShadow: `0 0 20px ${alpha(buttonBg, 0.25)}`,
-              '&:hover': { bgcolor: buttonHover, boxShadow: `0 0 30px ${alpha(buttonBg, 0.35)}` },
-            }}
-          >
-            Settle Up
-          </Button>
-        </Box>
-      )}
-    </Box>
-  );
+    );
   };
 
   // ------------------------------------------------------------------
