@@ -216,7 +216,7 @@ export default function MobileSettlePage() {
           map[pId] = (map[pId] ?? 0) + expense.share_cents;
         }
       }
-      if (expense.paid_by !== userId && expense.share_cents > 0 && participants.includes(userId)) {
+      if (expense.paid_by !== userId && expense.share_cents > 0) {
         map[expense.paid_by] = (map[expense.paid_by] ?? 0) - expense.share_cents;
       }
     }
