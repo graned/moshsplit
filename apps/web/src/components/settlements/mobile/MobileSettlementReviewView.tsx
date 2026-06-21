@@ -5,7 +5,6 @@ import {
   Button,
   Avatar,
   TextField,
-  Divider,
   alpha,
   CircularProgress,
 } from '@mui/material';
@@ -208,97 +207,107 @@ export function MobileSettlementReviewView({
             </Box>
           )}
         </Box>
+      </Box>
 
-        <Divider sx={{ borderColor: alpha('#fff', 0.05), mb: 3 }} />
+      {/* Error */}
+      {error && (
+        <Box sx={{ px: 0.5, pb: 1 }}>
+          <Typography variant="body2" color="error.main" sx={{ textAlign: 'center' }}>
+            {error}
+          </Typography>
+        </Box>
+      )}
 
-        {/* Actions */}
+      {/* Actions anchored at bottom */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          px: 0.5,
+          pb: 2,
+          pt: 1.5,
+          borderTop: 1,
+          borderColor: alpha('#fff', 0.05),
+        }}
+      >
         {isRecipient ? (
-          <>
-            {showRejectForm ? (
-              <Box>
-                <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
-                  Reason for rejection (optional)
-                </Typography>
-                <TextField
-                  multiline
-                  rows={2}
-                  value={rejectionNote}
-                  onChange={(e) => setRejectionNote(e.target.value)}
-                  placeholder="Explain why this claim is rejected..."
-                  fullWidth
-                  sx={{ mb: 2 }}
-                />
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setShowRejectForm(false)}
-                    sx={{ flex: 1 }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="contained"
-                    onClick={handleReject}
-                    disabled={isRejecting}
-                    startIcon={isRejecting ? <CircularProgress size={20} /> : <RejectIcon />}
-                    sx={{
-                      flex: 1,
-                      bgcolor: 'error.main',
-                      '&:hover': { bgcolor: 'error.dark' },
-                    }}
-                  >
-                    Confirm Reject
-                  </Button>
-                </Box>
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', gap: 2 }}>
+          showRejectForm ? (
+            <Box>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
+                Reason for rejection (optional)
+              </Typography>
+              <TextField
+                multiline
+                rows={2}
+                value={rejectionNote}
+                onChange={(e) => setRejectionNote(e.target.value)}
+                placeholder="Explain why this claim is rejected..."
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="outlined"
-                  onClick={() => setShowRejectForm(true)}
-                  disabled={isApproving || isRejecting}
-                  startIcon={<RejectIcon />}
-                  sx={{
-                    flex: 1,
-                    py: 1.5,
-                    borderColor: alpha('#ef4444', 0.3),
-                    color: 'error.main',
-                    '&:hover': { borderColor: 'error.main', bgcolor: alpha('#ef4444', 0.05) },
-                  }}
+                  onClick={() => setShowRejectForm(false)}
+                  sx={{ flex: 1 }}
                 >
-                  Reject Claim
+                  Cancel
                 </Button>
                 <Button
                   variant="contained"
-                  onClick={handleApprove}
-                  disabled={isApproving}
-                  startIcon={isApproving ? <CircularProgress size={20} color="inherit" /> : <ApproveIcon />}
+                  onClick={handleReject}
+                  disabled={isRejecting}
+                  startIcon={isRejecting ? <CircularProgress size={20} /> : <RejectIcon />}
                   sx={{
                     flex: 1,
-                    py: 1.5,
-                    bgcolor: 'primary.main',
-                    color: '#121212',
-                    fontWeight: 700,
-                    '&:hover': { bgcolor: 'primary.dark' },
+                    bgcolor: 'error.main',
+                    '&:hover': { bgcolor: 'error.dark' },
                   }}
                 >
-                  Honor Restored
+                  Confirm Reject
                 </Button>
               </Box>
-            )}
-          </>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setShowRejectForm(true)}
+                disabled={isApproving || isRejecting}
+                startIcon={<RejectIcon />}
+                sx={{
+                  flex: 1,
+                  py: 1.5,
+                  borderColor: alpha('#ef4444', 0.3),
+                  color: 'error.main',
+                  '&:hover': { borderColor: 'error.main', bgcolor: alpha('#ef4444', 0.05) },
+                }}
+              >
+                Reject Claim
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleApprove}
+                disabled={isApproving}
+                startIcon={isApproving ? <CircularProgress size={20} color="inherit" /> : <ApproveIcon />}
+                sx={{
+                  flex: 1,
+                  py: 1.5,
+                  bgcolor: 'primary.main',
+                  color: '#121212',
+                  fontWeight: 700,
+                  '&:hover': { bgcolor: 'primary.dark' },
+                }}
+              >
+                Honor Restored
+              </Button>
+            </Box>
+          )
         ) : (
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Only {toName} can approve or reject this claim.
             </Typography>
           </Box>
-        )}
-
-        {error && (
-          <Typography variant="body2" color="error.main" sx={{ mt: 2, textAlign: 'center' }}>
-            {error}
-          </Typography>
         )}
       </Box>
     </Box>
