@@ -385,8 +385,8 @@ export function MobileSettlementHistoryDrawer({
           {reviewSettlement && (
               <MobileSettlementReviewView
                 settlement={reviewSettlement}
-                fromUserInfo={undefined}
-                toUserInfo={undefined}
+                fromUserInfo={getUser(reviewSettlement.from_user) ?? undefined}
+                toUserInfo={getUser(reviewSettlement.to_user) ?? undefined}
                 currency={currency}
                 eventId={eventId}
                 currentUserId={userId}
