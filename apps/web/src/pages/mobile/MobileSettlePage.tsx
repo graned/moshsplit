@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, Button, Badge, alpha } from '@mui/material';
@@ -68,12 +68,6 @@ export default function MobileSettlePage() {
   const { data: userBalance } = useQuery({
     queryKey: ['user-balance', eventId, userId],
     queryFn: () => balancesApi.getUserBalance(eventId!, userId!),
-    enabled: !!eventId && !!userId,
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['event-stats', eventId, userId],
-    queryFn: () => balancesApi.getStats(eventId!, userId!),
     enabled: !!eventId && !!userId,
   });
 
