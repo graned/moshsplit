@@ -51,15 +51,16 @@ export function MobileSettlementHistoryDrawer({
 
   const requestsItems: SettlementListItem[] = requestsPages?.pages.flatMap((p) => p.data) ?? [];
   const pendingRequests = requestsItems.filter((s) => s.status === 'pending');
+  const rejectedRequests = requestsItems.filter((s) => s.status === 'rejected');
 
   const requestUserIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const req of pendingRequests) {
+    for (const req of [...pendingRequests, ...rejectedRequests]) {
       const other = req.to_user === userId ? req.from_user : req.to_user;
       ids.add(other);
     }
     return Array.from(ids);
-  }, [pendingRequests, userId]);
+  }, [pendingRequests, rejectedRequests, userId]);
 
   useUsers(requestUserIds);
 
@@ -138,10 +139,8 @@ export function MobileSettlementHistoryDrawer({
           }}
         >
           <MobileFeedList
-            items={pendingRequests.map((req) => ({
-              kind: 'custom' as const,
-              id: req.id,
-              node: (() => {
+            items={[
+              ...pendingRequests.map((req) => {
                 const isConfirming = req.to_user === userId;
                 const otherUserId = isConfirming ? req.from_user : req.to_user;
                 const otherUser = getUser(otherUserId);
@@ -156,66 +155,150 @@ export function MobileSettlementHistoryDrawer({
 
                 const accentColor = isConfirming ? '#F59E0B' : '#8b5cf6';
 
-                return (
-                  <MobileFeedCard
-                    key={req.id}
-                    accentColor={accentColor}
-                    icon={<Box sx={{ width: 18, height: 18 }} />}
-                    onClick={isConfirming ? () => handleOpenReview(req) : undefined}
-                    rightContent={
-                      <Box>
-                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
-                          {formatAmount(req.amount_cents, currency)}
-                        </Typography>
-                        <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
-                          {time}
-                        </Typography>
-                      </Box>
-                    }
-                  >
-                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
-                      <Box component="span" color={accentColor}>
-                        {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
-                      </Box>
-                      {' — '}
-                      <Box component="span" color="text.primary">
-                        {displayName.split('@')[0]}
-                      </Box>
-                    </Typography>
-                    {isConfirming && (
-                      <Box
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenReview(req);
-                        }}
-                        sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 0.5,
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: 1,
-                          bgcolor: alpha(accentColor, 0.15),
-                          border: '1px solid',
-                          borderColor: alpha(accentColor, 0.3),
-                          cursor: 'pointer',
-                          mt: 0.25,
-                        }}
-                      >
-                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
-                          Review
-                        </Typography>
-                      </Box>
-                    )}
-                  </MobileFeedCard>
-                );
-              })(),
-            })) as FeedDisplayItem[]}
+                return {
+                  kind: 'custom' as const,
+                  id: req.id,
+                  node: (
+                    <MobileFeedCard
+                      key={req.id}
+                      accentColor={accentColor}
+                      icon={<Box sx={{ width: 18, height: 18 }} />}
+                      onClick={isConfirming ? () => handleOpenReview(req) : undefined}
+                      rightContent={
+                        <Box>
+                          <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
+                            {formatAmount(req.amount_cents, currency)}
+                          </Typography>
+                          <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
+                            {time}
+                          </Typography>
+                        </Box>
+                      }
+                    >
+                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
+                        <Box component="span" color={accentColor}>
+                          {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
+                        </Box>
+                        {' — '}
+                        <Box component="span" color="text.primary">
+                          {displayName.split('@')[0]}
+                        </Box>
+                      </Typography>
+                      {isConfirming && (
+                        <Box
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReview(req);
+                          }}
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            bgcolor: alpha(accentColor, 0.15),
+                            border: '1px solid',
+                            borderColor: alpha(accentColor, 0.3),
+                            cursor: 'pointer',
+                            mt: 0.25,
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                            Review
+                          </Typography>
+                        </Box>
+                      )}
+                    </MobileFeedCard>
+                  ),
+                } as FeedDisplayItem;
+              }),
+
+              ...(rejectedRequests.length > 0
+                ? [
+                    {
+                      kind: 'custom' as const,
+                      id: '__rejected-header',
+                      node: (
+                        <Box key="rejected-header" sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 3, pb: 1 }}>
+                          <Box sx={{ flex: 1, height: 1, bgcolor: alpha('#fff', 0.06) }} />
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.35), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            Rejected
+                          </Typography>
+                          <Box sx={{ flex: 1, height: 1, bgcolor: alpha('#fff', 0.06) }} />
+                        </Box>
+                      ),
+                    } as FeedDisplayItem,
+                    ...rejectedRequests.map((req) => {
+                      const otherUserId = req.to_user === userId ? req.from_user : req.to_user;
+                      const otherUser = getUser(otherUserId);
+                      const displayName = otherUser
+                        ? `${otherUser.firstName} ${otherUser.lastName}`.trim() || otherUser.email
+                        : otherUserId.slice(0, 8);
+
+                      const rejectedTime = req.reviewed_at
+                        ? new Date(req.reviewed_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : null;
+
+                      const accentColor = '#ef4444';
+
+                      return {
+                        kind: 'custom' as const,
+                        id: req.id,
+                        node: (
+                          <MobileFeedCard
+                            key={req.id}
+                            accentColor={accentColor}
+                            icon={<Box sx={{ width: 18, height: 18 }} />}
+                            rightContent={
+                              <Box>
+                                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
+                                  {formatAmount(req.amount_cents, currency)}
+                                </Typography>
+                                {rejectedTime && (
+                                  <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
+                                    {rejectedTime}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
+                          >
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
+                              <Box component="span" color={accentColor}>
+                                Rejected
+                              </Box>
+                              {' — '}
+                              <Box component="span" color="text.primary">
+                                {displayName.split('@')[0]}
+                              </Box>
+                            </Typography>
+                            {req.rejection_note && (
+                              <Typography
+                                sx={{
+                                  fontSize: '0.7rem',
+                                  color: alpha('#fff', 0.55),
+                                  fontStyle: 'italic',
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                &ldquo;{req.rejection_note}&rdquo;
+                              </Typography>
+                            )}
+                          </MobileFeedCard>
+                        ),
+                      } as FeedDisplayItem;
+                    }),
+                  ]
+                : []),
+            ]}
             userMap={{}}
             hasNextPage={hasNextRequests}
             isFetchingNextPage={isFetchingNextRequests}
             fetchNextPage={fetchNextRequests}
-            emptyState={emptyState('No pending settlement requests.')}
+            emptyState={emptyState('No settlement requests.')}
           />
         </Box>
 
