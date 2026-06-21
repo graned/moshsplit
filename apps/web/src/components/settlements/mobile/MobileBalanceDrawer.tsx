@@ -84,14 +84,14 @@ const directionConfig: Record<DrawerDirection, {
   },
   outgoing: {
     headerText: (name) => `You owe ${name}`,
-    mainColor: '#ef4444',
-    darkColor: '#b91c1c',
-    gradient: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-    buttonBg: '#ef4444',
-    buttonText: '#fff',
-    buttonHover: '#b91c1c',
-    amountColor: '#ef4444',
-    amountBg: '#ef4444',
+    mainColor: '#F59E0B',
+    darkColor: '#D97706',
+    gradient: 'linear-gradient(135deg, #F59E0B, #D97706)',
+    buttonBg: '#F59E0B',
+    buttonText: '#121212',
+    buttonHover: '#D97706',
+    amountColor: '#F59E0B',
+    amountBg: '#F59E0B',
   },
 };
 
