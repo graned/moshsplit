@@ -44,6 +44,14 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, clearActi
       open={open}
       onClose={handleClose}
       slotProps={{
+        root: {
+          disableRestoreFocus: true,
+          disableAutoFocus: true,
+          disableEnforceFocus: true,
+        } as any,
+        paper: {
+          tabIndex: -1,
+        },
         backdrop: {
           sx: {
             bgcolor: 'rgba(0, 0, 0, 0.6)',
@@ -89,7 +97,7 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, clearActi
           }}
         />
         <IconButton
-          onClick={onClose}
+          onClick={handleClose}
           size="small"
           sx={{
             color: 'text.secondary',
