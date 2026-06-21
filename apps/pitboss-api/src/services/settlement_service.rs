@@ -156,6 +156,45 @@ impl SettlementService {
         self.get_settlement(event_id, settlement_id)
     }
 
+    /// Withdraw a settlement request. Only the requester (created_by) can withdraw.
+    pub fn withdraw_settlement(
+        &self,
+        event_id: Uuid,
+        settlement_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<SettlementResponse, ServiceError> {
+        let settlement = self
+            .settlement_repo
+            .find_by_id(settlement_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+
+        if settlement.event_id != event_id {
+            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+        }
+
+        if settlement.status != SettlementStatus::Pending {
+            return Err(ServiceError::Validation(format!(
+                "Settlement is already {}",
+                settlement.status.to_string()
+            )));
+        }
+
+        if settlement.created_by != user_id {
+            return Err(ServiceError::Forbidden(
+                "Only the requester can withdraw this settlement".into(),
+            ));
+        }
+
+        let changes = SettlementStatusUpdate {
+            status: Some(SettlementStatus::Disputed),
+            settled_at: None,
+        };
+
+        self.settlement_repo.update_status(settlement_id, &changes)?;
+
+        self.get_settlement(event_id, settlement_id)
+    }
+
     /// Update settlement status (legacy).
     pub fn update_settlement_status(
         &self,
@@ -345,6 +384,7 @@ fn settlement_to_list_item(s: Settlement) -> SettlementListItem {
         created_at: s.created_at,
         note: s.note,
         proof_url: s.proof_url,
+        created_by: s.created_by,
         reviewed_by: s.reviewed_by,
         reviewed_at: s.reviewed_at,
         rejection_note: s.rejection_note,

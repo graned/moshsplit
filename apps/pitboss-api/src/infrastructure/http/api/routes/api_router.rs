@@ -143,6 +143,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(settlement_handlers::reject_settlement),
         )
         .route(
+            "/v1/events/{id}/settlements/{settlement_id}/withdraw",
+            post(settlement_handlers::withdraw_settlement),
+        )
+        .route(
             "/v1/events/{id}/settlements/incoming",
             get(settlement_handlers::incoming_balances),
         )

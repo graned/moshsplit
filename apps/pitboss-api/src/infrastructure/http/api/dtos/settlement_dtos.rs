@@ -131,6 +131,7 @@ pub struct SettlementListItem {
     pub note: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub proof_url: Option<String>,
+    pub created_by: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reviewed_by: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]

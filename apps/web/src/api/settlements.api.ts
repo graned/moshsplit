@@ -27,6 +27,7 @@ export interface SettlementListItem {
   created_at: string;
   note?: string;
   proof_url?: string;
+  created_by: string;
   reviewed_by?: string;
   reviewed_at?: string;
   rejection_note?: string;
@@ -150,6 +151,17 @@ export const settlementsApi = {
     );
     if (!response.success) {
       throw new Error((response.error as string) || 'Failed to approve settlement');
+    }
+    return response.data;
+  },
+
+  withdraw: async (eventId: string, settlementId: string): Promise<Settlement> => {
+    const response = await apiClient.post<{ success: boolean; data: Settlement; error: unknown }>(
+      `/v1/events/${eventId}/settlements/${settlementId}/withdraw`,
+      {}
+    );
+    if (!response.success) {
+      throw new Error((response.error as string) || 'Failed to withdraw settlement');
     }
     return response.data;
   },

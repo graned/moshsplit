@@ -204,6 +204,37 @@ pub async fn update_settlement_status(
     Ok(Json(settlement))
 }
 
+/// POST /v1/events/:id/settlements/:settlement_id/withdraw — withdraw a pending settlement request.
+#[utoipa::path(
+    post,
+    path = "/v1/events/{id}/settlements/{settlement_id}/withdraw",
+    params(
+        ("id" = Uuid, Path, description = "Event ID"),
+        ("settlement_id" = Uuid, Path, description = "Settlement ID"),
+    ),
+    responses(
+        (status = 200, description = "Settlement withdrawn", body = SettlementResponse),
+        (status = 400, description = "Validation error"),
+        (status = 403, description = "Forbidden — only requester can withdraw"),
+        (status = 404, description = "Settlement not found"),
+    ),
+    tag = "Settlements"
+)]
+pub async fn withdraw_settlement(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, settlement_id)): Path<(Uuid, Uuid)>,
+    CurrentUser(user_id): CurrentUser,
+) -> Result<Json<SettlementResponse>, ServiceError> {
+    let svc = SettlementService::new(
+        EventRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
+        EventMemberRepository::new(state.db_client.clone()),
+    );
+
+    let settlement = svc.withdraw_settlement(event_id, settlement_id, user_id)?;
+    Ok(Json(settlement))
+}
+
 /// GET /v1/events/:id/settlements/:settlement_id — get settlement details.
 #[utoipa::path(
     get,

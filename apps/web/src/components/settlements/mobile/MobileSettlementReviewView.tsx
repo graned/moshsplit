@@ -13,6 +13,7 @@ import {
   Cancel as RejectIcon,
   Receipt as ProofIcon,
   ArrowForward as ArrowIcon,
+  Undo as WithdrawIcon,
 } from '@mui/icons-material';
 import { useSettlementStore } from '../../../stores/settlementStore';
 import { type SettlementListItem } from '../../../api/settlements.api';
@@ -49,7 +50,7 @@ export function MobileSettlementReviewView({
 }: MobileSettlementReviewViewProps) {
   const [rejectionNote, setRejectionNote] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
-  const { approveSettlement, rejectSettlement, isApproving, isRejecting, error, clearError } = useSettlementStore();
+  const { approveSettlement, rejectSettlement, withdrawSettlement, isApproving, isRejecting, isWithdrawing, error, clearError } = useSettlementStore();
 
   useEffect(() => {
     clearError();
@@ -64,6 +65,7 @@ export function MobileSettlementReviewView({
     : settlement.to_user.slice(0, 8);
 
   const isRecipient = settlement.to_user === currentUserId;
+  const isRequester = settlement.created_by === currentUserId && settlement.status === 'pending';
 
   const handleApprove = useCallback(async () => {
     if (!isRecipient) return;
@@ -84,6 +86,16 @@ export function MobileSettlementReviewView({
       // Error is stored in the store's error state
     }
   }, [isRecipient, eventId, settlement.id, rejectionNote, onSuccess, rejectSettlement]);
+
+  const handleWithdraw = useCallback(async () => {
+    if (!isRequester) return;
+    try {
+      await withdrawSettlement(eventId, settlement.id);
+      onSuccess();
+    } catch (err) {
+      // Error is stored in the store's error state
+    }
+  }, [isRequester, eventId, settlement.id, onSuccess, withdrawSettlement]);
 
   const time = new Date(settlement.created_at).toLocaleDateString('en-US', {
     month: 'short',
@@ -302,6 +314,24 @@ export function MobileSettlementReviewView({
               </Button>
             </Box>
           )
+        ) : isRequester ? (
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Button
+              variant="outlined"
+              onClick={handleWithdraw}
+              disabled={isWithdrawing}
+              startIcon={isWithdrawing ? <CircularProgress size={20} /> : <WithdrawIcon />}
+              sx={{
+                flex: 1,
+                py: 1.5,
+                borderColor: alpha('#F59E0B', 0.3),
+                color: 'warning.main',
+                '&:hover': { borderColor: 'warning.main', bgcolor: alpha('#F59E0B', 0.05) },
+              }}
+            >
+              Withdraw Request
+            </Button>
+          </Box>
         ) : (
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="body2" color="text.secondary">
