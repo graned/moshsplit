@@ -60,6 +60,30 @@ pub enum ActivityItem {
         created_at: DateTime<Utc>,
         reviewed_at: DateTime<Utc>,
     },
+    /// An expense was updated (new version created).
+    ExpenseUpdated {
+        id: Uuid,
+        expense_id: Uuid,
+        title: String,
+        amount_cents: i32,
+        paid_by: Uuid,
+        participant_count: i32,
+        created_at: DateTime<Utc>,
+        /// Expense category (food, beer, gas, etc.)
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expense_type: Option<String>,
+    },
+    /// A settlement was rejected.
+    SettlementRejected {
+        id: Uuid,
+        from_user: Uuid,
+        to_user: Uuid,
+        amount_cents: i32,
+        /// User who rejected the settlement.
+        approved_by: Uuid,
+        created_at: DateTime<Utc>,
+        reviewed_at: DateTime<Utc>,
+    },
     /// A member joined the event.
     MemberJoin {
         id: Uuid,

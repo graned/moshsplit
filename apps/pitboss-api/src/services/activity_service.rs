@@ -49,6 +49,9 @@ struct ActivityRawRow {
     approved_by: Option<Uuid>,
     #[diesel(sql_type = Nullable<Timestamptz>)]
     reviewed_at: Option<DateTime<Utc>>,
+    // ExpenseUpdated fields
+    #[diesel(sql_type = Nullable<DUuid>)]
+    expense_id: Option<Uuid>,
 }
 
 /// Encodes `(created_at, id)` into a URL-safe base64 cursor string.
@@ -126,7 +129,8 @@ impl ActivityService {
                 NULL::UUID      AS to_user,
                 NULL::UUID      AS user_id,
                 NULL::UUID      AS approved_by,
-                NULL::timestamptz AS reviewed_at
+                NULL::timestamptz AS reviewed_at,
+                NULL::UUID      AS expense_id
             FROM app.expense e
             LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
             WHERE e.event_id = $1
@@ -150,7 +154,8 @@ impl ActivityService {
                 s.to_user,
                 NULL::UUID      AS user_id,
                 NULL::UUID      AS approved_by,
-                NULL::timestamptz AS reviewed_at
+                NULL::timestamptz AS reviewed_at,
+                NULL::UUID      AS expense_id
             FROM app.settlement s
             WHERE s.event_id = $1
               AND s.status = 'pending'
@@ -173,7 +178,8 @@ impl ActivityService {
                 s.to_user,
                 NULL::UUID      AS user_id,
                 s.reviewed_by   AS approved_by,
-                s.reviewed_at
+                s.reviewed_at,
+                NULL::UUID      AS expense_id
             FROM app.settlement s
             WHERE s.event_id = $1
               AND s.status = 'confirmed'
@@ -196,12 +202,67 @@ impl ActivityService {
                 NULL::UUID      AS to_user,
                 em.user_id,
                 NULL::UUID      AS approved_by,
-                NULL::timestamptz AS reviewed_at
+                NULL::timestamptz AS reviewed_at,
+                NULL::UUID      AS expense_id
             FROM app.event_member em
             WHERE em.event_id = $1
               AND ($2::timestamptz IS NULL
                    OR em.joined_at < $2
                    OR (em.joined_at = $2 AND em.id < $5::uuid))
+
+            UNION ALL
+
+            SELECT
+                'expense_updated' AS item_type,
+                ev.id,
+                ev.created_at,
+                ev.title,
+                ev.amount_cents,
+                ev.paid_by,
+                (
+                    SELECT COUNT(*)::INTEGER
+                    FROM app.expense_version_share sh
+                    WHERE sh.expense_version_id = ev.id
+                ) AS participant_count,
+                ev.expense_type::TEXT,
+                NULL::UUID      AS from_user,
+                NULL::UUID      AS to_user,
+                NULL::UUID      AS user_id,
+                NULL::UUID      AS approved_by,
+                NULL::timestamptz AS reviewed_at,
+                e.id            AS expense_id
+            FROM app.expense_version ev
+            JOIN app.expense e ON e.id = ev.expense_id
+            WHERE e.event_id = $1
+              AND e.deleted_at IS NULL
+              AND ev.version_number > 1
+              AND ($2::timestamptz IS NULL
+                   OR ev.created_at < $2
+                   OR (ev.created_at = $2 AND ev.id < $5::uuid))
+
+            UNION ALL
+
+            SELECT
+                'settlement_rejected' AS item_type,
+                s.id,
+                s.reviewed_at   AS created_at,
+                NULL::TEXT      AS title,
+                s.amount_cents,
+                NULL::UUID      AS paid_by,
+                NULL::INTEGER   AS participant_count,
+                NULL::TEXT      AS expense_type,
+                s.from_user,
+                s.to_user,
+                NULL::UUID      AS user_id,
+                s.reviewed_by   AS approved_by,
+                s.reviewed_at,
+                NULL::UUID      AS expense_id
+            FROM app.settlement s
+            WHERE s.event_id = $1
+              AND s.status = 'rejected'
+              AND ($2::timestamptz IS NULL
+                   OR s.reviewed_at < $2
+                   OR (s.reviewed_at = $2 AND s.id < $5::uuid))
 
             ORDER BY created_at DESC, id DESC
             LIMIT $3
@@ -254,8 +315,27 @@ impl ActivityService {
                 "member_join" => ActivityItem::MemberJoin {
                     id: row.id,
                     user_id: row.user_id.unwrap_or_default(),
-                    user_name: None, // Resolved client-side or via separate lookup
+                    user_name: None,
                     created_at: row.created_at,
+                },
+                "expense_updated" => ActivityItem::ExpenseUpdated {
+                    id: row.id,
+                    expense_id: row.expense_id.unwrap_or_default(),
+                    title: row.title.unwrap_or_else(|| "Untitled".to_string()),
+                    amount_cents: row.amount_cents.unwrap_or(0),
+                    paid_by: row.paid_by.unwrap_or_default(),
+                    participant_count: row.participant_count.unwrap_or(0),
+                    created_at: row.created_at,
+                    expense_type: row.expense_type,
+                },
+                "settlement_rejected" => ActivityItem::SettlementRejected {
+                    id: row.id,
+                    from_user: row.from_user.unwrap_or_default(),
+                    to_user: row.to_user.unwrap_or_default(),
+                    amount_cents: row.amount_cents.unwrap_or(0),
+                    approved_by: row.approved_by.unwrap_or_default(),
+                    created_at: row.created_at,
+                    reviewed_at: row.reviewed_at.unwrap_or(row.created_at),
                 },
                 other => ActivityItem::MemberJoin {
                     id: row.id,
@@ -271,7 +351,9 @@ impl ActivityService {
                 ActivityItem::Expense { id, created_at, .. }
                 | ActivityItem::Settlement { id, created_at, .. }
                 | ActivityItem::HonorRestored { id, created_at, .. }
-                | ActivityItem::MemberJoin { id, created_at, .. } => {
+                | ActivityItem::MemberJoin { id, created_at, .. }
+                | ActivityItem::ExpenseUpdated { id, created_at, .. }
+                | ActivityItem::SettlementRejected { id, created_at, .. } => {
                     encode_cursor(*created_at, *id)
                 }
             })
