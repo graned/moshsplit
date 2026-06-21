@@ -5,7 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 const API_BASE_URL = process.env.VITE_API_BASE_URL || '/pitboss';
 const MOSHSPLIT_URL = process.env.MOSHSPLIT_URL || 'moshsplit.localhost';
 
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { version } = require('./package.json');
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   base: '/moshsplit/',
   plugins: [
     react(),

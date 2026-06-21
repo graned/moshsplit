@@ -22,7 +22,7 @@ import {
 import { useNavigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from '@moshsplit/auth-react';
 
-const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
+declare const __APP_VERSION__: string;
 
 function MobileBottomNav() {
   const navigate = useNavigate();
@@ -185,7 +185,7 @@ function MobileBottomNav() {
             {userEmail}
           </Typography>
           <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25, fontSize: '0.6rem' }}>
-            v{APP_VERSION}
+            v{__APP_VERSION__}
           </Typography>
         </Box>
         <Divider sx={{ my: 1, borderColor: 'divider' }} />
