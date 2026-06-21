@@ -404,14 +404,6 @@ export function MobileBalanceDrawer({
                   </React.Fragment>
                 ));
               })()}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.75, mt: 0.25 }}>
-                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Total
-                </Typography>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>
-                  {formatAmount(breakdownTotal, currency)}
-                </Typography>
-              </Box>
             </>
           )}
         </Box>
