@@ -524,7 +524,7 @@ export default function MobileSettlePage() {
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={incomingBreakdownItems}
-          breakdownTotal={incomingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
+        breakdownTotal={incomingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
@@ -538,7 +538,7 @@ export default function MobileSettlePage() {
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={outgoingBreakdownItems}
-          breakdownTotal={outgoingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
+        breakdownTotal={outgoingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
@@ -586,8 +586,6 @@ export default function MobileSettlePage() {
           />
         );
       })()}
-
-
     </Box>
   );
 }
