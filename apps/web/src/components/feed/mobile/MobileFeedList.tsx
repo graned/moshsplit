@@ -7,12 +7,16 @@ import {
   isSettlementActivity,
   isHonorRestoredActivity,
   isMemberJoinActivity,
+  isExpenseUpdatedActivity,
+  isSettlementRejectedActivity,
 } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
 import { MobileExpenseCard } from './cards/MobileExpenseCard';
 import { MobileSettlementCard } from './cards/MobileSettlementCard';
 import { MobileHonorCard } from './cards/MobileHonorCard';
 import { MobileMemberJoinCard } from './cards/MobileMemberJoinCard';
+import { MobileExpenseUpdatedCard } from './cards/MobileExpenseUpdatedCard';
+import { MobileSettlementRejectedCard } from './cards/MobileSettlementRejectedCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
 
 type FeedDisplayItem =
@@ -75,6 +79,7 @@ interface MobileFeedListProps {
   emptyState?: React.ReactNode;
   activityType?: string;
   customDateKey?: (item: unknown) => string;
+  userId?: string;
 }
 
 function normalizeItems(items: FeedListInput, customDateKey?: (item: unknown) => string): FeedDisplayItem[] {
@@ -138,6 +143,7 @@ export function MobileFeedList({
   emptyState,
   activityType,
   customDateKey,
+  userId,
 }: MobileFeedListProps) {
   const normalizedItems = useMemo(() => {
     const displayItems = normalizeItems(items, customDateKey);
@@ -226,6 +232,36 @@ export function MobileFeedList({
             key={item.id}
             activity={item}
             joinedUser={joinedUser}
+          />
+        );
+      }
+
+      if (isExpenseUpdatedActivity(item)) {
+        const paidBy = getUser(item.paid_by);
+
+        return (
+          <MobileExpenseUpdatedCard
+            key={item.id}
+            activity={item}
+            paidBy={paidBy}
+            currentUserId={userId}
+            currency={currency}
+          />
+        );
+      }
+
+      if (isSettlementRejectedActivity(item)) {
+        const fromUser = getUser(item.from_user);
+        const toUser = getUser(item.to_user);
+
+        return (
+          <MobileSettlementRejectedCard
+            key={item.id}
+            activity={item}
+            fromUser={fromUser}
+            toUser={toUser}
+            currentUserId={userId}
+            currency={currency}
           />
         );
       }

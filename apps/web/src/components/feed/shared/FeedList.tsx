@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { Box, Typography, alpha } from '@mui/material';
 import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import { useActivityFeed } from '../../../hooks/useActivityFeed';
-import { ActivityItem, isExpenseActivity, isSettlementActivity, isHonorRestoredActivity, isMemberJoinActivity } from '../../../api/activity.api';
+import { ActivityItem, isExpenseActivity, isSettlementActivity, isHonorRestoredActivity, isMemberJoinActivity, isExpenseUpdatedActivity, isSettlementRejectedActivity } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
 import { ExpenseFeedCard } from '../cards/ExpenseFeedCard';
 import { SettlementFeedCard } from '../cards/SettlementFeedCard';
@@ -165,6 +165,55 @@ export function FeedList({
         const joinedUser = getUser(item.user_id);
 
         return <MemberJoinCard key={item.id} activity={item} joinedUser={joinedUser} currentUserId={userId} />;
+      }
+
+      if (isExpenseUpdatedActivity(item)) {
+        const paidBy = getUser(item.paid_by);
+
+        return (
+          <ExpenseFeedCard
+            key={item.id}
+            activity={{
+              type: 'expense',
+              id: item.id,
+              title: item.title,
+              amount_cents: item.amount_cents,
+              paid_by: item.paid_by,
+              participant_count: item.participant_count,
+              created_at: item.created_at,
+              expense_type: item.expense_type,
+            }}
+            paidBy={paidBy}
+            participantCount={item.participant_count}
+            currentUserId={userId}
+            currency={currency}
+            onClick={() => {}}
+          />
+        );
+      }
+
+      if (isSettlementRejectedActivity(item)) {
+        const fromUser = getUser(item.from_user);
+        const toUser = getUser(item.to_user);
+
+        return (
+          <SettlementFeedCard
+            key={item.id}
+            activity={{
+              type: 'settlement',
+              id: item.id,
+              amount_cents: item.amount_cents,
+              from_user: item.from_user,
+              to_user: item.to_user,
+              created_at: item.created_at,
+            }}
+            fromUser={fromUser}
+            toUser={toUser}
+            currentUserId={userId}
+            currency={currency}
+            onClick={() => {}}
+          />
+        );
       }
 
       return (

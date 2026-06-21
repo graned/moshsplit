@@ -173,11 +173,15 @@ export default function MobileFeedPage() {
       expense: 0,
       honor_restored: 0,
       member_join: 0,
+      expense_updated: 0,
+      settlement_rejected: 0,
     };
     for (const item of activityItems) {
       if (item.type === 'expense') counts.expense = (counts.expense || 0) + 1;
       else if (item.type === 'honor_restored') counts.honor_restored = (counts.honor_restored || 0) + 1;
       else if (item.type === 'member_join') counts.member_join = (counts.member_join || 0) + 1;
+      else if (item.type === 'expense_updated') counts.expense_updated = (counts.expense_updated || 0) + 1;
+      else if (item.type === 'settlement_rejected') counts.settlement_rejected = (counts.settlement_rejected || 0) + 1;
     }
     return counts;
   }, [activityItems]);
@@ -203,7 +207,9 @@ export default function MobileFeedPage() {
   const ACTIVITY_TYPE_OPTIONS = [
     { value: 'all', label: 'All', count: activityItems.length },
     { value: 'expense', label: 'Expenses', count: activityTypeCounts['expense'] || 0 },
+    { value: 'expense_updated', label: 'Updates', count: activityTypeCounts['expense_updated'] || 0 },
     { value: 'honor_restored', label: 'Honor', count: activityTypeCounts['honor_restored'] || 0 },
+    { value: 'settlement_rejected', label: 'Rejected', count: activityTypeCounts['settlement_rejected'] || 0 },
     { value: 'member_join', label: 'Joins', count: activityTypeCounts['member_join'] || 0 },
   ];
 
@@ -344,6 +350,7 @@ export default function MobileFeedPage() {
           isFetchingNextPage={isFetchingNextPage}
           fetchNextPage={fetchNextPage}
           scrollContainerRef={feedScrollRef}
+          userId={userId ?? undefined}
         />
       </Box>
 
