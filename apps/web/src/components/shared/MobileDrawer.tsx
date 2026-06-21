@@ -31,11 +31,18 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, clearActi
     if (open) onOpen?.();
   }, [open, onOpen]);
 
+  const handleClose = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    onClose();
+  };
+
   return (
     <Drawer
       anchor="bottom"
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       slotProps={{
         backdrop: {
           sx: {
