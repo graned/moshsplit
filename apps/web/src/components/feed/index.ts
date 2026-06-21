@@ -19,4 +19,4 @@ export { EventBanner } from './shared/EventBanner';
 export { MobileFeedList } from './mobile/MobileFeedList';
 export { MobileFeedCard } from './mobile/MobileFeedCard';
 export { MobileBalanceCard } from './mobile/cards/MobileBalanceCard';
-export { MobileTransactionCard } from './mobile/cards/MobileTransactionCard';
+
