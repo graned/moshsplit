@@ -92,7 +92,7 @@ export function ParticipantSearch({
         py: isMobile ? 1 : 2,
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: isMobile ? 200 : 260,
+        maxHeight: '100%',
         overflow: 'hidden',
       }}
     >

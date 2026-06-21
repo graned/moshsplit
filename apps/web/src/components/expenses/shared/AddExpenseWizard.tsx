@@ -18,13 +18,6 @@ import {
   MoreHoriz as OtherIcon,
 } from '@mui/icons-material';
 
-
-
-
-
-
-
-
 import { Stepper, StepDefinition } from '../../shared/forms/Stepper';
 import { ParticipantSearch } from '../../shared/forms/ParticipantSearch';
 import { CreateExpenseRequest } from '../../../api/expenses.api';
@@ -251,166 +244,6 @@ export function AddExpenseWizard({
 
   const renderBasicInfoStep = () => (
     <Box sx={{ py: isMobile ? 2 : 3 }}>
-      {/* Title */}
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
-      >
-        Name the Damage
-      </Typography>
-      <TextField
-        label="What was it?"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        fullWidth
-        autoFocus
-        placeholder="e.g. Round of beers, Dinner at the pub..."
-        sx={{
-          mb: isMobile ? 2 : 3,
-          '& .MuiInputBase-input': {
-            fontSize: isMobile ? '1rem' : '1.125rem',
-            fontWeight: 600,
-          },
-        }}
-      />
-
-      {/* Amount */}
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
-      >
-        How badly did the wallet suffer?
-      </Typography>
-
-      {isMobile ? (
-        <Box sx={{ mb: 2 }}>
-          {/* Amount input */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: alpha('#fff', 0.03),
-              borderRadius: 2,
-              border: 1,
-              borderColor: 'divider',
-              px: 2,
-              py: 1.5,
-              mb: 1.5,
-            }}
-          >
-            <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ fontSize: '1.75rem', lineHeight: 1 }}>
-              {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-            </Typography>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => handleAmountChange(e.target.value)}
-              placeholder="0.00"
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                fontSize: '1.75rem',
-                fontWeight: 800,
-                color: amount ? theme.palette.primary.main : theme.palette.text.disabled,
-                textAlign: 'center',
-                letterSpacing: '-0.02em',
-                fontFamily: 'inherit',
-                width: '100%',
-              }}
-            />
-          </Box>
-
-          {/* Quick amount buttons */}
-          <Box sx={{ display: 'flex', gap: 0.75 }}>
-            {[5, 10, 20, 50].map((val) => (
-              <Box
-                key={val}
-                onClick={() => handleAmountChange(String(val))}
-                sx={{
-                  flex: 1,
-                  py: 0.75,
-                  borderRadius: 1.5,
-                  bgcolor: amount === String(val) ? alpha('#F59E0B', 0.15) : alpha('#fff', 0.04),
-                  border: 1,
-                  borderColor: amount === String(val) ? 'primary.main' : 'divider',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    color: amount === String(val) ? 'primary.main' : 'text.secondary',
-                  }}
-                >
-                  {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-                  {val}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            position: 'relative',
-            mb: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Typography
-            variant="h2"
-            sx={{
-              fontSize: '2.5rem',
-              fontWeight: 800,
-              color: amount ? 'primary.main' : 'text.muted',
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
-              mb: 2,
-            }}
-          >
-            {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
-          </Typography>
-          <TextField
-            label="Amount"
-            value={amount}
-            onChange={(e) => handleAmountChange(e.target.value)}
-            fullWidth
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
-            sx={{
-              maxWidth: 280,
-              '& .MuiInputBase-input': {
-                fontSize: '1.25rem',
-                fontWeight: 700,
-                textAlign: 'center',
-                py: 1.5,
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Typography variant="h6" fontWeight={700} color="primary.main">
-                    {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-                  </Typography>
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Box>
-      )}
-
       {/* Category */}
       <Typography
         variant="body2"
@@ -436,7 +269,14 @@ export function AddExpenseWizard({
           return (
             <Box
               key={cat.value}
-              onClick={() => setCategory(isSelected ? '' : cat.value)}
+              onClick={() => {
+                setCategory(isSelected ? '' : cat.value)
+                if (cat.value !== 'other') {
+                  setTitle(isSelected ? '' : cat.value)
+                } else {
+                  setTitle('')
+                }
+              }}
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -486,6 +326,173 @@ export function AddExpenseWizard({
         })}
       </Box>
 
+      {category === 'other' ? (
+        <>
+          {/* Title */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: 1, mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
+          >
+            Name the Damage
+          </Typography>
+          <TextField
+            label="What was it?"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            fullWidth
+            autoFocus
+            placeholder="e.g. Round of beers, Dinner at the pub..."
+            sx={{
+              mb: isMobile ? 2 : 3,
+              '& .MuiInputBase-input': {
+                fontSize: isMobile ? '1rem' : '1.125rem',
+                fontWeight: 600,
+              },
+            }}
+          />
+        </>
+      ) : <></>
+      }
+
+      {/* Amount */}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mt: 1, mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
+      >
+        How badly did the wallet suffer?
+      </Typography>
+
+      {
+        isMobile ? (
+          <Box sx={{ mb: 2 }}>
+            {/* Amount input */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: alpha('#fff', 0.03),
+                borderRadius: 2,
+                border: 1,
+                borderColor: 'divider',
+                px: 2,
+                py: 1.5,
+                mb: 1.5,
+              }}
+            >
+              <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ fontSize: '1.75rem', lineHeight: 1 }}>
+                {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+              </Typography>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                placeholder="0.00"
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '1.75rem',
+                  fontWeight: 800,
+                  color: amount ? theme.palette.primary.main : theme.palette.text.disabled,
+                  textAlign: 'center',
+                  letterSpacing: '-0.02em',
+                  fontFamily: 'inherit',
+                  width: '100%',
+                }}
+              />
+            </Box>
+
+            {/* Quick amount buttons */}
+            <Box sx={{ display: 'flex', gap: 0.75 }}>
+              {[5, 10, 20, 50].map((val) => (
+                <Box
+                  key={val}
+                  onClick={() => handleAmountChange(String(val))}
+                  sx={{
+                    flex: 1,
+                    py: 0.75,
+                    borderRadius: 1.5,
+                    bgcolor: amount === String(val) ? alpha('#F59E0B', 0.15) : alpha('#fff', 0.04),
+                    border: 1,
+                    borderColor: amount === String(val) ? 'primary.main' : 'divider',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: amount === String(val) ? 'primary.main' : 'text.secondary',
+                    }}
+                  >
+                    {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                    {val}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              position: 'relative',
+              mb: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: '2.5rem',
+                fontWeight: 800,
+                color: amount ? 'primary.main' : 'text.muted',
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+                mb: 2,
+              }}
+            >
+              {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
+            </Typography>
+            <TextField
+              label="Amount"
+              value={amount}
+              onChange={(e) => handleAmountChange(e.target.value)}
+              fullWidth
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
+              sx={{
+                maxWidth: 280,
+                '& .MuiInputBase-input': {
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  py: 1.5,
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Typography variant="h6" fontWeight={700} color="primary.main">
+                      {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                    </Typography>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        )
+      }
+
       {/* Paid by */}
       <Box
         sx={{
@@ -524,7 +531,7 @@ export function AddExpenseWizard({
           </Typography>
         </Box>
       </Box>
-    </Box>
+    </Box >
   );
 
   const renderSurvivorsStep = () => (
