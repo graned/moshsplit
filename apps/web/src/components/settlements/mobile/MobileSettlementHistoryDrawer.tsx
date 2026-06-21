@@ -51,16 +51,17 @@ export function MobileSettlementHistoryDrawer({
 
   const requestsItems: SettlementListItem[] = requestsPages?.pages.flatMap((p) => p.data) ?? [];
   const pendingRequests = requestsItems.filter((s) => s.status === 'pending');
+  const approvedRequests = requestsItems.filter((s) => s.status === 'approved');
   const rejectedRequests = requestsItems.filter((s) => s.status === 'rejected');
 
   const requestUserIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const req of [...pendingRequests, ...rejectedRequests]) {
+    for (const req of [...pendingRequests, ...approvedRequests, ...rejectedRequests]) {
       const other = req.to_user === userId ? req.from_user : req.to_user;
       ids.add(other);
     }
     return Array.from(ids);
-  }, [pendingRequests, rejectedRequests, userId]);
+  }, [pendingRequests, approvedRequests, rejectedRequests, userId]);
 
   useUsers(requestUserIds);
 
@@ -213,6 +214,74 @@ export function MobileSettlementHistoryDrawer({
                   ),
                 } as FeedDisplayItem;
               }),
+
+              ...(approvedRequests.length > 0
+                ? [
+                    {
+                      kind: 'custom' as const,
+                      id: '__approved-header',
+                      node: (
+                        <Box key="approved-header" sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 3, pb: 1 }}>
+                          <Box sx={{ flex: 1, height: 1, bgcolor: alpha('#fff', 0.06) }} />
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.35), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            Approved
+                          </Typography>
+                          <Box sx={{ flex: 1, height: 1, bgcolor: alpha('#fff', 0.06) }} />
+                        </Box>
+                      ),
+                    } as FeedDisplayItem,
+                    ...approvedRequests.map((req) => {
+                      const otherUserId = req.to_user === userId ? req.from_user : req.to_user;
+                      const otherUser = getUser(otherUserId);
+                      const displayName = otherUser
+                        ? `${otherUser.firstName} ${otherUser.lastName}`.trim() || otherUser.email
+                        : otherUserId.slice(0, 8);
+
+                      const approvedTime = req.reviewed_at
+                        ? new Date(req.reviewed_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : null;
+
+                      const accentColor = '#22c55e';
+
+                      return {
+                        kind: 'custom' as const,
+                        id: req.id,
+                        node: (
+                          <MobileFeedCard
+                            key={req.id}
+                            accentColor={accentColor}
+                            icon={<Box sx={{ width: 18, height: 18 }} />}
+                            rightContent={
+                              <Box>
+                                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
+                                  {formatAmount(req.amount_cents, currency)}
+                                </Typography>
+                                {approvedTime && (
+                                  <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
+                                    {approvedTime}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
+                          >
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
+                              <Box component="span" color={accentColor}>
+                                Honor Restored
+                              </Box>
+                              {' — '}
+                              <Box component="span" color="text.primary">
+                                {displayName.split('@')[0]}
+                              </Box>
+                            </Typography>
+                          </MobileFeedCard>
+                        ),
+                      } as FeedDisplayItem;
+                    }),
+                  ]
+                : []),
 
               ...(rejectedRequests.length > 0
                 ? [
