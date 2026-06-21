@@ -131,7 +131,7 @@ export function MobileSettlementHistoryDrawer({
           sx={{
             position: 'absolute',
             inset: 0,
-            px: 0.5,
+            px: 2,
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: view === 'review' ? 'translateX(-100%)' : 'translateX(0)',
             overflow: 'auto',
@@ -224,7 +224,7 @@ export function MobileSettlementHistoryDrawer({
           sx={{
             position: 'absolute',
             inset: 0,
-            px: 0.5,
+            px: 2,
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: view === 'review' ? 'translateX(0)' : 'translateX(100%)',
             overflow: 'hidden',
