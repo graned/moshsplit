@@ -45,10 +45,10 @@ export const useSettlementStore = create<SettlementState>((set) => ({
       queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
       queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
       queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-requests-drawer', eventId] });
       queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
       queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
       queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['event-stats', eventId] });
       set({ isApproving: false });
       return result;
     } catch (err) {
@@ -65,6 +65,7 @@ export const useSettlementStore = create<SettlementState>((set) => ({
       queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
       queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
       queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-requests-drawer', eventId] });
       queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
       queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
       queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
