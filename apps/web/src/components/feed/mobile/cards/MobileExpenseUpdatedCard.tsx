@@ -1,0 +1,181 @@
+import { Typography, Box, useTheme, alpha } from '@mui/material';
+import { Edit as EditIcon } from '@mui/icons-material';
+import { ExpenseUpdatedActivity } from '../../../../api/activity.api';
+import { UserInfo } from '../../../../api/users.api';
+import { MobileFeedCard } from '../MobileFeedCard';
+
+const EXPENSE_TYPE_ICONS: Record<string, string> = {
+  food: '/moshsplit/assets/food-icon.png',
+  beer: '/moshsplit/assets/beer-icon.png',
+  gas: '/moshsplit/assets/tank-icon.png',
+  transport: '/moshsplit/assets/transport-icon.png',
+  merch: '/moshsplit/assets/merch-icon.png',
+  camping: '/moshsplit/assets/camping-icon.png',
+};
+
+const EXPENSE_TYPE_LABELS: Record<string, string> = {
+  food: 'Food',
+  beer: 'Beer',
+  gas: 'Gas',
+  transport: 'Travel',
+  merch: 'Merch',
+  camping: 'Camping',
+};
+
+const EXPENSE_TYPE_COLORS: Record<string, string> = {
+  food: '#E85D04',
+  beer: '#F4A261',
+  gas: '#6C757D',
+  transport: '#2A9D8F',
+  merch: '#9B5DE5',
+  camping: '#52B788',
+};
+
+const formatAmount = (cents: number, currency = 'EUR') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).format(cents / 100);
+};
+
+interface MobileExpenseUpdatedCardProps {
+  activity: ExpenseUpdatedActivity;
+  paidBy?: UserInfo;
+  currentUserId?: string;
+  currency?: string;
+}
+
+export function MobileExpenseUpdatedCard({
+  activity,
+  paidBy,
+  currentUserId,
+  currency = 'EUR',
+}: MobileExpenseUpdatedCardProps) {
+  const theme = useTheme();
+  const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
+
+  const payerName = paidBy?.email || activity.paid_by;
+  const isPayerCurrentUser = activity.paid_by === currentUserId;
+
+  const createdDate = new Date(activity.created_at);
+  const isValidDate = !isNaN(createdDate.getTime());
+
+  const categoryLabel = activity.expense_type
+    ? EXPENSE_TYPE_LABELS[activity.expense_type] || activity.expense_type
+    : null;
+  const categoryColor = activity.expense_type
+    ? EXPENSE_TYPE_COLORS[activity.expense_type]
+    : theme.palette.primary.main;
+
+  return (
+    <MobileFeedCard
+      accentColor={theme.palette.warning.main}
+      icon={
+        <EditIcon sx={{ color: 'warning.main', fontSize: 18 }} />
+      }
+      rightContent={
+        <Box>
+          <Typography
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              color: 'primary.main',
+              lineHeight: 1.2,
+            }}
+          >
+            {formatAmount(activity.amount_cents, currency)}
+          </Typography>
+          {isValidDate && (
+            <Typography
+              sx={{
+                display: 'block',
+                fontSize: '0.6rem',
+                color: 'text.disabled',
+              }}
+            >
+              {createdDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              })}
+            </Typography>
+          )}
+          {activity.participant_count > 0 && (
+            <Typography
+              sx={{
+                display: 'block',
+                fontSize: '0.6rem',
+                color: alpha(theme.palette.primary.main, 0.6),
+                mt: 0.25,
+              }}
+            >
+              Split: {activity.participant_count}
+            </Typography>
+          )}
+        </Box>
+      }
+    >
+      {categoryLabel && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            mb: 0.75,
+            px: 0.75,
+            py: 0.35,
+            borderRadius: 1.5,
+            backgroundColor: alpha(categoryColor, 0.1),
+            border: `1px solid ${alpha(categoryColor, 0.25)}`,
+          }}
+        >
+          {iconSrc ? (
+            <img
+              src={iconSrc}
+              alt=""
+              style={{ width: 12, height: 10, objectFit: 'contain' }}
+            />
+          ) : (
+            <EditIcon sx={{ fontSize: 11, color: categoryColor }} />
+          )}
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              color: categoryColor,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+            }}
+          >
+            {categoryLabel}
+          </Typography>
+        </Box>
+      )}
+
+      <Typography
+        sx={{
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          lineHeight: 1.3,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          mb: 0.25,
+        }}
+      >
+        {activity.title}
+      </Typography>
+
+      <Typography
+        variant="caption"
+        color="warning.main"
+        sx={{ fontSize: '0.65rem', fontWeight: 600 }}
+      >
+        Updated by {isPayerCurrentUser ? 'you' : payerName.split('@')[0]}
+      </Typography>
+    </MobileFeedCard>
+  );
+}

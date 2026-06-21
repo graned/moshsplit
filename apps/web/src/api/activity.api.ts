@@ -43,8 +43,29 @@ export interface MemberJoinActivity extends ActivityItemBase {
   user_name?: string;
 }
 
+/** Expense updated activity – an expense was modified (new version) */
+export interface ExpenseUpdatedActivity extends ActivityItemBase {
+  type: 'expense_updated';
+  expense_id: string;
+  title: string;
+  amount_cents: number;
+  paid_by: string;
+  participant_count: number;
+  expense_type?: string;
+}
+
+/** Settlement rejected activity – a settlement request was rejected */
+export interface SettlementRejectedActivity extends ActivityItemBase {
+  type: 'settlement_rejected';
+  amount_cents: number;
+  from_user: string;
+  to_user: string;
+  approved_by: string;
+  reviewed_at: string;
+}
+
 /** Discriminated union of all activity item types */
-export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity;
+export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity | ExpenseUpdatedActivity | SettlementRejectedActivity;
 
 /** Helper type-guards */
 export function isExpenseActivity(item: ActivityItem): item is ExpenseActivity {
@@ -61,6 +82,14 @@ export function isHonorRestoredActivity(item: ActivityItem): item is HonorRestor
 
 export function isMemberJoinActivity(item: ActivityItem): item is MemberJoinActivity {
   return item.type === 'member_join';
+}
+
+export function isExpenseUpdatedActivity(item: ActivityItem): item is ExpenseUpdatedActivity {
+  return item.type === 'expense_updated';
+}
+
+export function isSettlementRejectedActivity(item: ActivityItem): item is SettlementRejectedActivity {
+  return item.type === 'settlement_rejected';
 }
 
 // ─── API Calls ─────────────────────────────────────────────────────────────
