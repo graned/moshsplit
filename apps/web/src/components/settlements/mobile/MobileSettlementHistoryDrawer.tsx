@@ -111,129 +111,122 @@ export function MobileSettlementHistoryDrawer({
           px: 2,
         }}
       >
+        {/* ========== List View ========== */}
         <Box
           sx={{
-            display: 'flex',
-            height: '100%',
+            position: 'absolute',
+            inset: 0,
+            px: 0.5,
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: view === 'review' ? 'translateX(-100%)' : 'translateX(0)',
+            overflow: 'auto',
           }}
         >
-          {/* ========== List View ========== */}
-          <Box
-            sx={{
-              minWidth: '100%',
-              flexShrink: 0,
-              height: '100%',
-              overflow: 'auto',
-              px: 0.5,
-            }}
-          >
-            <MobileFeedList
-              items={pendingRequests.map((req) => ({
-                kind: 'custom' as const,
-                id: req.id,
-                node: (() => {
-                  const isConfirming = req.to_user === userId;
-                  const otherUserId = isConfirming ? req.from_user : req.to_user;
-                  const otherUser = getUser(otherUserId);
-                  const displayName = otherUser
-                    ? `${otherUser.firstName} ${otherUser.lastName}`.trim() || otherUser.email
-                    : otherUserId.slice(0, 8);
+          <MobileFeedList
+            items={pendingRequests.map((req) => ({
+              kind: 'custom' as const,
+              id: req.id,
+              node: (() => {
+                const isConfirming = req.to_user === userId;
+                const otherUserId = isConfirming ? req.from_user : req.to_user;
+                const otherUser = getUser(otherUserId);
+                const displayName = otherUser
+                  ? `${otherUser.firstName} ${otherUser.lastName}`.trim() || otherUser.email
+                  : otherUserId.slice(0, 8);
 
-                  const time = new Date(req.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  });
+                const time = new Date(req.created_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                });
 
-                  const accentColor = isConfirming ? '#F59E0B' : '#8b5cf6';
+                const accentColor = isConfirming ? '#F59E0B' : '#8b5cf6';
 
-                  return (
-                    <MobileFeedCard
-                      key={req.id}
-                      accentColor={accentColor}
-                      icon={<Box sx={{ width: 18, height: 18 }} />}
-                      onClick={isConfirming ? () => handleOpenReview(req) : undefined}
-                      rightContent={
-                        <Box>
-                          <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
-                            {formatAmount(req.amount_cents, currency)}
-                          </Typography>
-                          <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
-                            {time}
-                          </Typography>
-                        </Box>
-                      }
-                    >
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
-                        <Box component="span" color={accentColor}>
-                          {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
-                        </Box>
-                        {' — '}
-                        <Box component="span" color="text.primary">
-                          {displayName.split('@')[0]}
-                        </Box>
-                      </Typography>
-                      {isConfirming && (
-                        <Box
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenReview(req);
-                          }}
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: 1,
-                            bgcolor: alpha(accentColor, 0.15),
-                            border: '1px solid',
-                            borderColor: alpha(accentColor, 0.3),
-                            cursor: 'pointer',
-                            mt: 0.25,
-                          }}
-                        >
-                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
-                            Review
-                          </Typography>
-                        </Box>
-                      )}
-                    </MobileFeedCard>
-                  );
-                })(),
-              })) as FeedDisplayItem[]}
-              userMap={{}}
-              hasNextPage={hasNextRequests}
-              isFetchingNextPage={isFetchingNextRequests}
-              fetchNextPage={fetchNextRequests}
-              emptyState={emptyState('No pending settlement requests.')}
+                return (
+                  <MobileFeedCard
+                    key={req.id}
+                    accentColor={accentColor}
+                    icon={<Box sx={{ width: 18, height: 18 }} />}
+                    onClick={isConfirming ? () => handleOpenReview(req) : undefined}
+                    rightContent={
+                      <Box>
+                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: accentColor, lineHeight: 1.2 }}>
+                          {formatAmount(req.amount_cents, currency)}
+                        </Typography>
+                        <Typography sx={{ display: 'block', fontSize: '0.6rem', color: 'text.disabled' }}>
+                          {time}
+                        </Typography>
+                      </Box>
+                    }
+                  >
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, mb: 0.5 }}>
+                      <Box component="span" color={accentColor}>
+                        {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
+                      </Box>
+                      {' — '}
+                      <Box component="span" color="text.primary">
+                        {displayName.split('@')[0]}
+                      </Box>
+                    </Typography>
+                    {isConfirming && (
+                      <Box
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenReview(req);
+                        }}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          bgcolor: alpha(accentColor, 0.15),
+                          border: '1px solid',
+                          borderColor: alpha(accentColor, 0.3),
+                          cursor: 'pointer',
+                          mt: 0.25,
+                        }}
+                      >
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                          Review
+                        </Typography>
+                      </Box>
+                    )}
+                  </MobileFeedCard>
+                );
+              })(),
+            })) as FeedDisplayItem[]}
+            userMap={{}}
+            hasNextPage={hasNextRequests}
+            isFetchingNextPage={isFetchingNextRequests}
+            fetchNextPage={fetchNextRequests}
+            emptyState={emptyState('No pending settlement requests.')}
+          />
+        </Box>
+
+        {/* ========== Review View ========== */}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            px: 0.5,
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: view === 'review' ? 'translateX(0)' : 'translateX(100%)',
+            overflow: 'hidden',
+          }}
+        >
+          {reviewSettlement && (
+            <MobileSettlementReviewView
+              settlement={reviewSettlement}
+              fromUserInfo={undefined}
+              toUserInfo={undefined}
+              currency={currency}
+              eventId={eventId}
+              currentUserId={userId}
+              onBack={handleBackToList}
+              onSuccess={handleReviewSuccess}
             />
-          </Box>
-
-          {/* ========== Review View ========== */}
-          <Box
-            sx={{
-              minWidth: '100%',
-              flexShrink: 0,
-              height: '100%',
-              overflow: 'hidden',
-              px: 0.5,
-            }}
-          >
-            {reviewSettlement && (
-              <MobileSettlementReviewView
-                settlement={reviewSettlement}
-                fromUserInfo={undefined}
-                toUserInfo={undefined}
-                currency={currency}
-                eventId={eventId}
-                currentUserId={userId}
-                onBack={handleBackToList}
-                onSuccess={handleReviewSuccess}
-              />
-            )}
-          </Box>
+          )}
         </Box>
       </Box>
     </MobileDrawer>
