@@ -5,9 +5,6 @@ import { Box, Typography, CircularProgress, Alert, alpha, Tooltip, IconButton } 
 import {
   ReceiptLong as WarChestIcon,
   AddShoppingCart as AddExpenseIcon,
-  AccountBalanceWallet as SpentIcon,
-  ArrowDownward as ReturnIcon,
-  Paid as RealSpendIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
@@ -243,27 +240,38 @@ export default function MobileExpensePage() {
         }
         backgroundImage={event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url}
       >
-        <Box sx={{ display: 'flex' }}>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#fff', 0.1), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <SpentIcon sx={{ fontSize: 14, color: alpha('#fff', 0.6) }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>You Paid</Typography>
+        <Box sx={{ px: 1, py: 1 }}>
+          <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha('#1A1A1A', 0.7), border: '1px solid', borderColor: alpha('#F59E0B', 0.35), backdropFilter: 'blur(8px)', boxShadow: '0 0 20px rgba(245,158,11,0.12)' }}>
+            <Box sx={{ textAlign: 'center', mb: 1 }}>
+              <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                Real Spend
+              </Typography>
+              {statsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 0.5 }}>
+                  <CircularProgress size={22} sx={{ color: '#F59E0B' }} />
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: '1.75rem', fontWeight: 800, background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.1 }}>
+                  {formatAmount(yourRealSpend, currency)}
+                </Typography>
+              )}
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: alpha('#F59E0B', 0.7), mt: 0.25 }}>
+                Your actual cost after getting back
+              </Typography>
             </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{formatAmount(youPaid, currency)}</Typography>}
-          </Box>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#10b981', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <ReturnIcon sx={{ fontSize: 14, color: '#10b981' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Getting Back</Typography>
+
+            <Box sx={{ height: 1, bgcolor: alpha('#fff', 0.1), mb: 1 }} />
+
+            <Box sx={{ display: 'flex' }}>
+              <Box sx={{ flex: 1, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>You Paid</Typography>
+                {statsLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff' }}>{formatAmount(youPaid, currency)}</Typography>}
+              </Box>
+              <Box sx={{ flex: 1, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>Getting Back</Typography>
+                {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(youGetBack, currency)}</Typography>}
+              </Box>
             </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(youGetBack, currency)}</Typography>}
-          </Box>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.2), backdropFilter: 'blur(8px)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-              <RealSpendIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
-              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Real Spend</Typography>
-            </Box>
-            {statsLoading ? <CircularProgress size={14} sx={{ color: '#F59E0B' }} /> : <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#F59E0B' }}>{formatAmount(yourRealSpend, currency)}</Typography>}
           </Box>
         </Box>
 
