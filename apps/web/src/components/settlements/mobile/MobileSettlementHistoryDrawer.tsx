@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { Box, Typography, alpha } from '@mui/material';
+import { Box, Typography, Chip, alpha } from '@mui/material';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { settlementsApi, type SettlementListItem } from '../../../api/settlements.api';
 import { useUsers, useUserCache } from '../../../hooks/useUserCache';
@@ -98,7 +98,22 @@ export function MobileSettlementHistoryDrawer({
     <MobileDrawer
       open={open}
       onClose={handleDrawerClose}
+      onBack={view === 'review' ? handleBackToList : undefined}
       title={view === 'list' ? 'Settlement Requests' : 'Review Claim'}
+      clearAction={view === 'review' && reviewSettlement ? (
+        <Chip
+          label="PENDING"
+          size="small"
+          sx={{
+            bgcolor: alpha('#F59E0B', 0.15),
+            color: 'primary.main',
+            fontWeight: 700,
+            fontSize: '0.65rem',
+            letterSpacing: '0.05em',
+            height: 22,
+          }}
+        />
+      ) : undefined}
       fullScreen
     >
       <Box
@@ -216,16 +231,15 @@ export function MobileSettlementHistoryDrawer({
           }}
         >
           {reviewSettlement && (
-            <MobileSettlementReviewView
-              settlement={reviewSettlement}
-              fromUserInfo={undefined}
-              toUserInfo={undefined}
-              currency={currency}
-              eventId={eventId}
-              currentUserId={userId}
-              onBack={handleBackToList}
-              onSuccess={handleReviewSuccess}
-            />
+              <MobileSettlementReviewView
+                settlement={reviewSettlement}
+                fromUserInfo={undefined}
+                toUserInfo={undefined}
+                currency={currency}
+                eventId={eventId}
+                currentUserId={userId}
+                onSuccess={handleReviewSuccess}
+              />
           )}
         </Box>
       </Box>

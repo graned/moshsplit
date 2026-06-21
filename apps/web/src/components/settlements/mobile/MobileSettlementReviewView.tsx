@@ -5,14 +5,11 @@ import {
   Button,
   Avatar,
   TextField,
-  Chip,
   Divider,
   alpha,
-  IconButton,
   CircularProgress,
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,
   Receipt as ProofIcon,
@@ -32,8 +29,6 @@ interface MobileSettlementReviewViewProps {
   currency: string;
   eventId: string;
   currentUserId: string;
-  /** Navigate back to the list view */
-  onBack: () => void;
   /** Called after approve/reject completes */
   onSuccess: () => void;
 }
@@ -51,7 +46,6 @@ export function MobileSettlementReviewView({
   currency,
   eventId,
   currentUserId,
-  onBack,
   onSuccess,
 }: MobileSettlementReviewViewProps) {
   const [rejectionNote, setRejectionNote] = useState('');
@@ -101,49 +95,6 @@ export function MobileSettlementReviewView({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Inline header with back button */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 0.5,
-          pb: 1.5,
-          borderBottom: 1,
-          borderColor: 'divider',
-          flexShrink: 0,
-        }}
-      >
-        <IconButton
-          onClick={onBack}
-          size="small"
-          sx={{
-            color: 'text.secondary',
-            width: 32,
-            height: 32,
-            '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
-          }}
-        >
-          <ArrowBackIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
-          Review Claim
-        </Typography>
-        <Box sx={{ flex: 1 }} />
-        <Chip
-          label="PENDING"
-          size="small"
-          sx={{
-            bgcolor: alpha('#F59E0B', 0.15),
-            color: 'primary.main',
-            fontWeight: 700,
-            fontSize: '0.65rem',
-            letterSpacing: '0.05em',
-            height: 22,
-          }}
-        />
-      </Box>
-
       {/* Scrollable content */}
       <Box sx={{ flex: 1, overflow: 'auto', px: 0.5, py: 2 }}>
         {/* Amount Display */}

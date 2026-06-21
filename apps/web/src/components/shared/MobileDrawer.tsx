@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Drawer, Box, Typography, IconButton, alpha, useTheme } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { Close as CloseIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 
 interface MobileDrawerProps {
   open: boolean;
@@ -8,6 +8,7 @@ interface MobileDrawerProps {
   title: React.ReactNode;
   children: React.ReactNode;
   onOpen?: () => void;
+  onBack?: () => void;
   clearAction?: React.ReactNode;
   fullScreen?: boolean;
 }
@@ -24,7 +25,7 @@ interface MobileDrawerProps {
  *  - Scrollable content area
  *  - Optional onOpen callback (fires when drawer opens — useful for clearError etc.)
  */
-export function MobileDrawer({ open, onClose, title, children, onOpen, clearAction, fullScreen }: MobileDrawerProps) {
+export function MobileDrawer({ open, onClose, title, children, onOpen, onBack, clearAction, fullScreen }: MobileDrawerProps) {
   const theme = useTheme();
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, clearActi
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: onBack ? 'space-between' : 'flex-end',
           px: 2,
           pt: 1.5,
           pb: 0.5,
@@ -96,6 +97,20 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, clearActi
             bgcolor: alpha('#fff', 0.15),
           }}
         />
+        {onBack && (
+          <IconButton
+            onClick={onBack}
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              width: 32,
+              height: 32,
+              '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
+            }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        )}
         <IconButton
           onClick={handleClose}
           size="small"
