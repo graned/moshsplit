@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Checkbox,
   TextField,
   CircularProgress,
   alpha,
@@ -17,7 +16,6 @@ import {
 
 import { Stepper, type StepDefinition } from '../../shared/forms/Stepper';
 import { useSettlementStore } from '../../../stores/settlementStore';
-import type { BreakdownItem } from './MobileStatsBreakdownDrawer';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -29,7 +27,6 @@ function formatAmount(cents: number, currency = 'EUR') {
 }
 
 const SETTLE_STEPS: StepDefinition[] = [
-  { label: 'Expenses' },
   { label: 'Amount' },
   { label: 'Confirm' },
 ];
@@ -39,7 +36,7 @@ interface MobileSettleStepperProps {
   currentUserId: string;
   direction: 'incoming' | 'outgoing';
   currency?: string;
-  breakdownItems: BreakdownItem[];
+  breakdownTotal: number;
   displayItem: { user_id: string; amount_cents: number };
   amountColor: string;
   darkColor: string;
@@ -55,7 +52,7 @@ export function MobileSettleStepper({
   currentUserId,
   direction,
   currency = 'EUR',
-  breakdownItems,
+  breakdownTotal,
   displayItem,
   amountColor,
   darkColor,
@@ -65,82 +62,28 @@ export function MobileSettleStepper({
 }: MobileSettleStepperProps) {
   const { createSettlement, error, clearError } = useSettlementStore();
 
+  const absTotal = Math.abs(breakdownTotal);
+
   const [step, setStep] = useState(0);
-  const [selectedExpenseIds, setSelectedExpenseIds] = useState<number[]>([]);
-  const [settleAmount, setSettleAmount] = useState(0);
+  const [settleAmount, setSettleAmount] = useState(absTotal);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const remainingExpenseItems = useMemo(() => {
-    const settlementTotal = breakdownItems
-      .filter((i) => i.type === 'settlement')
-      .reduce((sum, i) => sum + Math.abs(i.amount), 0);
-
-    const sorted = [...breakdownItems]
-      .filter((i) => i.type === 'expense')
-      .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-
-    let remaining = settlementTotal;
-    const result: typeof breakdownItems = [];
-
-    for (const exp of sorted) {
-      if (remaining >= exp.amount) {
-        remaining -= exp.amount;
-      } else if (remaining > 0) {
-        result.push({ ...exp, amount: exp.amount - remaining });
-        remaining = 0;
-      } else {
-        result.push({ ...exp });
-      }
-    }
-
-    return result;
-  }, [breakdownItems]);
-
-  const expenseItems = useMemo(
-    () => remainingExpenseItems,
-    [remainingExpenseItems],
-  );
-
-  const totalSelectedCents = useMemo(
-    () => expenseItems
-      .filter((_, i) => selectedExpenseIds.includes(i))
-      .reduce((sum, item) => sum + Math.abs(item.amount), 0),
-    [expenseItems, selectedExpenseIds],
-  );
-
   const resetSettleState = () => {
     setStep(0);
-    setSelectedExpenseIds([]);
-    setSettleAmount(0);
+    setSettleAmount(absTotal);
     setNote('');
     setSubmitting(false);
     setShowSuccess(false);
     clearError();
   };
 
-  const handleToggleExpense = (idx: number) => {
-    setSelectedExpenseIds((prev) =>
-      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx],
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedExpenseIds.length === expenseItems.length) {
-      setSelectedExpenseIds([]);
-    } else {
-      setSelectedExpenseIds(expenseItems.map((_, i) => i));
-    }
-  };
-
   const canProceed = (): boolean => {
     switch (step) {
       case 0:
-        return selectedExpenseIds.length > 0;
+        return settleAmount > 0 && settleAmount <= absTotal;
       case 1:
-        return settleAmount > 0;
-      case 2:
         return true;
       default:
         return false;
@@ -148,9 +91,6 @@ export function MobileSettleStepper({
   };
 
   const next = () => {
-    if (step === 0 && selectedExpenseIds.length > 0) {
-      setSettleAmount(totalSelectedCents);
-    }
     if (step < SETTLE_STEPS.length - 1) setStep((s) => s + 1);
   };
 
@@ -159,7 +99,7 @@ export function MobileSettleStepper({
   };
 
   const handleSubmit = async () => {
-    if (settleAmount <= 0) return;
+    if (settleAmount <= 0 || settleAmount > absTotal) return;
     setSubmitting(true);
     try {
       await createSettlement(eventId, {
@@ -181,103 +121,29 @@ export function MobileSettleStepper({
   };
 
   // ------------------------------------------------------------------
-  // Step 1 - Select Expenses
-  // ------------------------------------------------------------------
-  const renderSelectExpenses = () => (
-    <Box sx={{ py: 2 }}>
-      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5, textAlign: 'center' }}>
-        Select expenses to settle
-      </Typography>
-
-      {expenseItems.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-          No expense items available.
-        </Typography>
-      )}
-
-      {expenseItems.length > 0 && (
-        <>
-          <Box
-            onClick={handleSelectAll}
-            sx={{
-              display: 'flex', alignItems: 'center', gap: 1, py: 0.75, px: 0.5,
-              borderBottom: `1px solid ${alpha('#fff', 0.08)}`, cursor: 'pointer',
-              borderRadius: 1, '&:hover': { bgcolor: alpha('#fff', 0.03) },
-            }}
-          >
-            <Checkbox
-              checked={selectedExpenseIds.length === expenseItems.length}
-              indeterminate={selectedExpenseIds.length > 0 && selectedExpenseIds.length < expenseItems.length}
-              sx={{ color: alpha('#fff', 0.3), '&.Mui-checked': { color: 'primary.main' } }}
-            />
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.primary', flex: 1 }}>
-              {selectedExpenseIds.length === expenseItems.length ? 'Deselect All' : 'Select All'}
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: alpha('#fff', 0.5) }}>
-              {expenseItems.length} items
-            </Typography>
-          </Box>
-
-          {expenseItems.map((item, idx) => {
-            const isSelected = selectedExpenseIds.includes(idx);
-            return (
-              <Box
-                key={`exp-${idx}`}
-                onClick={() => handleToggleExpense(idx)}
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 1.5, py: 1, px: 0.5,
-                  cursor: 'pointer', borderRadius: 1,
-                  bgcolor: isSelected ? alpha(amountColor, 0.06) : 'transparent',
-                  '&:hover': { bgcolor: alpha('#fff', 0.03) },
-                }}
-              >
-                <Checkbox
-                  checked={isSelected}
-                  sx={{ color: alpha('#fff', 0.3), '&.Mui-checked': { color: amountColor } }}
-                />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.label}
-                  </Typography>
-                </Box>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: amountColor, flexShrink: 0 }}>
-                  {formatAmount(Math.abs(item.amount), currency)}
-                </Typography>
-              </Box>
-            );
-          })}
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1, px: 0.5, mt: 1, borderTop: `1px solid ${alpha('#fff', 0.08)}` }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: alpha('#fff', 0.5) }}>
-              Selected
-            </Typography>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: amountColor }}>
-              {formatAmount(totalSelectedCents, currency)}
-            </Typography>
-          </Box>
-        </>
-      )}
-    </Box>
-  );
-
-  // ------------------------------------------------------------------
-  // Step 2 - Amount (Full / Partial)
+  // Step 1 - Amount (Settle All / Partial)
   // ------------------------------------------------------------------
   const renderAmountStep = () => {
-    const isFullAmount = settleAmount === totalSelectedCents;
+    const isFullAmount = settleAmount === absTotal;
     return (
       <Box sx={{ py: 2 }}>
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.06em', mb: 2, textAlign: 'center' }}>
-          Choose amount to settle
+        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5, textAlign: 'center' }}>
+          Net balance
         </Typography>
 
-        <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.secondary', textAlign: 'center', mb: 2 }}>
-          Selected total: {formatAmount(totalSelectedCents, currency)}
+        <Typography
+          sx={{ fontSize: '2.5rem', fontWeight: 800, color: amountColor, textAlign: 'center', mb: 0.5, fontVariantNumeric: 'tabular-nums' }}
+        >
+          {formatAmount(absTotal, currency)}
+        </Typography>
+
+        <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, color: 'text.secondary', textAlign: 'center', mb: 3 }}>
+          {direction === 'outgoing' ? `You owe ${displayName}` : `${displayName} owes you`}
         </Typography>
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 3 }}>
           <Button
-            onClick={() => setSettleAmount(totalSelectedCents)}
+            onClick={() => setSettleAmount(absTotal)}
             sx={{
               p: 2, flexDirection: 'column', gap: 0.5, borderRadius: 2,
               border: isFullAmount ? `1px solid ${alpha(amountColor, 0.5)}` : `1px solid ${alpha('#fff', 0.1)}`,
@@ -292,7 +158,7 @@ export function MobileSettleStepper({
           </Button>
 
           <Button
-            onClick={() => !isFullAmount && setSettleAmount(0)}
+            onClick={() => setSettleAmount(0)}
             sx={{
               p: 2, flexDirection: 'column', gap: 0.5, borderRadius: 2,
               border: !isFullAmount ? `1px solid ${alpha(amountColor, 0.5)}` : `1px solid ${alpha('#fff', 0.1)}`,
@@ -342,9 +208,9 @@ export function MobileSettleStepper({
                 }}
               />
             </Box>
-            {settleAmount > totalSelectedCents && (
+            {settleAmount > absTotal && (
               <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
-                Amount exceeds selected total
+                Amount exceeds net balance
               </Typography>
             )}
           </Box>
@@ -354,59 +220,66 @@ export function MobileSettleStepper({
   };
 
   // ------------------------------------------------------------------
-  // Step 3 - Confirm
+  // Step 2 - Confirm
   // ------------------------------------------------------------------
-  const renderConfirmStep = () => {
-    const selectedExpenseCount = selectedExpenseIds.length;
-    return (
-      <Box sx={{ py: 2 }}>
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.06em', mb: 2, textAlign: 'center' }}>
-          Confirm Settlement
-        </Typography>
+  const renderConfirmStep = () => (
+    <Box sx={{ py: 2 }}>
+      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.06em', mb: 2, textAlign: 'center' }}>
+        Confirm Settlement
+      </Typography>
 
-        <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(amountColor, 0.06), border: `1px solid ${alpha(amountColor, 0.15)}`, mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="caption" color="text.secondary">To</Typography>
-            <Typography variant="body2" fontWeight={600} color="text.primary">{displayName}</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="caption" color="text.secondary">Expenses</Typography>
-            <Typography variant="body2" fontWeight={600} color="text.primary">{selectedExpenseCount} of {expenseItems.length}</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: `1px solid ${alpha('#fff', 0.1)}` }}>
-            <Typography variant="body2" fontWeight={700} color="text.primary">Amount</Typography>
-            <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: amountColor }}>
-              {formatAmount(settleAmount, currency)}
+      <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(amountColor, 0.06), border: `1px solid ${alpha(amountColor, 0.15)}`, mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="caption" color="text.secondary">{direction === 'outgoing' ? 'To' : 'From'}</Typography>
+          <Typography variant="body2" fontWeight={600} color="text.primary">{displayName}</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="caption" color="text.secondary">Direction</Typography>
+          <Typography variant="body2" fontWeight={600} color={direction === 'outgoing' ? amountColor : 'text.primary'}>
+            {direction === 'outgoing' ? 'You pay' : 'They pay'}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: `1px solid ${alpha('#fff', 0.1)}` }}>
+          <Typography variant="body2" fontWeight={700} color="text.primary">Amount</Typography>
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: amountColor }}>
+            {formatAmount(settleAmount, currency)}
+          </Typography>
+        </Box>
+        {settleAmount < absTotal && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">Remaining balance</Typography>
+            <Typography variant="caption" fontWeight={600} color="text.secondary">
+              {formatAmount(absTotal - settleAmount, currency)}
             </Typography>
           </Box>
-        </Box>
-
-        <TextField
-          multiline
-          rows={2}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Add a note (optional)..."
-          fullWidth
-          sx={{
-            '& .MuiFilledInput-root': {
-              bgcolor: alpha('#fff', 0.03), borderRadius: 2,
-              border: `1px solid ${alpha('#fff', 0.08)}`,
-              '&:hover': { bgcolor: alpha('#fff', 0.05) },
-              '&.Mui-focused': { borderColor: 'primary.main' },
-            },
-            '& .MuiFilledInput-input': { color: 'text.primary', '&::placeholder': { color: 'text.secondary', opacity: 0.5 } },
-          }}
-        />
-
-        {error && (
-          <Typography variant="body2" color="error.main" sx={{ mt: 2, textAlign: 'center' }}>
-            {error}
-          </Typography>
         )}
       </Box>
-    );
-  };
+
+      <TextField
+        multiline
+        rows={2}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Add a note (optional)..."
+        fullWidth
+        sx={{
+          '& .MuiFilledInput-root': {
+            bgcolor: alpha('#fff', 0.03), borderRadius: 2,
+            border: `1px solid ${alpha('#fff', 0.08)}`,
+            '&:hover': { bgcolor: alpha('#fff', 0.05) },
+            '&.Mui-focused': { borderColor: 'primary.main' },
+          },
+          '& .MuiFilledInput-input': { color: 'text.primary', '&::placeholder': { color: 'text.secondary', opacity: 0.5 } },
+        }}
+      />
+
+      {error && (
+        <Typography variant="body2" color="error.main" sx={{ mt: 2, textAlign: 'center' }}>
+          {error}
+        </Typography>
+      )}
+    </Box>
+  );
 
   // ------------------------------------------------------------------
   // Success State
@@ -439,9 +312,8 @@ export function MobileSettleStepper({
       <Stepper steps={SETTLE_STEPS} activeStep={step} />
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 0.5 }}>
-        {step === 0 && renderSelectExpenses()}
-        {step === 1 && renderAmountStep()}
-        {step === 2 && renderConfirmStep()}
+        {step === 0 && renderAmountStep()}
+        {step === 1 && renderConfirmStep()}
       </Box>
 
       <Box sx={{ display: 'flex', gap: 1.5, p: 1.5, borderTop: `1px solid ${alpha('#fff', 0.08)}`, flexShrink: 0 }}>
@@ -462,7 +334,7 @@ export function MobileSettleStepper({
         ) : (
           <Button
             onClick={handleSubmit}
-            disabled={!canProceed() || submitting || settleAmount > totalSelectedCents}
+            disabled={!canProceed() || submitting || settleAmount > absTotal}
             variant="contained"
             sx={{ flex: 1, fontSize: '0.85rem', bgcolor: amountColor, color: '#fff', '&:hover': { bgcolor: darkColor }, '&:disabled': { bgcolor: alpha(amountColor, 0.4), color: alpha('#fff', 0.5) } }}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : undefined}

@@ -298,7 +298,7 @@ export function MobileBalanceDrawer({
             currentUserId={currentUserId}
             direction={direction}
             currency={currency}
-            breakdownItems={breakdownItems}
+            breakdownTotal={breakdownTotal}
             displayItem={displayItem}
             amountColor={amountColor}
             darkColor={darkColor}
