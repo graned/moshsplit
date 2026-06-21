@@ -57,6 +57,15 @@ interface ExpenseDetailDrawerProps {
   eventId: string;
   currency?: string;
   userMap: Record<string, UserInfo>;
+  onEdit?: (data: {
+    id: string;
+    title: string;
+    amount_cents: number;
+    paid_by: string;
+    split_data: Record<string, unknown>;
+    notes?: string;
+    expense_type?: string;
+  }) => void;
 }
 
 export function ExpenseDetailDrawer({
@@ -66,6 +75,7 @@ export function ExpenseDetailDrawer({
   eventId,
   currency = 'EUR',
   userMap,
+  onEdit,
 }: ExpenseDetailDrawerProps) {
   const theme = useTheme();
   const cachedExpense = useRef(expense);
@@ -107,7 +117,17 @@ export function ExpenseDetailDrawer({
   const shareLabel = perPersonShare != null ? formatAmount(perPersonShare, currency) : null;
 
   const handleEdit = () => {
-    console.log('[ExpenseDetailDrawer] Edit clicked — not yet implemented');
+    if (!fullExpense?.current_version || !displayExpense) return;
+    const v = fullExpense.current_version;
+    onEdit?.({
+      id: displayExpense.id,
+      title: v.title,
+      amount_cents: v.amount_cents,
+      paid_by: v.paid_by,
+      split_data: v.split_data,
+      notes: v.notes,
+      expense_type: displayExpense.expense_type,
+    });
   };
 
   return (
@@ -120,6 +140,7 @@ export function ExpenseDetailDrawer({
           <IconButton
             onClick={handleEdit}
             size="small"
+            disabled={isLoading}
             sx={{
               color: theme.palette.primary.main,
               bgcolor: alpha(theme.palette.primary.main, 0.1),

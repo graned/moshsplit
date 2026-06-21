@@ -42,6 +42,15 @@ export default function MobileExpensePage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseActivity | null>(null);
+  const [expenseToEdit, setExpenseToEdit] = useState<{
+    id: string;
+    title: string;
+    amount_cents: number;
+    paid_by: string;
+    split_data: Record<string, unknown>;
+    notes?: string;
+    expense_type?: string;
+  } | null>(null);
   const { addExpenseOpen, setAddExpenseOpen } = useUIStore();
 
   const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
@@ -173,6 +182,23 @@ export default function MobileExpensePage() {
       }
     },
     [expenseItems],
+  );
+
+  const handleEditExpense = useCallback(
+    (data: {
+      id: string;
+      title: string;
+      amount_cents: number;
+      paid_by: string;
+      split_data: Record<string, unknown>;
+      notes?: string;
+      expense_type?: string;
+    }) => {
+      setSelectedExpense(null);
+      setAddExpenseOpen(false);
+      setExpenseToEdit(data);
+    },
+    [],
   );
 
   if (!paramEventId) {
@@ -311,13 +337,20 @@ export default function MobileExpensePage() {
       {eventId && (
         <>
           <AddExpenseDrawer
-            open={addExpenseOpen}
-            onClose={() => setAddExpenseOpen(false)}
+            open={addExpenseOpen || !!expenseToEdit}
+            onClose={() => {
+              setAddExpenseOpen(false);
+              setExpenseToEdit(null);
+            }}
             eventId={eventId}
             members={membersForDialog}
             currentUser={currentUser}
             groupCurrency={eventForDialog?.currency}
-            onSuccess={() => setAddExpenseOpen(false)}
+            onSuccess={() => {
+              setAddExpenseOpen(false);
+              setExpenseToEdit(null);
+            }}
+            expenseToEdit={expenseToEdit}
           />
           <ExpenseDetailDrawer
             open={!!selectedExpense}
@@ -326,6 +359,7 @@ export default function MobileExpensePage() {
             eventId={eventId}
             currency={currency}
             userMap={userMap}
+            onEdit={handleEditExpense}
           />
         </>
       )}
