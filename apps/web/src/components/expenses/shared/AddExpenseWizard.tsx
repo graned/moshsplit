@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -67,6 +67,15 @@ const STEPS: StepDefinition[] = [
 // Props
 // ---------------------------------------------------------------------------
 
+export interface ExpenseEditData {
+  title: string;
+  amount_cents: number;
+  paid_by: string;
+  split_data: Record<string, unknown>;
+  notes?: string;
+  expense_type?: string;
+}
+
 interface AddExpenseWizardProps {
   members: GroupMember[];
   currentUser: {
@@ -79,6 +88,8 @@ interface AddExpenseWizardProps {
   onSubmit: (data: CreateExpenseRequest) => Promise<void>;
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialData?: ExpenseEditData;
+  mode?: 'create' | 'edit';
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +103,8 @@ export function AddExpenseWizard({
   onSubmit,
   onSuccess,
   onCancel,
+  initialData,
+  mode = 'create',
 }: AddExpenseWizardProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -123,6 +136,19 @@ export function AddExpenseWizard({
   const [category, setCategory] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(members.map((m) => m.user_id));
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setAmount((initialData.amount_cents / 100).toFixed(2));
+      setCategory(initialData.expense_type || '');
+      const shares = initialData.split_data?.shares;
+      if (Array.isArray(shares)) {
+        setSelectedMemberIds(shares as string[]);
+      }
+      setNotes(initialData.notes || '');
+    }
+  }, [initialData]);
 
   // -----------------------------------------------------------------------
   // Helpers
@@ -205,7 +231,7 @@ export function AddExpenseWizard({
         title: title.trim(),
         description: title.trim(),
         amount_cents: amountCents,
-        paid_by: currentUser.id,
+        paid_by: mode === 'edit' && initialData ? initialData.paid_by : currentUser.id,
         split_type: 'equal',
         split_data: { shares: selectedMemberIds },
         expense_type: category || undefined,
@@ -746,7 +772,7 @@ export function AddExpenseWizard({
             sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : undefined}
           >
-            {submitting ? 'Deploying...' : 'Deploy Damage'}
+            {submitting ? (mode === 'edit' ? 'Updating...' : 'Deploying...') : (mode === 'edit' ? 'Update Damage' : 'Deploy Damage')}
           </Button>
         )}
       </Box>
