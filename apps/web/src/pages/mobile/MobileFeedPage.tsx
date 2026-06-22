@@ -293,29 +293,63 @@ export default function MobileFeedPage() {
         }
         backgroundImage={bannerUrl}
       >
-        {/* Total Damage card - hero stat */}
-        <Box sx={{ display: 'flex' }}>
-          <Box sx={{ flex: 1, p: 1.5, borderRadius: 2, textAlign: 'center', bgcolor: alpha('#1E1E1E', 0.5), border: '1px solid', borderColor: alpha('#F59E0B', 0.25), backdropFilter: 'blur(8px)', boxShadow: '0 0 24px rgba(245, 158, 11, 0.08)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
-              <SpentIcon sx={{ fontSize: 15, color: '#F59E0B' }} />
-              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Damage</Typography>
-            </Box>
-            {statsLoading ? (
-              <CircularProgress size={22} sx={{ color: '#F59E0B' }} />
-            ) : (
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.3 }}>
-                {formatAmount(stats?.total_spent_cents ?? 0, currency)}
-              </Typography>
-            )}
-            {(() => {
-              const pain = getPainLevel(stats?.total_spent_cents ?? 0);
-              const display = getPainDisplay(pain.label);
-              return (
-                <Typography sx={{ fontSize: '0.85rem', color: display.color, mt: 0.5, fontStyle: 'italic', fontWeight: display.fontWeight, textShadow: display.glow, ...getPainAnimationStyle(pain.label) }}>
-                  {pain.text}
+        <Box sx={{ px: 1, py: 1 }}>
+          <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha('#1A1A1A', 0.7), border: '1px solid', borderColor: alpha('#F59E0B', 0.35), backdropFilter: 'blur(8px)', boxShadow: '0 0 20px rgba(245,158,11,0.12)' }}>
+            <Box sx={{ textAlign: 'center', mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+                <SpentIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
+                <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Total Damage
                 </Typography>
-              );
-            })()}
+              </Box>
+              {statsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 0.5 }}>
+                  <CircularProgress size={22} sx={{ color: '#F59E0B' }} />
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: '1.75rem', fontWeight: 800, background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.1 }}>
+                  {formatAmount(stats?.total_spent_cents ?? 0, currency)}
+                </Typography>
+              )}
+              {(() => {
+                const pain = getPainLevel(stats?.total_spent_cents ?? 0);
+                const display = getPainDisplay(pain.label);
+                return (
+                  <Typography sx={{ fontSize: '0.8rem', color: display.color, mt: 0.25, fontStyle: 'italic', fontWeight: display.fontWeight, textShadow: display.glow, ...getPainAnimationStyle(pain.label) }}>
+                    {pain.text}
+                  </Typography>
+                );
+              })()}
+            </Box>
+
+            <Box sx={{ height: 1, bgcolor: alpha('#fff', 0.1), mb: 1 }} />
+
+            <Box sx={{ display: 'flex' }}>
+              <Box sx={{ flex: 1, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>
+                  Your Damage
+                </Typography>
+                {statsLoading ? (
+                  <CircularProgress size={14} sx={{ color: '#fff' }} />
+                ) : (
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff' }}>
+                    {formatAmount(stats?.your_paid_cents ?? 0, currency)}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ flex: 1, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>
+                  You Owe
+                </Typography>
+                {statsLoading ? (
+                  <CircularProgress size={14} sx={{ color: '#fff' }} />
+                ) : (
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#EF4444' }}>
+                    {formatAmount(stats?.your_outstanding_cents ?? 0, currency)}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
           </Box>
         </Box>
 
