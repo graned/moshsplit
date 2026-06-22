@@ -186,7 +186,6 @@ export default function MobileFeedPage() {
     return counts;
   }, [activityItems]);
 
-  // Spending ladder — top spenders across all expense activities
   const spendingLadder = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const item of activityItems) {
@@ -194,15 +193,26 @@ export default function MobileFeedPage() {
         totals[item.paid_by] = (totals[item.paid_by] || 0) + item.amount_cents;
       }
     }
-    return Object.entries(totals)
-      .map(([userId, amount]) => ({ userId, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .map((entry, rank) => ({
-        ...entry,
-        rank: rank + 1,
+
+    const sorted = members
+      .map((m) => ({ userId: m.user_id, amount: totals[m.user_id] || 0 }))
+      .sort((a, b) => b.amount - a.amount);
+
+    let currentRank = 0;
+    let prevAmount = -1;
+    return sorted.map((entry, i) => {
+      if (entry.amount !== prevAmount) {
+        currentRank = i + 1;
+        prevAmount = entry.amount;
+      }
+      return {
+        userId: entry.userId,
+        amount: entry.amount,
+        rank: currentRank,
         user: userMap[entry.userId],
-      }));
-  }, [activityItems, userMap]);
+      };
+    });
+  }, [activityItems, userMap, members]);
 
   const ACTIVITY_TYPE_OPTIONS = [
     { value: 'all', label: 'All', count: activityItems.length },
