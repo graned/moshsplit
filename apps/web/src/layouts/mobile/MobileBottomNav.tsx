@@ -18,19 +18,29 @@ import {
   ReceiptLong as ExpensesIcon,
   SwapHoriz as SettleIcon,
   Language as LanguageIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from '@moshsplit/auth-react';
+import { useTranslation } from 'react-i18next';
 
 declare const __APP_VERSION__: string;
+
+const LANGUAGES = [
+  { code: 'en', label: 'English', nativeName: 'English' },
+  { code: 'pt', label: 'Portuguese', nativeName: 'Português' },
+  { code: 'es', label: 'Spanish', nativeName: 'Español' },
+];
 
 function MobileBottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { eventId } = useParams<{ eventId: string }>();
   const { firstName, lastName, userEmail, avatarUrl, clearTokens } = useAuthStore();
+  const { i18n } = useTranslation();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(null);
 
   const navItems = eventId
     ? [
@@ -50,6 +60,21 @@ function MobileBottomNav() {
 
   const handleProfileClose = () => {
     setAnchorEl(null);
+    setLanguageAnchorEl(null);
+  };
+
+  const handleLanguageOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setLanguageAnchorEl(event.currentTarget);
+  };
+
+  const handleLanguageClose = () => {
+    setLanguageAnchorEl(null);
+  };
+
+  const handleLanguageSelect = (langCode: string) => {
+    i18n.changeLanguage(langCode);
+    localStorage.setItem('moshsplit_language', langCode);
+    handleLanguageClose();
   };
 
   const handleLogout = () => {
@@ -189,7 +214,7 @@ function MobileBottomNav() {
           </Typography>
         </Box>
         <Divider sx={{ my: 1, borderColor: 'divider' }} />
-        <MenuItem onClick={handleProfileClose} sx={{ color: 'text.secondary' }}>
+        <MenuItem onClick={handleLanguageOpen} sx={{ color: 'text.secondary' }}>
           <ListItemIcon>
             <LanguageIcon fontSize="small" sx={{ color: 'text.secondary' }} />
           </ListItemIcon>
@@ -202,6 +227,39 @@ function MobileBottomNav() {
           </ListItemIcon>
           <ListItemText>{import.meta.env.VITE_EXTERNAL_APP_NAME || 'Back to App'}</ListItemText>
         </MenuItem>
+      </Menu>
+
+      <Menu
+        anchorEl={languageAnchorEl}
+        open={Boolean(languageAnchorEl)}
+        onClose={handleLanguageClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+        PaperProps={{
+          sx: {
+            mb: 1,
+            minWidth: 160,
+            bgcolor: '#1E1E1E',
+            border: '1px solid',
+            borderColor: 'divider',
+          },
+        }}
+      >
+        {LANGUAGES.map((lang) => (
+          <MenuItem
+            key={lang.code}
+            onClick={() => handleLanguageSelect(lang.code)}
+            sx={{
+              color: i18n.language === lang.code ? 'primary.main' : 'text.secondary',
+              fontWeight: i18n.language === lang.code ? 600 : 400,
+            }}
+          >
+            <ListItemText>{lang.nativeName}</ListItemText>
+            {i18n.language === lang.code && (
+              <CheckIcon fontSize="small" sx={{ color: 'primary.main', ml: 1 }} />
+            )}
+          </MenuItem>
+        ))}
       </Menu>
     </>
   );

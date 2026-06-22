@@ -1,0 +1,93 @@
+{
+  "expenseDetail": {
+    "paidBy": "Pago por",
+    "notes": "Notas",
+    "splitType": {
+      "equal": "Dividir igualmente",
+      "exact": "Dividir por valores exatos",
+      "percentage": "Dividir por porcentagem"
+    },
+    "share": "Parte",
+    "total": "Total",
+    "perPerson": "por pessoa"
+  },
+  "addExpense": {
+    "title": "Adicionar Despesa",
+    "editTitle": "Editar Despesa",
+    "description": "Descrição",
+    "descriptionPlaceholder": "O que foi?",
+    "amount": "Valor",
+    "paidBy": "Pago por",
+    "splitType": "Tipo de divisão",
+    "categories": {
+      "food": "Comida & Bebida",
+      "transport": "Transporte",
+      "accommodation": "Hospedagem",
+      "activities": "Atividades",
+      "shopping": "Compras",
+      "utilities": "Utilidades",
+      "other": "Outros"
+    },
+    "excludeFromSettlement": "Excluir do acerto",
+    "excludeHint": "Esta despesa não afetará os saldos",
+    "excludeSuccess": "Despesa excluída do acerto",
+    "includeSuccess": "Despesa incluída no acerto",
+    "participants": "Participantes"
+  },
+  "expenseWizard": {
+    "step1": "Detalhes",
+    "step2": "Valor",
+    "step3": "Divisão",
+    "next": "Próximo",
+    "back": "Voltar",
+    "finish": "Concluir",
+    "cancel": "Cancelar"
+  },
+  "expenseFeedCard": {
+    "settled": "Acertado",
+    "splitType": {
+      "equal": "Igual",
+      "exact": "Exato",
+      "percentage": "Porcentagem"
+    }
+  },
+  "balanceDrawer": {
+    "title": "Detalhes do Saldo",
+    "settleAll": "Acertar Tudo",
+    "sendReminder": "Enviar Lembrete",
+    "reminderSuccess": "Lembrete enviado",
+    "reminderFailed": "Falha ao enviar lembrete"
+  },
+  "settleDrawer": {
+    "title": "Acertar",
+    "confirm": "Confirmar",
+    "amount": "Valor",
+    "to": "Para"
+  },
+  "statsBreakdown": {
+    "title": "Detalhamento",
+    "totalSpend": "Gasto Total",
+    "yourShare": "Sua Parte",
+    "outstanding": "Pendente",
+    "settled": "Acertado"
+  },
+  "bottomNav": {
+    "feed": "Registro de Batalhas",
+    "warchest": "Cofre de Guerra",
+    "settle": "Acertar",
+    "profile": "Perfil"
+  },
+  "filterDrawer": {
+    "clearAll": "Limpar tudo",
+    "all": "Todos",
+    "done": "Concluir"
+  },
+  "profileMenu": {
+    "title": "Perfil",
+    "settings": "Configurações",
+    "signOut": "Sair"
+  },
+  "mobileDrawer": {
+    "close": "Fechar"
+  }
+}

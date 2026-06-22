@@ -1,0 +1,93 @@
+{
+  "expenseDetail": {
+    "paidBy": "Pagado por",
+    "notes": "Notas",
+    "splitType": {
+      "equal": "Dividir equitativamente",
+      "exact": "Dividir por montos exactos",
+      "percentage": "Dividir por porcentaje"
+    },
+    "share": "Parte",
+    "total": "Total",
+    "perPerson": "por persona"
+  },
+  "addExpense": {
+    "title": "Agregar Gasto",
+    "editTitle": "Editar Gasto",
+    "description": "Descripción",
+    "descriptionPlaceholder": "¿Qué fue?",
+    "amount": "Monto",
+    "paidBy": "Pagado por",
+    "splitType": "Tipo de división",
+    "categories": {
+      "food": "Comida & Bebida",
+      "transport": "Transporte",
+      "accommodation": "Alojamiento",
+      "activities": "Actividades",
+      "shopping": "Compras",
+      "utilities": "Servicios",
+      "other": "Otros"
+    },
+    "excludeFromSettlement": "Excluir del acuerdo",
+    "excludeHint": "Este gasto no afectará los saldos",
+    "excludeSuccess": "Gasto excluido del acuerdo",
+    "includeSuccess": "Gasto incluido en el acuerdo",
+    "participants": "Participantes"
+  },
+  "expenseWizard": {
+    "step1": "Detalles",
+    "step2": "Monto",
+    "step3": "División",
+    "next": "Siguiente",
+    "back": "Volver",
+    "finish": "Concluir",
+    "cancel": "Cancelar"
+  },
+  "expenseFeedCard": {
+    "settled": "Saldado",
+    "splitType": {
+      "equal": "Igual",
+      "exact": "Exacto",
+      "percentage": "Porcentaje"
+    }
+  },
+  "balanceDrawer": {
+    "title": "Detalles del Saldo",
+    "settleAll": "Saldar Todo",
+    "sendReminder": "Enviar Recordatorio",
+    "reminderSuccess": "Recordatorio enviado",
+    "reminderFailed": "Error al enviar recordatorio"
+  },
+  "settleDrawer": {
+    "title": "Saldar",
+    "confirm": "Confirmar",
+    "amount": "Monto",
+    "to": "A"
+  },
+  "statsBreakdown": {
+    "title": "Desglose",
+    "totalSpend": "Gasto Total",
+    "yourShare": "Tu Parte",
+    "outstanding": "Pendiente",
+    "settled": "Saldado"
+  },
+  "bottomNav": {
+    "feed": "Registro de Batallas",
+    "warchest": "Caja de Guerra",
+    "settle": "Saldar",
+    "profile": "Perfil"
+  },
+  "filterDrawer": {
+    "clearAll": "Limpiar todo",
+    "all": "Todos",
+    "done": "Listo"
+  },
+  "profileMenu": {
+    "title": "Perfil",
+    "settings": "Configuración",
+    "signOut": "Cerrar sesión"
+  },
+  "mobileDrawer": {
+    "close": "Cerrar"
+  }
+}

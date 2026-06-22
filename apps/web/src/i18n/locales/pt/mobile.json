@@ -1,0 +1,138 @@
+{
+  "battleLog": {
+    "title": "Registro de Batalhas",
+    "subtitle": "Todas as despesas neste evento",
+    "hero": {
+      "totalDamage": "Dano Total",
+      "yourDamage": "Seu Dano",
+      "youOwe": "Você Deve"
+    },
+    "filters": {
+      "all": "Todos",
+      "expenses": "Despesas",
+      "updates": "Atualizações",
+      "honor": "Honra",
+      "rejected": "Rejeitados",
+      "joins": "Entradas",
+      "settlements": "Acertos",
+      "paidByYou": "Pago por você",
+      "yourShare": "Sua parte",
+      "excluded": "Excluído do acerto"
+    },
+    "filterByType": "Filtrar por Tipo",
+    "emptyState": {
+      "title": "NENHUMA BATALHA AINDA",
+      "subtitle": "As despesas aparecerão aqui",
+      "addFirst": "Adicione a primeira despesa"
+    },
+    "selectEvent": "Selecione um evento para ver seu registro de batalhas.",
+    "slaughterBoard": {
+      "title": "Quadro de Abates",
+      "you": "Você",
+      "joined": "Entrou em {{date}}",
+      "placeholder": "{{count}} combatentes",
+      "empty": "Nenhum membro neste evento",
+      "emptyHint": "Convide pessoas para iniciar a batalha"
+    }
+  },
+  "warchest": {
+    "title": "Cofre de Guerra",
+    "subtitle": "Todas as despesas neste evento",
+    "hero": {
+      "realSpend": "Gasto Real",
+      "realSpendHint": "Seu custo real após receber de volta",
+      "youPaid": "Você Pagou",
+      "gettingBack": "Recebendo de Volta",
+      "yourDamage": "Seu Dano",
+      "youOwe": "Você Deve"
+    },
+    "filters": {
+      "all": "Todos",
+      "food": "Comida",
+      "travel": "Viagem",
+      "merch": "Merch",
+      "beer": "Cerveja",
+      "gas": "Combustível",
+      "camping": "Camping",
+      "settlements": "Acertos",
+      "paidByYou": "Pago por você",
+      "yourShare": "Sua parte",
+      "excluded": "Excluído do acerto"
+    },
+    "filterByType": "Filtrar por Tipo",
+    "addExpense": "Adicionar despesa",
+    "emptyState": {
+      "title": "NENHUMA DESPESA AINDA",
+      "subtitle": "Comece a rastrear despesas",
+      "addFirst": "Adicione a primeira despesa"
+    },
+    "selectEvent": "Selecione um evento para ver as despesas.",
+    "failedToLoad": "Falha ao carregar evento"
+  },
+  "settle": {
+    "title": "As Balanças",
+    "subtitle": "Gerencie saldos e acertos",
+    "honorRestored": {
+      "title": "Honra Restaurada",
+      "subtitle": "O poço está equilibrado novamente."
+    },
+    "balanceCards": {
+      "netBalance": "Saldo Líquido",
+      "allSettled": "Tudo acertado",
+      "peopleOweYou": "Pessoas devem no geral",
+      "youOweOverall": "Você deve no geral",
+      "youOwe": "Você deve",
+      "owedToYou": "Devido a você",
+      "settled": "Acertado"
+    },
+    "sections": {
+      "incoming": "Entrada",
+      "outgoing": "Saída",
+      "tapToShowAll": "toque para mostrar todos"
+    },
+    "emptyState": {
+      "title": "Nenhum saldo para acertar ainda."
+    },
+    "actions": {
+      "settleAll": "Acertar tudo",
+      "settle": "Acertar",
+      "settleUp": "Acertar contas",
+      "sendReminder": "Enviar Lembrete",
+      "viewHistory": "Ver Histórico"
+    },
+    "drawer": {
+      "title": "Detalhes do Saldo",
+      "settleAll": "Acertar Tudo",
+      "amount": "Valor",
+      "confirmSettle": "Confirmar Acerto",
+      "history": "Histórico de Acertos"
+    },
+    "history": {
+      "title": "Histórico de Acertos",
+      "empty": "Nenhum acerto ainda",
+      "paid": "Pago",
+      "received": "Recebido",
+      "youPaid": "Você pagou a {{name}}",
+      "{{name}}Paid": "{{name}} pagou a você"
+    },
+    "stats": {
+      "totalSpend": "Gasto Total",
+      "yourShare": "Sua Parte",
+      "outstanding": "Pendente",
+      "settled": "Acertado",
+      "breakdown": "Detalhamento",
+      "oweToYou": "Devem a Você"
+    }
+  },
+  "eventSelect": {
+    "title": "Seus Eventos",
+    "emptyState": {
+      "title": "Nenhum evento ainda",
+      "subtitle": "Crie seu primeiro evento para começar a dividir despesas."
+    },
+    "errorState": {
+      "title": "Falha ao carregar eventos"
+    },
+    "noDescription": "Sem descrição"
+  }
+}

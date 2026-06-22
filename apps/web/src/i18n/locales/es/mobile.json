@@ -1,0 +1,138 @@
+{
+  "battleLog": {
+    "title": "Registro de Batallas",
+    "subtitle": "Todos los gastos en este evento",
+    "hero": {
+      "totalDamage": "Daño Total",
+      "yourDamage": "Tu Daño",
+      "youOwe": "Debes"
+    },
+    "filters": {
+      "all": "Todos",
+      "expenses": "Gastos",
+      "updates": "Actualizaciones",
+      "honor": "Honra",
+      "rejected": "Rechazados",
+      "joins": "Uniones",
+      "settlements": "Acuerdos",
+      "paidByYou": "Pagado por ti",
+      "yourShare": "Tu parte",
+      "excluded": "Excluido del acuerdo"
+    },
+    "filterByType": "Filtrar por Tipo",
+    "emptyState": {
+      "title": "AÚN NO HAY BATALLAS",
+      "subtitle": "Los gastos aparecerán aquí",
+      "addFirst": "Agrega el primer gasto"
+    },
+    "selectEvent": "Selecciona un evento para ver su registro de batallas.",
+    "slaughterBoard": {
+      "title": "Tabla de Abatidos",
+      "you": "Tú",
+      "joined": "Se unió el {{date}}",
+      "placeholder": "{{count}} combatientes",
+      "empty": "Ningún miembro en este evento",
+      "emptyHint": "Invita personas para iniciar la batalla"
+    }
+  },
+  "warchest": {
+    "title": "Caja de Guerra",
+    "subtitle": "Todos los gastos en este evento",
+    "hero": {
+      "realSpend": "Gasto Real",
+      "realSpendHint": "Tu costo real después de recibir de vuelta",
+      "youPaid": "Pagaste",
+      "gettingBack": "Recibiendo de Vuelta",
+      "yourDamage": "Tu Daño",
+      "youOwe": "Debes"
+    },
+    "filters": {
+      "all": "Todos",
+      "food": "Comida",
+      "travel": "Viaje",
+      "merch": "Merch",
+      "beer": "Cerveza",
+      "gas": "Gasolina",
+      "camping": "Camping",
+      "settlements": "Acuerdos",
+      "paidByYou": "Pagado por ti",
+      "yourShare": "Tu parte",
+      "excluded": "Excluido del acuerdo"
+    },
+    "filterByType": "Filtrar por Tipo",
+    "addExpense": "Agregar gasto",
+    "emptyState": {
+      "title": "AÚN NO HAY GASTOS",
+      "subtitle": "Comienza a rastrear gastos",
+      "addFirst": "Agrega el primer gasto"
+    },
+    "selectEvent": "Selecciona un evento para ver los gastos.",
+    "failedToLoad": "Error al cargar el evento"
+  },
+  "settle": {
+    "title": "Las Balanzas",
+    "subtitle": "Gestiona saldos y acuerdos",
+    "honorRestored": {
+      "title": "Honra Restaurada",
+      "subtitle": "El pozo está equilibrado nuevamente."
+    },
+    "balanceCards": {
+      "netBalance": "Saldo Neto",
+      "allSettled": "Todo saldado",
+      "peopleOweYou": "Te deben en general",
+      "youOweOverall": "Debes en general",
+      "youOwe": "Debes",
+      "owedToYou": "Te deben",
+      "settled": "Saldado"
+    },
+    "sections": {
+      "incoming": "Entrante",
+      "outgoing": "Saliente",
+      "tapToShowAll": "toca para mostrar todos"
+    },
+    "emptyState": {
+      "title": "No hay saldos para saldar aún."
+    },
+    "actions": {
+      "settleAll": "Saldar todo",
+      "settle": "Saldar",
+      "settleUp": "Saldar cuentas",
+      "sendReminder": "Enviar Recordatorio",
+      "viewHistory": "Ver Historial"
+    },
+    "drawer": {
+      "title": "Detalles del Saldo",
+      "settleAll": "Saldar Todo",
+      "amount": "Monto",
+      "confirmSettle": "Confirmar Acuerdo",
+      "history": "Historial de Acuerdos"
+    },
+    "history": {
+      "title": "Historial de Acuerdos",
+      "empty": "No hay acuerdos aún",
+      "paid": "Pagado",
+      "received": "Recibido",
+      "youPaid": "Pagaste a {{name}}",
+      "{{name}}Paid": "{{name}} te pagó"
+    },
+    "stats": {
+      "totalSpend": "Gasto Total",
+      "yourShare": "Tu Parte",
+      "outstanding": "Pendiente",
+      "settled": "Saldado",
+      "breakdown": "Desglose",
+      "oweToYou": "Te Deben"
+    }
+  },
+  "eventSelect": {
+    "title": "Tus Eventos",
+    "emptyState": {
+      "title": "No hay eventos aún",
+      "subtitle": "Crea tu primer evento para comenzar a dividir gastos."
+    },
+    "errorState": {
+      "title": "Error al cargar eventos"
+    },
+    "noDescription": "Sin descripción"
+  }
+}
