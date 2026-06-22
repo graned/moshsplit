@@ -1,25 +1,33 @@
 {
   "battleLog": {
-    "title": "BATTLE LOG",
+    "title": "Battle Log",
     "subtitle": "All expenses in this event",
     "hero": {
+      "totalDamage": "Total Damage",
       "yourDamage": "Your Damage",
       "youOwe": "You Owe"
     },
     "filters": {
       "all": "All",
+      "expenses": "Expenses",
+      "updates": "Updates",
+      "honor": "Honor",
+      "rejected": "Rejected",
+      "joins": "Joins",
       "settlements": "Settlements",
       "paidByYou": "Paid by you",
       "yourShare": "Your share",
       "excluded": "Excluded from settlement"
     },
+    "filterByType": "Filter by Type",
     "emptyState": {
       "title": "NO BATTLES YET",
       "subtitle": "Expenses will appear here",
       "addFirst": "Add the first expense"
     },
+    "selectEvent": "Select an event to view its battle log.",
     "slaughterBoard": {
-      "title": "SLAUGHTER BOARD",
+      "title": "Slaughter Board",
       "you": "You",
       "joined": "Joined {{date}}",
       "placeholder": "{{count}} combatants",
@@ -28,33 +36,62 @@
     }
   },
   "warchest": {
-    "title": "WAR CHEST",
+    "title": "War Chest",
     "subtitle": "All expenses in this event",
     "hero": {
+      "realSpend": "Real Spend",
+      "realSpendHint": "Your actual cost after getting back",
+      "youPaid": "You Paid",
+      "gettingBack": "Getting Back",
       "yourDamage": "Your Damage",
       "youOwe": "You Owe"
     },
     "filters": {
       "all": "All",
+      "food": "Food",
+      "travel": "Travel",
+      "merch": "Merch",
+      "beer": "Beer",
+      "gas": "Gas",
+      "camping": "Camping",
       "settlements": "Settlements",
       "paidByYou": "Paid by you",
       "yourShare": "Your share",
       "excluded": "Excluded from settlement"
     },
+    "filterByType": "Filter by Type",
+    "addExpense": "Add expense",
     "emptyState": {
       "title": "NO EXPENSES YET",
       "subtitle": "Start tracking expenses",
       "addFirst": "Add the first expense"
-    }
+    },
+    "selectEvent": "Select an event to view expenses.",
+    "failedToLoad": "Failed to load event"
   },
   "settle": {
-    "title": "SETTLE",
+    "title": "The Scales",
     "subtitle": "Manage balances and settlements",
+    "honorRestored": {
+      "title": "Honor Restored",
+      "subtitle": "The pit is balanced once more."
+    },
     "balanceCards": {
+      "netBalance": "Net Balance",
+      "allSettled": "All settled up",
+      "peopleOweYou": "People owe you overall",
+      "youOweOverall": "You owe overall",
       "youOwe": "You owe",
       "owedToYou": "Owed to you",
-      "netBalance": "Net Balance",
       "settled": "Settled"
+    },
+    "sections": {
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "tapToShowAll": "tap to show all"
+    },
+    "emptyState": {
+      "title": "No balances to settle yet."
     },
     "actions": {
       "settleAll": "Settle all",
@@ -83,20 +120,19 @@
       "yourShare": "Your Share",
       "outstanding": "Outstanding",
       "settled": "Settled",
-      "breakdown": "Breakdown"
+      "breakdown": "Breakdown",
+      "oweToYou": "Owe to You"
     }
   },
   "eventSelect": {
-    "title": "Select Event",
+    "title": "Your Events",
     "emptyState": {
-      "title": "NO EVENTS YET",
-      "subtitle": "Create or join an event to get started",
-      "createFirst": "Create your first event"
+      "title": "No events yet",
+      "subtitle": "Create your first event to start splitting expenses."
     },
     "errorState": {
-      "title": "COULD NOT LOAD EVENTS",
-      "subtitle": "Something went wrong",
-      "retry": "Try again"
-    }
+      "title": "Failed to load events"
+    },
+    "noDescription": "No description"
   }
 }
