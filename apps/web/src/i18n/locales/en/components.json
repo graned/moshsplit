@@ -1,0 +1,93 @@
+{
+  "expenseDetail": {
+    "paidBy": "Paid by",
+    "notes": "Notes",
+    "splitType": {
+      "equal": "Split equally",
+      "exact": "Split by exact amounts",
+      "percentage": "Split by percentage"
+    },
+    "share": "Share",
+    "total": "Total",
+    "perPerson": "per person"
+  },
+  "addExpense": {
+    "title": "Add Expense",
+    "editTitle": "Edit Expense",
+    "description": "Description",
+    "descriptionPlaceholder": "What was it for?",
+    "amount": "Amount",
+    "paidBy": "Paid by",
+    "splitType": "Split type",
+    "categories": {
+      "food": "Food & Drinks",
+      "transport": "Transport",
+      "accommodation": "Accommodation",
+      "activities": "Activities",
+      "shopping": "Shopping",
+      "utilities": "Utilities",
+      "other": "Other"
+    },
+    "excludeFromSettlement": "Exclude from settlement",
+    "excludeHint": "This expense won't affect balances",
+    "excludeSuccess": "Expense excluded from settlement",
+    "includeSuccess": "Expense included in settlement",
+    "participants": "Participants"
+  },
+  "expenseWizard": {
+    "step1": "Details",
+    "step2": "Amount",
+    "step3": "Split",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Done",
+    "cancel": "Cancel"
+  },
+  "expenseFeedCard": {
+    "settled": "Settled",
+    "splitType": {
+      "equal": "Equal",
+      "exact": "Exact",
+      "percentage": "Percentage"
+    }
+  },
+  "balanceDrawer": {
+    "title": "Balance Details",
+    "settleAll": "Settle All",
+    "sendReminder": "Send Reminder",
+    "reminderSuccess": "Reminder sent",
+    "reminderFailed": "Failed to send reminder"
+  },
+  "settleDrawer": {
+    "title": "Settle",
+    "confirm": "Confirm",
+    "amount": "Amount",
+    "to": "To"
+  },
+  "statsBreakdown": {
+    "title": "Breakdown",
+    "totalSpend": "Total Spend",
+    "yourShare": "Your Share",
+    "outstanding": "Outstanding",
+    "settled": "Settled"
+  },
+  "bottomNav": {
+    "feed": "Battle Log",
+    "warchest": "War Chest",
+    "settle": "Settle",
+    "profile": "Profile"
+  },
+  "filterDrawer": {
+    "clearAll": "Clear all",
+    "all": "All",
+    "done": "Done"
+  },
+  "profileMenu": {
+    "title": "Profile",
+    "settings": "Settings",
+    "signOut": "Sign Out"
+  },
+  "mobileDrawer": {
+    "close": "Close"
+  }
+}

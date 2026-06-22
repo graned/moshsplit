@@ -1,0 +1,102 @@
+{
+  "battleLog": {
+    "title": "BATTLE LOG",
+    "subtitle": "All expenses in this event",
+    "hero": {
+      "yourDamage": "Your Damage",
+      "youOwe": "You Owe"
+    },
+    "filters": {
+      "all": "All",
+      "settlements": "Settlements",
+      "paidByYou": "Paid by you",
+      "yourShare": "Your share",
+      "excluded": "Excluded from settlement"
+    },
+    "emptyState": {
+      "title": "NO BATTLES YET",
+      "subtitle": "Expenses will appear here",
+      "addFirst": "Add the first expense"
+    },
+    "slaughterBoard": {
+      "title": "SLAUGHTER BOARD",
+      "you": "You",
+      "joined": "Joined {{date}}",
+      "placeholder": "{{count}} combatants",
+      "empty": "No members in this event",
+      "emptyHint": "Invite people to start the battle"
+    }
+  },
+  "warchest": {
+    "title": "WAR CHEST",
+    "subtitle": "All expenses in this event",
+    "hero": {
+      "yourDamage": "Your Damage",
+      "youOwe": "You Owe"
+    },
+    "filters": {
+      "all": "All",
+      "settlements": "Settlements",
+      "paidByYou": "Paid by you",
+      "yourShare": "Your share",
+      "excluded": "Excluded from settlement"
+    },
+    "emptyState": {
+      "title": "NO EXPENSES YET",
+      "subtitle": "Start tracking expenses",
+      "addFirst": "Add the first expense"
+    }
+  },
+  "settle": {
+    "title": "SETTLE",
+    "subtitle": "Manage balances and settlements",
+    "balanceCards": {
+      "youOwe": "You owe",
+      "owedToYou": "Owed to you",
+      "netBalance": "Net Balance",
+      "settled": "Settled"
+    },
+    "actions": {
+      "settleAll": "Settle all",
+      "settle": "Settle",
+      "settleUp": "Settle up",
+      "sendReminder": "Send Reminder",
+      "viewHistory": "View History"
+    },
+    "drawer": {
+      "title": "Balance Details",
+      "settleAll": "Settle All",
+      "amount": "Amount",
+      "confirmSettle": "Confirm Settlement",
+      "history": "Settlement History"
+    },
+    "history": {
+      "title": "Settlement History",
+      "empty": "No settlements yet",
+      "paid": "Paid",
+      "received": "Received",
+      "youPaid": "You paid {{name}}",
+      "{{name}}Paid": "{{name}} paid you"
+    },
+    "stats": {
+      "totalSpend": "Total Spend",
+      "yourShare": "Your Share",
+      "outstanding": "Outstanding",
+      "settled": "Settled",
+      "breakdown": "Breakdown"
+    }
+  },
+  "eventSelect": {
+    "title": "Select Event",
+    "emptyState": {
+      "title": "NO EVENTS YET",
+      "subtitle": "Create or join an event to get started",
+      "createFirst": "Create your first event"
+    },
+    "errorState": {
+      "title": "COULD NOT LOAD EVENTS",
+      "subtitle": "Something went wrong",
+      "retry": "Try again"
+    }
+  }
+}
