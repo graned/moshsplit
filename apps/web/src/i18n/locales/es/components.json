@@ -85,7 +85,8 @@
   "profileMenu": {
     "title": "Perfil",
     "settings": "Configuración",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "language": "Idioma"
   },
   "mobileDrawer": {
     "close": "Cerrar"

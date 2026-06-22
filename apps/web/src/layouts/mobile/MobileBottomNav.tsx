@@ -37,16 +37,16 @@ function MobileBottomNav() {
   const location = useLocation();
   const { eventId } = useParams<{ eventId: string }>();
   const { firstName, lastName, userEmail, avatarUrl, clearTokens } = useAuthStore();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(null);
 
   const navItems = eventId
     ? [
-      { path: `/app/mobile/events/${eventId}/log`, label: 'Battle Log', icon: <FeedIcon /> },
-      { path: `/app/mobile/events/${eventId}/warchest`, label: 'War Chest', icon: <ExpensesIcon /> },
-      { path: `/app/mobile/events/${eventId}/settle`, label: 'Settle', icon: <SettleIcon /> },
+      { path: `/app/mobile/events/${eventId}/log`, label: t('components.bottomNav.feed'), icon: <FeedIcon /> },
+      { path: `/app/mobile/events/${eventId}/warchest`, label: t('components.bottomNav.warchest'), icon: <ExpensesIcon /> },
+      { path: `/app/mobile/events/${eventId}/settle`, label: t('components.bottomNav.settle'), icon: <SettleIcon /> },
     ]
     : [];
 
@@ -166,7 +166,7 @@ function MobileBottomNav() {
           <BottomNavigationAction
             id="mobile-profile-btn"
             value="profile"
-            label="Profile"
+            label={t('components.bottomNav.profile')}
             icon={
               <Avatar
                 src={avatarUrl || undefined}
@@ -218,7 +218,7 @@ function MobileBottomNav() {
           <ListItemIcon>
             <LanguageIcon fontSize="small" sx={{ color: 'text.secondary' }} />
           </ListItemIcon>
-          <ListItemText>Language</ListItemText>
+          <ListItemText>{t('components.profileMenu.language', 'Language')}</ListItemText>
         </MenuItem>
         <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
         <MenuItem onClick={handleLogout} sx={{ color: 'text.primary' }}>

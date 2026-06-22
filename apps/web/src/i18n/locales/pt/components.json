@@ -85,7 +85,8 @@
   "profileMenu": {
     "title": "Perfil",
     "settings": "Configurações",
-    "signOut": "Sair"
+    "signOut": "Sair",
+    "language": "Idioma"
   },
   "mobileDrawer": {
     "close": "Fechar"
