@@ -73,7 +73,7 @@ export function FilterDrawerContent({
           }}
         >
           {options.map((option, index) => {
-            const isSelected = selectedValues.includes(option.value);
+            const isSelected = option.value === 'all' ? selectedValues.length === 0 : selectedValues.includes(option.value);
 
             return (
               <Box

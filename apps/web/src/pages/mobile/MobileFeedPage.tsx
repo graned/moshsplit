@@ -213,8 +213,6 @@ export default function MobileFeedPage() {
     { value: 'member_join', label: 'Joins', count: activityTypeCounts['member_join'] || 0 },
   ];
 
-
-
   const handleFilterToggle = (value: string) => {
     if (value === 'all') {
       setSelectedActivityTypes([]);

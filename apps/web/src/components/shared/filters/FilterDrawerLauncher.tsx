@@ -18,12 +18,11 @@ export function FilterDrawerLauncher({
   onClick,
 }: FilterDrawerLauncherProps) {
   const hasActiveFilters = activeFilters.length > 0;
-  const firstFilter = activeFilters[0];
-  const extraCount = activeFilters.length - 1;
+  const displayLabel = hasActiveFilters ? activeFilters[0]?.label : 'All';
+  const extraCount = hasActiveFilters ? activeFilters.length - 1 : 0;
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-      {/* Filter button */}
       <IconButton
         onClick={onClick}
         size="small"
@@ -34,7 +33,7 @@ export function FilterDrawerLauncher({
           bgcolor: alpha('#1E1E1E', 0.5),
           border: '1px solid',
           borderColor: alpha('#fff', 0.1),
-          color: hasActiveFilters ? AMBER : alpha('#fff', 0.6),
+          color: AMBER,
           position: 'relative',
           '&:hover': {
             bgcolor: alpha(AMBER, 0.1),
@@ -44,26 +43,22 @@ export function FilterDrawerLauncher({
         }}
       >
         <FilterListIcon sx={{ fontSize: 16 }} />
-        {/* Badge dot */}
-        {hasActiveFilters && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              bgcolor: AMBER,
-              border: '1px solid',
-              borderColor: '#121212',
-            }}
-          />
-        )}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            bgcolor: AMBER,
+            border: '1px solid',
+            borderColor: '#121212',
+          }}
+        />
       </IconButton>
 
-      {/* Active filter pill(s) */}
-      {hasActiveFilters && firstFilter && (
+      {displayLabel && (
         <Box
           sx={{
             display: 'flex',
@@ -91,7 +86,7 @@ export function FilterDrawerLauncher({
               whiteSpace: 'nowrap',
             }}
           >
-            {firstFilter.label}
+            {displayLabel}
           </Typography>
           {extraCount > 0 && (
             <Typography
