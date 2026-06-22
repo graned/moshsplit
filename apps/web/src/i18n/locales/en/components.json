@@ -34,6 +34,8 @@
     "rejected": "Settlement rejected"
   },
   "expenseDetail": {
+    "title": "Expense Details",
+    "edit": "Edit expense",
     "paidBy": "Paid by",
     "notes": "Notes",
     "splitType": {
@@ -43,11 +45,16 @@
     },
     "share": "Share",
     "total": "Total",
-    "perPerson": "per person"
+    "perPerson": "per person",
+    "person": "{{count}} person",
+    "people": "{{count}} people",
+    "each": "each",
+    "split": "split",
+    "noNotes": "No notes"
   },
   "addExpense": {
-    "title": "Add Expense",
-    "editTitle": "Edit Expense",
+    "title": "Deploy Financial Damage",
+    "editTitle": "Edit Financial Damage",
     "description": "Description",
     "descriptionPlaceholder": "What was it for?",
     "amount": "Amount",

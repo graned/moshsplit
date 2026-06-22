@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useOutletContext } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, Alert, alpha, Tooltip, IconButton } from '@mui/material';
@@ -35,6 +36,7 @@ function formatAmount(cents: number, currency = 'EUR') {
 }
 
 export default function MobileExpensePage() {
+  const { t } = useTranslation();
   const { eventId: paramEventId } = useParams<{ eventId: string }>();
   const { eventId, currentUser } = useOutletContext<MobileOutletContext>();
   const userId = useAuthStore((state) => state.userId);
@@ -145,13 +147,13 @@ export default function MobileExpensePage() {
   }, [allActivityItems, userId]);
 
   const EXPENSE_TYPE_OPTIONS = [
-    { value: 'all', label: 'All', count: totalExpenses },
-    { value: 'food', label: 'Food', count: expenseTypeCounts['food'] || 0 },
-    { value: 'transport', label: 'Travel', count: expenseTypeCounts['transport'] || 0 },
-    { value: 'merch', label: 'Merch', count: expenseTypeCounts['merch'] || 0 },
-    { value: 'beer', label: 'Beer', count: expenseTypeCounts['beer'] || 0 },
-    { value: 'gas', label: 'Gas', count: expenseTypeCounts['gas'] || 0 },
-    { value: 'camping', label: 'Camping', count: expenseTypeCounts['camping'] || 0 },
+    { value: 'all', label: t('mobile.warchest.filters.all'), count: totalExpenses },
+    { value: 'food', label: t('mobile.warchest.filters.food'), count: expenseTypeCounts['food'] || 0 },
+    { value: 'transport', label: t('mobile.warchest.filters.travel'), count: expenseTypeCounts['transport'] || 0 },
+    { value: 'merch', label: t('mobile.warchest.filters.merch'), count: expenseTypeCounts['merch'] || 0 },
+    { value: 'beer', label: t('mobile.warchest.filters.beer'), count: expenseTypeCounts['beer'] || 0 },
+    { value: 'gas', label: t('mobile.warchest.filters.gas'), count: expenseTypeCounts['gas'] || 0 },
+    { value: 'camping', label: t('mobile.warchest.filters.camping'), count: expenseTypeCounts['camping'] || 0 },
   ];
 
   const handleFilterToggle = (value: string) => {
@@ -204,7 +206,7 @@ export default function MobileExpensePage() {
   if (!paramEventId) {
     return (
       <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-        <Typography variant="body1">Select an event to view expenses.</Typography>
+        <Typography variant="body1">{t('mobile.warchest.selectEvent')}</Typography>
       </Box>
     );
   }
@@ -222,7 +224,7 @@ export default function MobileExpensePage() {
   if (eventError) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Failed to load event</Alert>
+        <Alert severity="error">{t('mobile.warchest.failedToLoad')}</Alert>
       </Box>
     );
   }
@@ -237,10 +239,10 @@ export default function MobileExpensePage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <MobilePageHeader
         icon={<WarChestIcon sx={{ fontSize: 22, color: 'primary.main' }} />}
-        title="War Chest"
+        title={t('mobile.warchest.title')}
         subtitle={event?.name || ''}
         rightAction={
-          <Tooltip title="Add expense" placement="bottom">
+          <Tooltip title={t('mobile.warchest.addExpense')} placement="bottom">
             <IconButton
               onClick={() => setAddExpenseOpen(true)}
               sx={{
@@ -260,18 +262,18 @@ export default function MobileExpensePage() {
                 transition: 'all 0.2s',
               }}
             >
-              <AddExpenseIcon sx={{ fontSize: 22 }} />
-            </IconButton>
-          </Tooltip>
-        }
+                <AddExpenseIcon sx={{ fontSize: 22 }} />
+              </IconButton>
+            </Tooltip>
+          }
         backgroundImage={event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url}
       >
         <Box sx={{ px: 1, py: 1 }}>
           <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha('#1A1A1A', 0.7), border: '1px solid', borderColor: alpha('#F59E0B', 0.35), backdropFilter: 'blur(8px)', boxShadow: '0 0 20px rgba(245,158,11,0.12)' }}>
-            <Box sx={{ textAlign: 'center', mb: 1 }}>
-              <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
-                Real Spend
-              </Typography>
+              <Box sx={{ textAlign: 'center', mb: 1 }}>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                  {t('mobile.warchest.hero.realSpend')}
+                </Typography>
               {statsLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 0.5 }}>
                   <CircularProgress size={22} sx={{ color: '#F59E0B' }} />
@@ -282,7 +284,7 @@ export default function MobileExpensePage() {
                 </Typography>
               )}
               <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: alpha('#F59E0B', 0.7), mt: 0.25 }}>
-                Your actual cost after getting back
+                {t('mobile.warchest.hero.realSpendHint')}
               </Typography>
             </Box>
 
@@ -290,11 +292,11 @@ export default function MobileExpensePage() {
 
             <Box sx={{ display: 'flex' }}>
               <Box sx={{ flex: 1, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>You Paid</Typography>
+                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>{t('mobile.warchest.hero.youPaid')}</Typography>
                 {statsLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff' }}>{formatAmount(youPaid, currency)}</Typography>}
               </Box>
               <Box sx={{ flex: 1, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>Getting Back</Typography>
+                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>{t('mobile.warchest.hero.gettingBack')}</Typography>
                 {statsLoading ? <CircularProgress size={14} sx={{ color: '#10b981' }} /> : <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981' }}>{formatAmount(youGetBack, currency)}</Typography>}
               </Box>
             </Box>
@@ -306,7 +308,7 @@ export default function MobileExpensePage() {
           activeFilters={activeFilters}
           onClick={() => setFilterDrawerOpen(true)}
         />
-      </MobilePageHeader>
+        </MobilePageHeader>
 
       {/* Scrollable Feed */}
       <Box
@@ -334,8 +336,8 @@ export default function MobileExpensePage() {
       </Box>
 
 {/* Expense Drawers */}
-      {eventId && (
-        <>
+        {eventId && (
+          <>
           <AddExpenseDrawer
             open={addExpenseOpen || !!expenseToEdit}
             onClose={() => {
@@ -361,14 +363,14 @@ export default function MobileExpensePage() {
             userMap={userMap}
             onEdit={handleEditExpense}
           />
-        </>
-      )}
+          </>
+        )}
 
       {/* Filter Drawer */}
       <FilterDrawerContent
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-        title="Filter by Type"
+        title={t('mobile.warchest.filterByType')}
         options={EXPENSE_TYPE_OPTIONS}
         selectedValues={selectedTypes}
         onToggle={handleFilterToggle}

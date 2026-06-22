@@ -34,6 +34,8 @@
     "rejected": "Acordo rejeitado"
   },
   "expenseDetail": {
+    "title": "Detalhes da Despesa",
+    "edit": "Editar despesa",
     "paidBy": "Pago por",
     "notes": "Notas",
     "splitType": {
@@ -43,11 +45,16 @@
     },
     "share": "Parte",
     "total": "Total",
-    "perPerson": "por pessoa"
+    "perPerson": "por pessoa",
+    "person": "{{count}} pessoa",
+    "people": "{{count}} pessoas",
+    "each": "cada",
+    "split": "dividir",
+    "noNotes": "Sem notas"
   },
   "addExpense": {
-    "title": "Adicionar Despesa",
-    "editTitle": "Editar Despesa",
+    "title": "Implantar dano financeiro",
+    "editTitle": "Editar dano financeiro",
     "description": "Descrição",
     "descriptionPlaceholder": "O que foi?",
     "amount": "Valor",

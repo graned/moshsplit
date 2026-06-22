@@ -1,4 +1,5 @@
 import { Box } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 import { MobileDrawer } from '../../shared/MobileDrawer';
 import { AddExpenseWizard, ExpenseEditData } from '../shared/AddExpenseWizard';
@@ -32,6 +33,7 @@ export function AddExpenseDrawer({
   onSuccess,
   expenseToEdit,
 }: AddExpenseDrawerProps) {
+  const { t } = useTranslation();
   const { createExpense, updateExpense, clearError } = useExpenseStore();
 
   const handleSubmit = async (data: CreateExpenseRequest) => {
@@ -46,7 +48,7 @@ export function AddExpenseDrawer({
     <MobileDrawer
       open={open}
       onClose={onClose}
-      title={expenseToEdit ? 'Edit Financial Damage' : 'Deploy Financial Damage'}
+      title={expenseToEdit ? t('components.addExpense.editTitle') : t('components.addExpense.title')}
       onOpen={clearError}
       fullScreen
     >

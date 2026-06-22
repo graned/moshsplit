@@ -9,6 +9,7 @@ import {
 } from '@mui/icons-material';
 
 import { MobileDrawer } from '../../shared/MobileDrawer';
+import { useTranslation } from 'react-i18next';
 import { expensesApi } from '../../../api/expenses.api';
 import { ExpenseActivity } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
@@ -77,6 +78,7 @@ export function ExpenseDetailDrawer({
   userMap,
   onEdit,
 }: ExpenseDetailDrawerProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cachedExpense = useRef(expense);
   if (expense) cachedExpense.current = expense;
@@ -129,13 +131,16 @@ export function ExpenseDetailDrawer({
     });
   };
 
+  const count = shares.length > 0 ? shares.length : (displayExpense?.participant_count ?? 0);
+  const countLabel = count === 1 ? t('components.expenseDetail.person', { count }) : t('components.expenseDetail.people', { count });
+  
   return (
     <MobileDrawer
       open={open}
       onClose={onClose}
-      title="Expense Details"
+      title={t('components.expenseDetail.title')}
       clearAction={
-        <Tooltip title="Edit expense">
+        <Tooltip title={t('components.expenseDetail.edit')}>
           <IconButton
             onClick={handleEdit}
             size="small"
@@ -263,10 +268,9 @@ export function ExpenseDetailDrawer({
                 color="text.primary"
                 sx={{ fontSize: '0.85rem', mb: 1 }}
               >
-                {shares.length || displayExpense.participant_count}{' '}
-                {(shares.length || displayExpense.participant_count || 0) === 1 ? 'person' : 'people'}
+                {countLabel}
                 {' — '}
-                {shareLabel && shares.length > 1 ? `${formatAmount(perPersonShare || 0, currency)} each` : 'split'}
+                {shareLabel && shares.length > 1 ? `${formatAmount(perPersonShare || 0, currency)} ${t('components.expenseDetail.each')}` : t('components.expenseDetail.split')}
               </Typography>
 
               <Box
@@ -385,9 +389,9 @@ export function ExpenseDetailDrawer({
               <Divider sx={{ borderColor: alpha('#fff', 0.07), mb: 1.5 }} />
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
                 <NotesIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0, mt: 0.4 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 0.5 }}>
-                  Notes
-                </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 0.5 }}>
+                {t('components.expenseDetail.notes')}
+              </Typography>
               </Box>
               <Box
                 sx={{
@@ -410,7 +414,7 @@ export function ExpenseDetailDrawer({
                     fontStyle: notes ? 'normal' : 'italic',
                   }}
                 >
-                  {notes || 'No notes'}
+                  {notes || t('components.expenseDetail.noNotes')}
                 </Typography>
               </Box>
             </Box>

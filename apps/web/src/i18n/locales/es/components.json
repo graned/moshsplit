@@ -34,6 +34,8 @@
     "rejected": "Liquidación rechazada"
   },
   "expenseDetail": {
+    "title": "Detalles del gasto",
+    "edit": "Editar gasto",
     "paidBy": "Pagado por",
     "notes": "Notas",
     "splitType": {
@@ -43,11 +45,16 @@
     },
     "share": "Parte",
     "total": "Total",
-    "perPerson": "por persona"
+    "perPerson": "por persona",
+    "person": "{{count}} persona",
+    "people": "{{count}} personas",
+    "each": "cada",
+    "split": "dividir",
+    "noNotes": "Sin notas"
   },
   "addExpense": {
-    "title": "Agregar Gasto",
-    "editTitle": "Editar Gasto",
+    "title": "Desplegar daño financiero",
+    "editTitle": "Editar daño financiero",
     "description": "Descripción",
     "descriptionPlaceholder": "¿Qué fue?",
     "amount": "Monto",
