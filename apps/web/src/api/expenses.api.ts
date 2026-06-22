@@ -14,6 +14,7 @@ export interface ExpenseVersion {
   notes?: string;
   created_by: string;
   created_at: string;
+  shares: ExpenseVersionShare[];
 }
 
 export interface ExpenseVersionShare {

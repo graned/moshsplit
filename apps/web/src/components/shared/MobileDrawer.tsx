@@ -81,7 +81,7 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, onBack, c
           justifyContent: onBack ? 'space-between' : 'flex-end',
           px: 2,
           pt: 1.5,
-          pb: 0.5,
+          pb: 1,
           flexShrink: 0,
         }}
       >
@@ -129,6 +129,7 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, onBack, c
       <Box
         sx={{
           px: 2,
+          pt: 0.5,
           pb: 1.5,
           borderBottom: 1,
           borderColor: 'divider',

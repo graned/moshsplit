@@ -98,8 +98,7 @@ export function ExpenseDetailDrawer({
 
   const notes = fullExpense?.current_version?.notes;
 
-  type Share = { user_id: string; share_cents: number };
-  const shares: Share[] = (fullExpense?.current_version as { shares: Share[] } | undefined)?.shares || [];
+  const shares = fullExpense?.current_version?.shares || [];
   const participantIds = shares.map((s) => s.user_id);
   const participants = useMemo((): { user: UserInfo | undefined; share: number }[] => {
     return participantIds.map((id) => ({
@@ -270,51 +269,71 @@ export function ExpenseDetailDrawer({
                 {shareLabel && shares.length > 1 ? `${formatAmount(perPersonShare || 0, currency)} each` : 'split'}
               </Typography>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  overflowX: 'auto',
+                  pb: 1,
+                  mx: -0.5,
+                  px: 0.5,
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  scrollbarWidth: 'none',
+                }}
+              >
                 {participants.length > 0 ? (
-                      participants.map(({ user, share }: { user: UserInfo | undefined; share: number }) => {
+                  participants.map(({ user, share }: { user: UserInfo | undefined; share: number }) => {
                     const name = user
                       ? `${user.firstName} ${user.lastName}`.trim() || user.email.split('@')[0]
                       : 'Unknown';
-                    const initials = name.charAt(0).toUpperCase();
+                    const initials = name
+                      .split(' ')
+                      .map((w) => w.charAt(0))
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
                     return (
                       <Box
                         key={user?.id || 'unknown'}
                         sx={{
                           display: 'flex',
+                          flexDirection: 'column',
                           alignItems: 'center',
-                          gap: 1.25,
-                          px: 1.5,
-                          py: 1,
-                          borderRadius: 2,
-                          bgcolor: alpha('#fff', 0.03),
-                          border: '1px solid',
-                          borderColor: alpha('#fff', 0.06),
+                          gap: 0.5,
+                          minWidth: 64,
+                          px: 0.5,
                         }}
                       >
                         <Avatar
                           sx={{
-                            width: 36,
-                            height: 36,
+                            width: 48,
+                            height: 48,
                             bgcolor: alpha(categoryColor, 0.15),
                             color: categoryColor,
-                            fontSize: '0.9rem',
+                            fontSize: '0.95rem',
                             fontWeight: 700,
-                            flexShrink: 0,
                           }}
                         >
                           {initials}
                         </Avatar>
                         <Typography
-                          variant="body2"
-                          sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'text.primary', flex: 1 }}
+                          sx={{
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            color: 'text.primary',
+                            textAlign: 'center',
+                            lineHeight: 1.2,
+                            maxWidth: 64,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
                         >
                           {name}
                         </Typography>
                         <Typography
-                          variant="body2"
                           sx={{
-                            fontSize: '0.9rem',
+                            fontSize: '0.65rem',
                             fontWeight: 700,
                             color: categoryColor,
                           }}
@@ -328,28 +347,33 @@ export function ExpenseDetailDrawer({
                   <Box
                     sx={{
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 1.25,
-                      px: 1.5,
-                      py: 1,
-                      borderRadius: 2,
-                      bgcolor: alpha('#fff', 0.03),
+                      gap: 0.5,
+                      minWidth: 64,
                     }}
                   >
                     <Avatar
                       sx={{
-                        width: 36,
-                        height: 36,
+                        width: 48,
+                        height: 48,
                         bgcolor: alpha(categoryColor, 0.15),
                         color: categoryColor,
-                        fontSize: '0.9rem',
+                        fontSize: '0.95rem',
                         fontWeight: 700,
                       }}
                     >
                       ?
                     </Avatar>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                      {displayExpense.participant_count || 0} participants
+                    <Typography
+                      sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        color: 'text.secondary',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {displayExpense.participant_count || 0} people
                     </Typography>
                   </Box>
                 )}
