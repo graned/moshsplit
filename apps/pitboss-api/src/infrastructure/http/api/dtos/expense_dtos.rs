@@ -120,6 +120,7 @@ pub struct ExpenseVersionResponse {
     pub notes: Option<String>,
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
+    pub shares: Vec<ExpenseVersionShareItem>,
 }
 
 /// Full version with shares list.

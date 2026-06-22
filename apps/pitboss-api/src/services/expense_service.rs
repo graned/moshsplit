@@ -458,10 +458,17 @@ impl ExpenseService {
         let latest_version = if let Some(version_id) = row.current_version_id {
             let version = self.version_repo.find_by_id(version_id)?;
             version.map(|v| {
-                let _shares = self
+                let shares = self
                     .share_repo
                     .find_by_expense_version_id(v.id)
                     .unwrap_or_default();
+                let share_items: Vec<ExpenseVersionShareItem> = shares
+                    .into_iter()
+                    .map(|s| ExpenseVersionShareItem {
+                        user_id: s.user_id,
+                        share_cents: s.share_cents,
+                    })
+                    .collect();
                 ExpenseVersionResponse {
                     id: v.id,
                     expense_id: v.expense_id,
@@ -475,6 +482,7 @@ impl ExpenseService {
                     notes: v.notes,
                     created_by: v.created_by,
                     created_at: v.created_at,
+                    shares: share_items,
                 }
             })
         } else {
