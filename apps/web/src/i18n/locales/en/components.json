@@ -1,4 +1,38 @@
 {
+  "common": {
+    "you": "You",
+    "youLower": "you"
+  },
+  "feedList": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "unknownActivity": "Unknown activity type: {{type}}",
+    "emptyTitle": "No survivors found in this realm",
+    "emptySubtitle": "The mosh pit is empty. Start adding expenses and the battle log will come alive.",
+    "loadError": "Failed to load activity feed"
+  },
+  "expenseCard": {
+    "split": "Split: {{count}}"
+  },
+  "settlementCard": {
+    "honorRequested": "Honor requested:",
+    "settlement": "Settlement"
+  },
+  "honorCard": {
+    "honorRestored": "Honor restored!"
+  },
+  "memberJoinCard": {
+    "youJoined": "You joined the pit",
+    "joined": "joined the pit",
+    "taglineYou": "🤘 Time to headbang!",
+    "taglineOther": "🤘 The pit grows stronger!"
+  },
+  "expenseUpdatedCard": {
+    "updatedBy": "Updated by {{name}}"
+  },
+  "settlementRejectedCard": {
+    "rejected": "Settlement rejected"
+  },
   "expenseDetail": {
     "paidBy": "Paid by",
     "notes": "Notes",

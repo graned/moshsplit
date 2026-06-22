@@ -1,4 +1,5 @@
 import { Typography, Box, useTheme, alpha } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Edit as EditIcon } from '@mui/icons-material';
 import { ExpenseUpdatedActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -51,6 +52,7 @@ export function MobileExpenseUpdatedCard({
   currentUserId,
   currency = 'EUR',
 }: MobileExpenseUpdatedCardProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
 
@@ -108,7 +110,7 @@ export function MobileExpenseUpdatedCard({
                 mt: 0.25,
               }}
             >
-              Split: {activity.participant_count}
+              {t('components.expenseCard.split', { count: activity.participant_count })}
             </Typography>
           )}
         </Box>
@@ -174,7 +176,7 @@ export function MobileExpenseUpdatedCard({
         color="warning.main"
         sx={{ fontSize: '0.65rem', fontWeight: 600 }}
       >
-        Updated by {isPayerCurrentUser ? 'you' : payerName.split('@')[0]}
+        {t('components.expenseUpdatedCard.updatedBy', { name: isPayerCurrentUser ? t('components.common.youLower') : payerName.split('@')[0] })}
       </Typography>
     </MobileFeedCard>
   );

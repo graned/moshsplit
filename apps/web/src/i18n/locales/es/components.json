@@ -1,4 +1,38 @@
 {
+  "common": {
+    "you": "Tú",
+    "youLower": "tú"
+  },
+  "feedList": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "unknownActivity": "Tipo de actividad desconocido: {{type}}",
+    "emptyTitle": "No hay supervivientes en este reino",
+    "emptySubtitle": "El mosh pit está vacío. Comienza a añadir gastos y el registro de batalla cobrará vida.",
+    "loadError": "Error al cargar la actividad"
+  },
+  "expenseCard": {
+    "split": "Repartir: {{count}}"
+  },
+  "settlementCard": {
+    "honorRequested": "Honor solicitado:",
+    "settlement": "Liquidación"
+  },
+  "honorCard": {
+    "honorRestored": "¡Honor restaurado!"
+  },
+  "memberJoinCard": {
+    "youJoined": "Has entrado al pozo",
+    "joined": "se unió al pozo",
+    "taglineYou": "🤘 ¡Hora de headbang!",
+    "taglineOther": "🤘 ¡El foso se hace más fuerte!"
+  },
+  "expenseUpdatedCard": {
+    "updatedBy": "Actualizado por {{name}}"
+  },
+  "settlementRejectedCard": {
+    "rejected": "Liquidación rechazada"
+  },
   "expenseDetail": {
     "paidBy": "Pagado por",
     "notes": "Notas",

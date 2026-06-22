@@ -1,4 +1,38 @@
 {
+  "common": {
+    "you": "Você",
+    "youLower": "você"
+  },
+  "feedList": {
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "unknownActivity": "Tipo de atividade desconhecido: {{type}}",
+    "emptyTitle": "Nenhum sobrevivente encontrado neste reino",
+    "emptySubtitle": "O pit está vazio. Comece a adicionar despesas e o registro de batalha ganhará vida.",
+    "loadError": "Falha ao carregar o feed de atividades"
+  },
+  "expenseCard": {
+    "split": "Dividir: {{count}}"
+  },
+  "settlementCard": {
+    "honorRequested": "Pedido de honra:",
+    "settlement": "Liquidação"
+  },
+  "honorCard": {
+    "honorRestored": "Honra restaurada!"
+  },
+  "memberJoinCard": {
+    "youJoined": "Você entrou no pit",
+    "joined": "entrou no pit",
+    "taglineYou": "🤘 Hora de headbang!",
+    "taglineOther": "🤘 O pit fica mais forte!"
+  },
+  "expenseUpdatedCard": {
+    "updatedBy": "Atualizado por {{name}}"
+  },
+  "settlementRejectedCard": {
+    "rejected": "Acordo rejeitado"
+  },
   "expenseDetail": {
     "paidBy": "Pago por",
     "notes": "Notas",

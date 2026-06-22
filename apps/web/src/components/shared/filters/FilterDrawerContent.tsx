@@ -1,4 +1,5 @@
 import { Box, Typography, alpha } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Check as CheckIcon } from '@mui/icons-material';
 import { MobileDrawer } from '../MobileDrawer';
 
@@ -33,6 +34,7 @@ export function FilterDrawerContent({
   onClose,
   fullScreen,
 }: FilterDrawerContentProps) {
+  const { t } = useTranslation();
   const hasSelection = selectedValues.length > 0;
 
   return (
@@ -54,7 +56,7 @@ export function FilterDrawerContent({
                 '&:hover': { color: alpha('#fff', 0.6) },
               }}
             >
-              Clear all
+              {t('components.filterDrawer.clearAll')}
             </Typography>
           </Box>
         ) : undefined

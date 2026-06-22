@@ -1,4 +1,5 @@
 import { Typography, alpha } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import { MemberJoinActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -21,6 +22,7 @@ export function MobileMemberJoinCard({
   joinedUser,
   currentUserId,
 }: MobileMemberJoinCardProps) {
+  const { t } = useTranslation();
   const isTargetCurrentUser = activity.user_id === currentUserId;
 
   const displayName =
@@ -62,30 +64,30 @@ export function MobileMemberJoinCard({
       }
     >
       {/* Join message */}
-      <Typography
-        sx={{
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          lineHeight: 1.3,
-          mb: 0.25,
-        }}
-      >
+        <Typography
+          sx={{
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            lineHeight: 1.3,
+            mb: 0.25,
+          }}
+        >
         {isTargetCurrentUser
-          ? 'You joined the pit'
-          : `${displayName || 'Someone'} joined the pit`}
+          ? t('components.memberJoinCard.youJoined')
+          : `${displayName || 'Someone'} ${t('components.memberJoinCard.joined')}`}
       </Typography>
 
       {/* Metal tagline */}
-      <Typography
-        sx={{
-          fontSize: '0.6rem',
-          color: alpha('#fff', 0.4),
-          fontStyle: 'italic',
-        }}
-      >
+        <Typography
+          sx={{
+            fontSize: '0.6rem',
+            color: alpha('#fff', 0.4),
+            fontStyle: 'italic',
+          }}
+        >
         {isTargetCurrentUser
-          ? '🤘 Time to headbang!'
-          : '🤘 The pit grows stronger!'}
+          ? t('components.memberJoinCard.taglineYou')
+          : t('components.memberJoinCard.taglineOther')}
       </Typography>
     </MobileFeedCard>
   );

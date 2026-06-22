@@ -1,4 +1,5 @@
 import { Typography, Box, useTheme } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Shield as ShieldIcon } from '@mui/icons-material';
 import { HonorRestoredActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -31,6 +32,7 @@ export function MobileHonorCard({
   currentUserId,
   currency = 'EUR',
 }: MobileHonorCardProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const fromName = fromUser
@@ -44,8 +46,8 @@ export function MobileHonorCard({
   const isFromCurrentUser = activity.from_user === currentUserId;
   const isToCurrentUser = activity.to_user === currentUserId;
 
-  const displayFrom = isFromCurrentUser ? 'You' : fromName.split('@')[0];
-  const displayTo = isToCurrentUser ? 'you' : toName.split('@')[0];
+  const displayFrom = isFromCurrentUser ? t('components.common.you') : fromName.split('@')[0];
+  const displayTo = isToCurrentUser ? t('components.common.youLower') : toName.split('@')[0];
 
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
@@ -95,7 +97,7 @@ export function MobileHonorCard({
         }}
       >
         <Box component="span" color="primary.main">
-          Honor restored!
+          {t('components.honorCard.honorRestored')}
         </Box>
       </Typography>
 

@@ -1,4 +1,5 @@
 import { Typography, Box, useTheme } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Gavel as GavelIcon } from '@mui/icons-material';
 import { SettlementActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -32,6 +33,7 @@ export function MobileSettlementCard({
   currency = 'EUR',
   onClick,
 }: MobileSettlementCardProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const fromName = fromUser
@@ -45,8 +47,8 @@ export function MobileSettlementCard({
   const isFromCurrentUser = activity.from_user === currentUserId;
   const isToCurrentUser = activity.to_user === currentUserId;
 
-  const displayFrom = isFromCurrentUser ? 'You' : fromName.split('@')[0];
-  const displayTo = isToCurrentUser ? 'you' : toName.split('@')[0];
+  const displayFrom = isFromCurrentUser ? t('components.common.you') : fromName.split('@')[0];
+  const displayTo = isToCurrentUser ? t('components.common.youLower') : toName.split('@')[0];
 
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
@@ -116,7 +118,7 @@ export function MobileSettlementCard({
         color="text.secondary"
         sx={{ fontSize: '0.65rem' }}
       >
-        Settlement
+        {t('components.settlementCard.settlement')}
       </Typography>
     </MobileFeedCard>
   );

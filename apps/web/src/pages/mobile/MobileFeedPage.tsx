@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, CircularProgress, alpha, IconButton, Badge, Drawer } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { RssFeed as BattleLogIcon, AttachMoney as SpentIcon, Close as CloseIcon, Leaderboard as LeaderboardIcon } from '@mui/icons-material';
 import { useAuthStore } from '@moshsplit/auth-react';
 
@@ -92,6 +93,7 @@ function getPainAnimationStyle(label: string): Record<string, any> {
 }
 
 export default function MobileFeedPage() {
+  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const userId = useAuthStore((state) => state.userId);
   const feedScrollRef = useRef<HTMLDivElement>(null);
@@ -215,12 +217,12 @@ export default function MobileFeedPage() {
   }, [activityItems, userMap, members]);
 
   const ACTIVITY_TYPE_OPTIONS = [
-    { value: 'all', label: 'All', count: activityItems.length },
-    { value: 'expense', label: 'Expenses', count: activityTypeCounts['expense'] || 0 },
-    { value: 'expense_updated', label: 'Updates', count: activityTypeCounts['expense_updated'] || 0 },
-    { value: 'honor_restored', label: 'Honor', count: activityTypeCounts['honor_restored'] || 0 },
-    { value: 'settlement_rejected', label: 'Rejected', count: activityTypeCounts['settlement_rejected'] || 0 },
-    { value: 'member_join', label: 'Joins', count: activityTypeCounts['member_join'] || 0 },
+    { value: 'all', label: t('mobile.battleLog.filters.all'), count: activityItems.length },
+    { value: 'expense', label: t('mobile.battleLog.filters.expenses'), count: activityTypeCounts['expense'] || 0 },
+    { value: 'expense_updated', label: t('mobile.battleLog.filters.updates'), count: activityTypeCounts['expense_updated'] || 0 },
+    { value: 'honor_restored', label: t('mobile.battleLog.filters.honor'), count: activityTypeCounts['honor_restored'] || 0 },
+    { value: 'settlement_rejected', label: t('mobile.battleLog.filters.rejected'), count: activityTypeCounts['settlement_rejected'] || 0 },
+    { value: 'member_join', label: t('mobile.battleLog.filters.joins'), count: activityTypeCounts['member_join'] || 0 },
   ];
 
   const handleFilterToggle = (value: string) => {
@@ -252,7 +254,7 @@ export default function MobileFeedPage() {
   if (!eventId) {
     return (
       <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-        <Typography variant="body1">Select an event to view its battle log.</Typography>
+        <Typography variant="body1">{t('mobile.battleLog.selectEvent')}</Typography>
       </Box>
     );
   }
@@ -276,7 +278,7 @@ export default function MobileFeedPage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <MobilePageHeader
         icon={<BattleLogIcon sx={{ fontSize: 22, color: 'primary.main' }} />}
-        title="Battle Log"
+        title={t('mobile.battleLog.title')}
         subtitle={event?.name || ''}
         rightAction={
           <Badge
@@ -308,9 +310,9 @@ export default function MobileFeedPage() {
             <Box sx={{ textAlign: 'center', mb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
                 <SpentIcon sx={{ fontSize: 14, color: '#F59E0B' }} />
-                <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  Total Damage
-                </Typography>
+            <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {t('mobile.battleLog.hero.totalDamage')}
+            </Typography>
               </Box>
               {statsLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 0.5 }}>
@@ -336,8 +338,8 @@ export default function MobileFeedPage() {
 
             <Box sx={{ display: 'flex' }}>
               <Box sx={{ flex: 1, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>
-                  Your Damage
+              <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>
+                    {t('mobile.battleLog.hero.yourDamage')}
                 </Typography>
                 {statsLoading ? (
                   <CircularProgress size={14} sx={{ color: '#fff' }} />
@@ -349,7 +351,7 @@ export default function MobileFeedPage() {
               </Box>
               <Box sx={{ flex: 1, textAlign: 'center' }}>
                 <Typography sx={{ fontSize: '0.55rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.25 }}>
-                  You Owe
+                  {t('mobile.battleLog.hero.youOwe')}
                 </Typography>
                 {statsLoading ? (
                   <CircularProgress size={14} sx={{ color: '#fff' }} />
@@ -416,7 +418,7 @@ export default function MobileFeedPage() {
       >
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: 2, pb: 1 }}>
-          <Typography variant="h6" fontWeight={800} fontSize="1.1rem" sx={{ color: '#fff' }}>Slaughter Board</Typography>
+          <Typography variant="h6" fontWeight={800} fontSize="1.1rem" sx={{ color: '#fff' }}>{t('mobile.battleLog.slaughterBoard.title')}</Typography>
           <IconButton onClick={() => setCrewDrawerOpen(false)} size="small" sx={{ color: alpha('#fff', 0.4), '&:hover': { color: '#fff' } }}>
             <CloseIcon sx={{ fontSize: 20 }} />
           </IconButton>
@@ -455,7 +457,7 @@ export default function MobileFeedPage() {
       <FilterDrawerContent
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-        title="Filter by Type"
+        title={t('mobile.battleLog.filterByType')}
         options={ACTIVITY_TYPE_OPTIONS}
         selectedValues={selectedActivityTypes}
         onToggle={handleFilterToggle}

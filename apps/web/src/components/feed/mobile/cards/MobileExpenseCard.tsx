@@ -1,4 +1,5 @@
 import { Typography, Box, useTheme, alpha } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Receipt as ReceiptIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -53,6 +54,7 @@ export function MobileExpenseCard({
   currency = 'EUR',
   onClick,
 }: MobileExpenseCardProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
 
@@ -122,7 +124,7 @@ export function MobileExpenseCard({
                 mt: 0.25,
               }}
             >
-              Split: {activity.participant_count}
+              {t('components.expenseCard.split', { count: activity.participant_count })}
             </Typography>
           )}
         </Box>

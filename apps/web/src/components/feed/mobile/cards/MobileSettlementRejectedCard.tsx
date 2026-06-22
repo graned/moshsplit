@@ -1,4 +1,5 @@
 import { Typography, Box, useTheme } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { Cancel as CancelIcon } from '@mui/icons-material';
 import { SettlementRejectedActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
@@ -26,6 +27,7 @@ export function MobileSettlementRejectedCard({
   currentUserId,
   currency = 'EUR',
 }: MobileSettlementRejectedCardProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const fromName = fromUser
@@ -39,8 +41,8 @@ export function MobileSettlementRejectedCard({
   const isFromCurrentUser = activity.from_user === currentUserId;
   const isToCurrentUser = activity.to_user === currentUserId;
 
-  const displayFrom = isFromCurrentUser ? 'You' : fromName.split('@')[0];
-  const displayTo = isToCurrentUser ? 'you' : toName.split('@')[0];
+  const displayFrom = isFromCurrentUser ? t('components.common.you') : fromName.split('@')[0];
+  const displayTo = isToCurrentUser ? t('components.common.youLower') : toName.split('@')[0];
 
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
@@ -89,7 +91,7 @@ export function MobileSettlementRejectedCard({
         }}
       >
         <Box component="span" color="error.main">
-          Settlement rejected
+          {t('components.settlementRejectedCard.rejected')}
         </Box>
       </Typography>
 
