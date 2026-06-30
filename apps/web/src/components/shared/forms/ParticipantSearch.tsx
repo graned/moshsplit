@@ -15,6 +15,7 @@ import {
   Check as CheckIcon,
   PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { useUserCache } from '../../../hooks/useUserCache';
 import type { UserInfo } from '../../../api/users.api';
 
@@ -31,10 +32,11 @@ export function ParticipantSearch({
   onChange,
   currentUserId,
   users,
-  placeholder = 'Search survivors by name...',
+  placeholder,
 }: ParticipantSearchProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation('components');
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,7 +104,7 @@ export function ParticipantSearch({
           inputRef={inputRef}
           fullWidth
           size="small"
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('participantSearch.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
@@ -141,7 +143,7 @@ export function ParticipantSearch({
             }}
           >
             <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
-              Select All
+              {t('participantSearch.selectAll')}
             </Typography>
           </Box>
           <Box
@@ -158,12 +160,12 @@ export function ParticipantSearch({
             }}
           >
             <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
-              Clear All
+              {t('participantSearch.clearAll')}
             </Typography>
           </Box>
         </Box>
         <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'primary.main' }}>
-          {value.length} selected
+          {t('participantSearch.selected', { count: value.length })}
         </Typography>
       </Box>
 
@@ -182,7 +184,7 @@ export function ParticipantSearch({
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <PersonAddIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
             <Typography variant="body2" color="text.secondary">
-              No survivors found in this realm.
+              {t('participantSearch.noResults')}
             </Typography>
           </Box>
         ) : (
@@ -237,7 +239,7 @@ export function ParticipantSearch({
                         color="primary.main"
                         sx={{ ml: 1, fontWeight: 600 }}
                       >
-                        (You)
+                        ({t('common.you')})
                       </Typography>
                     )}
                   </Typography>

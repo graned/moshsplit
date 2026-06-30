@@ -17,6 +17,7 @@ import {
   Check as CheckIcon,
   MoreHoriz as OtherIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 import { Stepper, StepDefinition } from '../../shared/forms/Stepper';
 import { ParticipantSearch } from '../../shared/forms/ParticipantSearch';
@@ -25,40 +26,29 @@ import { GroupMember } from '../../../api/groups.api';
 import { UserInfo } from '../../../api/users.api';
 import { useUsers } from '../../../hooks/useUserCache';
 
-// ---------------------------------------------------------------------------
-// Category definitions
-// ---------------------------------------------------------------------------
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  beer: <img src='/moshsplit/assets/beer-icon.png' alt="" style={{ width: 32, height: 32 }} />,
+  food: <img src='/moshsplit/assets/food-icon.png' alt="" style={{ width: 36, height: 32 }} />,
+  gas: <img src='/moshsplit/assets/tank-icon.png' alt="" style={{ width: 32, height: 32 }} />,
+  transport: <img src='/moshsplit/assets/transport-icon.png' alt="" style={{ width: 36, height: 32 }} />,
+  camping: <img src='/moshsplit/assets/camping-icon.png' alt="" style={{ width: 32, height: 32 }} />,
+  merch: <img src='/moshsplit/assets/merch-icon.png' alt="" style={{ width: 32, height: 32 }} />,
+  other: <OtherIcon sx={{ fontSize: 32 }} />,
+};
 
-interface CategoryDef {
-  value: string;
-  label: string;
-  icon: React.ReactNode;
-}
+const CATEGORY_VALUES = ['beer', 'food', 'gas', 'transport', 'camping', 'merch', 'other'] as const;
 
-const CATEGORIES: CategoryDef[] = [
-  { value: 'beer', label: 'Beer', icon: <img src='/moshsplit/assets/beer-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'food', label: 'Food', icon: <img src='/moshsplit/assets/food-icon.png' alt="" style={{ width: 36, height: 32 }} /> },
-  { value: 'gas', label: 'Fuel', icon: <img src='/moshsplit/assets/tank-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'transport', label: 'Transport', icon: <img src='/moshsplit/assets/transport-icon.png' alt="" style={{ width: 36, height: 32 }} /> },
-  { value: 'camping', label: 'Camping', icon: <img src='/moshsplit/assets/camping-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'merch', label: 'Merch', icon: <img src='/moshsplit/assets/merch-icon.png' alt="" style={{ width: 32, height: 32 }} /> },
-  { value: 'other', label: 'Other', icon: <OtherIcon sx={{ fontSize: 32 }} /> },
-];
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  beer: 'expenseWizard.categoryBeer',
+  food: 'expenseWizard.categoryFood',
+  gas: 'expenseWizard.categoryFuel',
+  transport: 'expenseWizard.categoryTransport',
+  camping: 'expenseWizard.categoryCamping',
+  merch: 'expenseWizard.categoryMerch',
+  other: 'expenseWizard.categoryOther',
+};
 
-// ---------------------------------------------------------------------------
-// Wizard steps
-// ---------------------------------------------------------------------------
-
-const STEPS: StepDefinition[] = [
-  { label: 'Basic Info' },
-  { label: 'Survivors' },
-  { label: 'Notes' },
-  { label: 'Confirm' },
-];
-
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
+const STEP_KEYS = ['basicInfo', 'survivors', 'notes', 'confirm'] as const;
 
 export interface ExpenseEditData {
   title: string;
@@ -85,10 +75,6 @@ interface AddExpenseWizardProps {
   mode?: 'create' | 'edit';
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function AddExpenseWizard({
   members,
   currentUser,
@@ -101,9 +87,14 @@ export function AddExpenseWizard({
 }: AddExpenseWizardProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation('components');
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const steps: StepDefinition[] = useMemo(() => STEP_KEYS.map((key) => ({
+    label: t(`expenseWizard.${key}`),
+  })), [t]);
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
   const enrichedUserMap = useUsers(memberUserIds);
@@ -123,7 +114,6 @@ export function AddExpenseWizard({
     [members, enrichedUserMap]
   );
 
-  // Form state
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -143,10 +133,6 @@ export function AddExpenseWizard({
     }
   }, [initialData]);
 
-  // -----------------------------------------------------------------------
-  // Helpers
-  // -----------------------------------------------------------------------
-
   const formatCurrency = useCallback(
     (value: number) =>
       new Intl.NumberFormat('en-US', {
@@ -165,12 +151,7 @@ export function AddExpenseWizard({
   };
 
   const amountCents = useMemo(() => Math.round(parseFloat(amount || '0') * 100), [amount]);
-
   const equalShare = selectedMemberIds.length > 0 ? amountCents / selectedMemberIds.length : 0;
-
-  // -----------------------------------------------------------------------
-  // Validation per step
-  // -----------------------------------------------------------------------
 
   const canProceed = (): boolean => {
     switch (step) {
@@ -179,7 +160,7 @@ export function AddExpenseWizard({
       case 1:
         return selectedMemberIds.length > 0;
       case 2:
-        return true; // notes are optional
+        return true;
       case 3:
         return true;
       default:
@@ -187,13 +168,9 @@ export function AddExpenseWizard({
     }
   };
 
-  // -----------------------------------------------------------------------
-  // Navigation
-  // -----------------------------------------------------------------------
-
   const next = () => {
     setError(null);
-    if (step < STEPS.length - 1) setStep((s) => s + 1);
+    if (step < steps.length - 1) setStep((s) => s + 1);
   };
 
   const back = () => {
@@ -203,15 +180,15 @@ export function AddExpenseWizard({
 
   const submit = async () => {
     if (amountCents <= 0) {
-      setError('Amount must be greater than 0');
+      setError(t('expenseWizard.amountError'));
       return;
     }
     if (!title.trim()) {
-      setError('Title is required');
+      setError(t('expenseWizard.titleError'));
       return;
     }
     if (selectedMemberIds.length === 0) {
-      setError('Select at least one survivor');
+      setError(t('expenseWizard.survivorError'));
       return;
     }
 
@@ -232,25 +209,20 @@ export function AddExpenseWizard({
       });
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to deploy damage');
+      setError(err instanceof Error ? err.message : t('expenseWizard.deployError'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // -----------------------------------------------------------------------
-  // Step renderers
-  // -----------------------------------------------------------------------
-
   const renderBasicInfoStep = () => (
     <Box sx={{ py: isMobile ? 2 : 3 }}>
-      {/* Category */}
       <Typography
         variant="body2"
         color="text.secondary"
         sx={{ mb: isMobile ? 1.5 : 2, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        What kind of damage?
+        {t('expenseWizard.whatKindOfDamage')}
       </Typography>
       <Box
         sx={{
@@ -264,17 +236,17 @@ export function AddExpenseWizard({
           '&::-webkit-scrollbar-thumb': { bgcolor: alpha('#fff', 0.1), borderRadius: 100 },
         }}
       >
-        {CATEGORIES.map((cat) => {
-          const isSelected = category === cat.value;
+        {CATEGORY_VALUES.map((value) => {
+          const isSelected = category === value;
           return (
             <Box
-              key={cat.value}
+              key={value}
               onClick={() => {
-                setCategory(isSelected ? '' : cat.value)
-                if (cat.value !== 'other') {
-                  setTitle(isSelected ? '' : cat.value)
+                setCategory(isSelected ? '' : value);
+                if (value !== 'other') {
+                  setTitle(isSelected ? '' : value);
                 } else {
-                  setTitle('')
+                  setTitle('');
                 }
               }}
               sx={{
@@ -310,7 +282,7 @@ export function AddExpenseWizard({
                   transition: 'all 0.2s ease',
                 }}
               >
-                {cat.icon}
+                {CATEGORY_ICONS[value]}
               </Box>
               <Typography
                 variant="body2"
@@ -318,7 +290,7 @@ export function AddExpenseWizard({
                 color={isSelected ? 'primary.main' : 'text.primary'}
                 sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}
               >
-                {cat.label}
+                {t(CATEGORY_I18N_KEYS[value])}
               </Typography>
               {isSelected && <CheckIcon sx={{ fontSize: 14, color: 'primary.main' }} />}
             </Box>
@@ -326,23 +298,22 @@ export function AddExpenseWizard({
         })}
       </Box>
 
-      {category === 'other' ? (
+      {category === 'other' && (
         <>
-          {/* Title */}
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ mt: 1, mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
           >
-            Name the Damage
+            {t('expenseWizard.nameTheDamage')}
           </Typography>
           <TextField
-            label="What was it?"
+            label={t('expenseWizard.whatWasIt')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             fullWidth
             autoFocus
-            placeholder="e.g. Round of beers, Dinner at the pub..."
+            placeholder={t('expenseWizard.whatWasItPlaceholder')}
             sx={{
               mb: isMobile ? 2 : 3,
               '& .MuiInputBase-input': {
@@ -352,148 +323,141 @@ export function AddExpenseWizard({
             }}
           />
         </>
-      ) : <></>
-      }
+      )}
 
-      {/* Amount */}
       <Typography
         variant="body2"
         color="text.secondary"
         sx={{ mt: 1, mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        How badly did the wallet suffer?
+        {t('expenseWizard.howBadly')}
       </Typography>
 
-      {
-        isMobile ? (
-          <Box sx={{ mb: 2 }}>
-            {/* Amount input */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: alpha('#fff', 0.03),
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-                px: 2,
-                py: 1.5,
-                mb: 1.5,
-              }}
-            >
-              <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ fontSize: '1.75rem', lineHeight: 1 }}>
-                {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-              </Typography>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                placeholder="0.00"
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '1.75rem',
-                  fontWeight: 800,
-                  color: amount ? theme.palette.primary.main : theme.palette.text.disabled,
-                  textAlign: 'center',
-                  letterSpacing: '-0.02em',
-                  fontFamily: 'inherit',
-                  width: '100%',
-                }}
-              />
-            </Box>
-
-            {/* Quick amount buttons */}
-            <Box sx={{ display: 'flex', gap: 0.75 }}>
-              {[5, 10, 20, 50].map((val) => (
-                <Box
-                  key={val}
-                  onClick={() => handleAmountChange(String(val))}
-                  sx={{
-                    flex: 1,
-                    py: 0.75,
-                    borderRadius: 1.5,
-                    bgcolor: amount === String(val) ? alpha('#F59E0B', 0.15) : alpha('#fff', 0.04),
-                    border: 1,
-                    borderColor: amount === String(val) ? 'primary.main' : 'divider',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      color: amount === String(val) ? 'primary.main' : 'text.secondary',
-                    }}
-                  >
-                    {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-                    {val}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        ) : (
+      {isMobile ? (
+        <Box sx={{ mb: 2 }}>
           <Box
             sx={{
-              position: 'relative',
-              mb: 3,
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: alpha('#fff', 0.03),
+              borderRadius: 2,
+              border: 1,
+              borderColor: 'divider',
+              px: 2,
+              py: 1.5,
+              mb: 1.5,
             }}
           >
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: '2.5rem',
-                fontWeight: 800,
-                color: amount ? 'primary.main' : 'text.muted',
-                letterSpacing: '-0.03em',
-                lineHeight: 1,
-                mb: 2,
-              }}
-            >
-              {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
+            <Typography variant="h4" fontWeight={800} color="primary.main" sx={{ fontSize: '1.75rem', lineHeight: 1 }}>
+              {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
             </Typography>
-            <TextField
-              label="Amount"
-              value={amount}
-              onChange={(e) => handleAmountChange(e.target.value)}
-              fullWidth
+            <input
               type="text"
               inputMode="decimal"
+              value={amount}
+              onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.00"
-              sx={{
-                maxWidth: 280,
-                '& .MuiInputBase-input': {
-                  fontSize: '1.25rem',
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  py: 1.5,
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Typography variant="h6" fontWeight={700} color="primary.main">
-                      {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
-                    </Typography>
-                  </InputAdornment>
-                ),
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: '1.75rem',
+                fontWeight: 800,
+                color: amount ? theme.palette.primary.main : theme.palette.text.disabled,
+                textAlign: 'center',
+                letterSpacing: '-0.02em',
+                fontFamily: 'inherit',
+                width: '100%',
               }}
             />
           </Box>
-        )
-      }
 
-      {/* Paid by */}
+          <Box sx={{ display: 'flex', gap: 0.75 }}>
+            {[5, 10, 20, 50].map((val) => (
+              <Box
+                key={val}
+                onClick={() => handleAmountChange(String(val))}
+                sx={{
+                  flex: 1,
+                  py: 0.75,
+                  borderRadius: 1.5,
+                  bgcolor: amount === String(val) ? alpha('#F59E0B', 0.15) : alpha('#fff', 0.04),
+                  border: 1,
+                  borderColor: amount === String(val) ? 'primary.main' : 'divider',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: amount === String(val) ? 'primary.main' : 'text.secondary',
+                  }}
+                >
+                  {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                  {val}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            position: 'relative',
+            mb: 3,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Typography
+            variant="h2"
+            sx={{
+              fontSize: '2.5rem',
+              fontWeight: 800,
+              color: amount ? 'primary.main' : 'text.muted',
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              mb: 2,
+            }}
+          >
+            {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
+          </Typography>
+          <TextField
+            label={t('addExpense.amount')}
+            value={amount}
+            onChange={(e) => handleAmountChange(e.target.value)}
+            fullWidth
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            sx={{
+              maxWidth: 280,
+              '& .MuiInputBase-input': {
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                py: 1.5,
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Typography variant="h6" fontWeight={700} color="primary.main">
+                    {groupCurrency === 'USD' ? '$' : groupCurrency === 'EUR' ? '€' : groupCurrency}
+                  </Typography>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+      )}
+
       <Box
         sx={{
           mt: isMobile ? 2 : 3,
@@ -521,7 +485,7 @@ export function AddExpenseWizard({
         </Avatar>
         <Box>
           <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
-            Paid by{' '}
+            {t('expenseWizard.paidBy')}{' '}
             <Typography component="span" color="primary.main">
               {currentUser.firstName} {currentUser.lastName}
             </Typography>
@@ -531,7 +495,7 @@ export function AddExpenseWizard({
           </Typography>
         </Box>
       </Box>
-    </Box >
+    </Box>
   );
 
   const renderSurvivorsStep = () => (
@@ -541,10 +505,10 @@ export function AddExpenseWizard({
         color="text.secondary"
         sx={{ mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        Who survived this expense?
+        {t('expenseWizard.whoSurvived')}
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: isMobile ? 1.5 : 2, fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-        Add the financially responsible victims. ({selectedMemberIds.length} selected)
+        {t('expenseWizard.responsibleVictims', { count: selectedMemberIds.length })}
       </Typography>
 
       <ParticipantSearch
@@ -552,7 +516,7 @@ export function AddExpenseWizard({
         onChange={setSelectedMemberIds}
         currentUserId={currentUser.id}
         users={memberUsers}
-        placeholder="Search survivors by name..."
+        placeholder={t('expenseWizard.searchSurvivors')}
       />
 
       {amount && selectedMemberIds.length > 0 && (
@@ -568,7 +532,7 @@ export function AddExpenseWizard({
           }}
         >
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-            Each owes
+            {t('expenseWizard.eachOwes')}
           </Typography>
           <Typography variant="h6" fontWeight={800} color="primary.main" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem' }}>
             {formatCurrency(equalShare / 100)}
@@ -585,21 +549,21 @@ export function AddExpenseWizard({
         color="text.secondary"
         sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        Notes from the crime scene
+        {t('expenseWizard.notesHeading')}
       </Typography>
 
       <Typography variant="caption" color="text.muted" sx={{ textAlign: 'center', fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-        Optional evidence for the beer tribunal.
+        {t('expenseWizard.notesSubheading')}
       </Typography>
 
       <TextField
-        label="Add context, excuses, or questionable financial decisions"
+        label={t('expenseWizard.notesLabel')}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         fullWidth
         multiline
         rows={isMobile ? 3 : 5}
-        placeholder="e.g. 'Dave spilled half his beer on the floor' or 'Emergency tacos after the show'..."
+        placeholder={t('expenseWizard.notesPlaceholder')}
         sx={{
           '& .MuiInputBase-root': {
             borderRadius: 2,
@@ -618,10 +582,10 @@ export function AddExpenseWizard({
           }}
         >
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            Preview:
+            {t('expenseWizard.preview')}
           </Typography>
           <Typography variant="body1" sx={{ mt: 0.5, fontStyle: 'italic', color: 'text.primary', fontSize: isMobile ? '0.8rem' : '1rem' }}>
-            "{notes}"
+            &ldquo;{notes}&rdquo;
           </Typography>
         </Box>
       )}
@@ -629,7 +593,7 @@ export function AddExpenseWizard({
   );
 
   const renderConfirmStep = () => {
-    const categoryName = CATEGORIES.find((c) => c.value === category)?.label;
+    const categoryName = category ? t(CATEGORY_I18N_KEYS[category]) : undefined;
 
     return (
       <Box sx={{ py: isMobile ? 2 : 3 }}>
@@ -638,10 +602,9 @@ export function AddExpenseWizard({
           color="text.secondary"
           sx={{ mb: isMobile ? 2 : 3, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
         >
-          Deploy Financial Damage
+          {t('expenseWizard.deployHeading')}
         </Typography>
 
-        {/* Summary card */}
         <Box
           sx={{
             p: isMobile ? 2 : 3,
@@ -651,33 +614,30 @@ export function AddExpenseWizard({
             borderColor: 'divider',
           }}
         >
-          {/* Amount */}
           <Box sx={{ textAlign: 'center', mb: isMobile ? 2 : 3 }}>
             <Typography variant="h3" fontWeight={800} color="primary.main" sx={{ fontSize: isMobile ? '2rem' : '2.5rem' }}>
               {formatCurrency(amountCents / 100)}
             </Typography>
           </Box>
 
-          {/* Details */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 1 : 1.5 }}>
-            <SummaryRow label="Title" value={title} />
-            {categoryName && <SummaryRow label="Category" value={categoryName} />}
+            <SummaryRow label={t('expenseDetail.title')} value={title} />
+            {categoryName && <SummaryRow label={t('expenseWizard.confirmCategory')} value={categoryName} />}
             <SummaryRow
-              label="Paid by"
+              label={t('expenseDetail.paidBy')}
               value={`${currentUser.firstName} ${currentUser.lastName}`.trim() || currentUser.email}
             />
             <SummaryRow
-              label="Split"
-              value={`Equal among ${selectedMemberIds.length} survivor${selectedMemberIds.length > 1 ? 's' : ''}`}
+              label={t('expenseWizard.confirmSplit')}
+              value={t('expenseWizard.equalAmong', { count: selectedMemberIds.length })}
             />
-            <SummaryRow label="Each owes" value={formatCurrency(equalShare / 100)} highlight />
+            <SummaryRow label={t('expenseWizard.eachOwes')} value={formatCurrency(equalShare / 100)} highlight />
           </Box>
 
-          {/* Notes */}
           {notes && (
             <Box sx={{ mt: isMobile ? 1.5 : 2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                Notes:
+                {t('expenseWizard.confirmNotes')}
               </Typography>
               <Typography
                 variant="body2"
@@ -691,7 +651,7 @@ export function AddExpenseWizard({
                   fontSize: isMobile ? '0.75rem' : '0.875rem',
                 }}
               >
-                "{notes}"
+                &ldquo;{notes}&rdquo;
               </Typography>
             </Box>
           )}
@@ -699,10 +659,6 @@ export function AddExpenseWizard({
       </Box>
     );
   };
-
-  // -----------------------------------------------------------------------
-  // Main render
-  // -----------------------------------------------------------------------
 
   const renderStep = () => {
     switch (step) {
@@ -721,20 +677,16 @@ export function AddExpenseWizard({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {/* Stepper */}
-      <Stepper steps={STEPS} activeStep={step} />
+      <Stepper steps={steps} activeStep={step} />
 
-      {/* Step content */}
       <Box sx={{ flex: 1, overflowY: 'auto' }}>{renderStep()}</Box>
 
-      {/* Error */}
       {error && (
         <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1, px: 2, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
           {error}
         </Typography>
       )}
 
-      {/* Actions */}
       <Box
         sx={{
           display: 'flex',
@@ -753,15 +705,15 @@ export function AddExpenseWizard({
             variant="outlined"
             sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
           >
-            Back
+            {t('expenseWizard.back')}
           </Button>
         ) : (
           <Button onClick={onCancel} variant="outlined" sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
-            Cancel
+            {t('expenseWizard.cancel')}
           </Button>
         )}
 
-        {step < STEPS.length - 1 ? (
+        {step < steps.length - 1 ? (
           <Button
             endIcon={<ArrowForwardIcon />}
             onClick={next}
@@ -769,7 +721,7 @@ export function AddExpenseWizard({
             variant="contained"
             sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
           >
-            Next
+            {t('expenseWizard.next')}
           </Button>
         ) : (
           <Button
@@ -779,17 +731,16 @@ export function AddExpenseWizard({
             sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : undefined}
           >
-            {submitting ? (mode === 'edit' ? 'Updating...' : 'Deploying...') : (mode === 'edit' ? 'Update Damage' : 'Deploy Damage')}
+            {submitting
+              ? (mode === 'edit' ? t('expenseWizard.updating') : t('expenseWizard.deploying'))
+              : (mode === 'edit' ? t('expenseWizard.updateDamage') : t('expenseWizard.deployDamage'))
+            }
           </Button>
         )}
       </Box>
     </Box>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Summary row helper
-// ---------------------------------------------------------------------------
 
 function SummaryRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (

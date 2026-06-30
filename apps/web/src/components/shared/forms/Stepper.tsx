@@ -1,5 +1,6 @@
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { Check as CheckIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 export interface StepDefinition {
   label: string;
@@ -14,14 +15,14 @@ interface StepperProps {
 export function Stepper({ steps, activeStep }: StepperProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation('components');
 
   if (isMobile) {
     return (
       <Box sx={{ width: '100%', py: 1.5, px: 2 }}>
-        {/* Compact progress bar */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
           <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Step {activeStep + 1} of {steps.length}
+            {t('stepper.stepOf', { current: activeStep + 1, total: steps.length })}
           </Typography>
           <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>
             {steps[activeStep]?.label}
