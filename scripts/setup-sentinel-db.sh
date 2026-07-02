@@ -96,27 +96,30 @@ if [ -n "$ENV_FILE" ]; then
 fi
 
 # Set defaults if not provided
-POSTGRES_USER="${POSTGRES_USER:-postgres}"
-POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
-POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 SENTINEL_VERSION="${SENTINEL_VERSION:-v1.3.0}"
 
-# Determine DATABASE_URL
 if [ -z "$DATABASE_URL" ] && [ -n "$POSTGRES_PASSWORD" ]; then
+    POSTGRES_USER="${POSTGRES_USER:-postgres}"
+    POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+    POSTGRES_PORT="${POSTGRES_PORT:-5432}"
     DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/postgres"
 fi
 
-# Determine AUTH_DATABASE_URL (for Sentinel migrations)
 if [ -z "$AUTH_DATABASE_URL" ] && [ -n "$POSTGRES_PASSWORD" ]; then
+    POSTGRES_USER="${POSTGRES_USER:-postgres}"
+    POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+    POSTGRES_PORT="${POSTGRES_PORT:-5432}"
     AUTH_DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${DATABASE_NAME}"
 fi
 
-# Validate required variables
-if [ -z "$POSTGRES_PASSWORD" ]; then
-    echo -e "${RED}ERROR: POSTGRES_PASSWORD is required${NC}"
+POSTGRES_ADMIN_URL="${POSTGRES_ADMIN_URL:-$(echo "$AUTH_DATABASE_URL" | sed 's|\(://[^/]*\)/[^/?]*\(\?.*\)\?|\1/postgres\2|')}"
+
+if [ -z "$DATABASE_URL" ] && [ -z "$AUTH_DATABASE_URL" ]; then
+    echo -e "${RED}ERROR: DATABASE_URL or AUTH_DATABASE_URL is required${NC}"
     echo ""
-    echo "Set it in .env file or export it:"
-    echo "  export POSTGRES_PASSWORD='your_password'"
+    echo "Set in .env file or export:"
+    echo "  DATABASE_URL=postgres://user:pass@host:port/dbname?sslmode=require"
+    echo "  AUTH_DATABASE_URL=postgres://user:pass@host:port/sentinel_auth?sslmode=require"
     exit 1
 fi
 
@@ -127,8 +130,6 @@ echo -e "${GREEN}=============================================${NC}"
 echo ""
 echo -e "${BLUE}Configuration:${NC}"
 echo "  Database:        ${DATABASE_NAME}"
-echo "  Host:            ${POSTGRES_HOST}:${POSTGRES_PORT}"
-echo "  User:            ${POSTGRES_USER}"
 echo "  Sentinel Version: ${SENTINEL_VERSION}"
 echo "  Migrate Only:    ${MIGRATE_ONLY}"
 echo "  Dry Run:         ${DRY_RUN}"
@@ -137,19 +138,18 @@ echo ""
 # Function to run SQL command
 run_sql() {
     local sql="$1"
-    local db="${2:-postgres}"
+    local url="$2"
 
     if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}[DRY-RUN] Would execute SQL on $db:${NC}"
+        echo -e "${YELLOW}[DRY-RUN] Would execute SQL:${NC}"
         echo "$sql"
         return 0
     fi
 
-    # Check if running in Docker context — use docker exec directly (no compose file needed)
     if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
-        docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d "$db" -c "$sql"
+        docker exec -i moshsplit-db psql "$url" -c "$sql"
     else
-        PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$db" -c "$sql"
+        psql "$url" -c "$sql"
     fi
 }
 
@@ -162,9 +162,9 @@ if [ "$MIGRATE_ONLY" = false ]; then
 
     if [ "$DRY_RUN" = false ]; then
         if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
-            DB_EXISTS=$(docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d postgres -tA -c "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';" 2>/dev/null)
+            DB_EXISTS=$(docker exec -i moshsplit-db psql "$POSTGRES_ADMIN_URL" -tA -c "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';")
         else
-            DB_EXISTS=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -tA -c "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';" 2>/dev/null)
+            DB_EXISTS=$(psql "$POSTGRES_ADMIN_URL" -tA -c "SELECT 1 FROM pg_database WHERE datname = '${DATABASE_NAME}';")
         fi
     else
         DB_EXISTS=""
@@ -172,7 +172,7 @@ if [ "$MIGRATE_ONLY" = false ]; then
 
     if [ -z "$DB_EXISTS" ] || [ "$DB_EXISTS" != "1" ]; then
         echo "  → Creating database: ${DATABASE_NAME}"
-        run_sql "CREATE DATABASE ${DATABASE_NAME};" postgres
+        run_sql "CREATE DATABASE ${DATABASE_NAME};" "$POSTGRES_ADMIN_URL"
         echo -e "  ${GREEN}✓ Database created${NC}"
     else
         echo -e "  ${GREEN}✓ Database already exists${NC}"
@@ -185,7 +185,7 @@ if [ "$MIGRATE_ONLY" = false ]; then
 
     echo -e "${YELLOW}Step 2: Creating auth schema...${NC}"
 
-    run_sql "CREATE SCHEMA IF NOT EXISTS auth;" "$DATABASE_NAME"
+    run_sql "CREATE SCHEMA IF NOT EXISTS auth;" "$AUTH_DATABASE_URL"
     echo -e "  ${GREEN}✓ Schema created${NC}"
     echo ""
 
@@ -196,7 +196,7 @@ if [ "$MIGRATE_ONLY" = false ]; then
     echo -e "${YELLOW}Step 3: Creating roles...${NC}"
 
     # Create sentinel role
-    run_sql "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'sentinel') THEN CREATE ROLE sentinel LOGIN PASSWORD 'sentinel_dev'; END IF; END \$\$;" "$DATABASE_NAME"
+    run_sql "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'sentinel') THEN CREATE ROLE sentinel LOGIN PASSWORD 'sentinel_dev'; END IF; END \$\$;" "$AUTH_DATABASE_URL"
     echo "  → Created 'sentinel' role"
 
     echo -e "  ${GREEN}✓ Roles created${NC}"
@@ -209,14 +209,9 @@ if [ "$MIGRATE_ONLY" = false ]; then
     echo -e "${YELLOW}Step 4: Granting permissions...${NC}"
 
     # Grant schema permissions to sentinel
-    run_sql "GRANT USAGE ON SCHEMA auth TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT CREATE ON SCHEMA auth TO sentinel;" "$DATABASE_NAME"
-    run_sql "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth GRANT ALL ON TABLES TO sentinel;" "$DATABASE_NAME"
-    run_sql "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth GRANT ALL ON SEQUENCES TO sentinel;" "$DATABASE_NAME"
-    run_sql "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA auth GRANT ALL ON FUNCTIONS TO sentinel;" "$DATABASE_NAME"
-
-    # Set search_path for sentinel user (public needed for pgcrypto functions)
-    run_sql "ALTER ROLE sentinel SET search_path TO auth, public;" "$DATABASE_NAME"
+    run_sql "GRANT USAGE ON SCHEMA auth TO sentinel;" "$AUTH_DATABASE_URL"
+    run_sql "GRANT CREATE ON SCHEMA auth TO sentinel;" "$AUTH_DATABASE_URL"
+    run_sql "ALTER ROLE sentinel SET search_path TO auth, public;" "$AUTH_DATABASE_URL"
 
     echo -e "  ${GREEN}✓ Permissions granted${NC}"
     echo ""
@@ -228,11 +223,11 @@ if [ "$MIGRATE_ONLY" = false ]; then
     echo -e "${YELLOW}Step 5: Creating pgcrypto extension...${NC}"
 
     # Move pgcrypto to public schema if it exists elsewhere, otherwise create it
-    run_sql "DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto' AND extnamespace != (SELECT oid FROM pg_namespace WHERE nspname = 'public')) THEN ALTER EXTENSION pgcrypto SET SCHEMA public; ELSE CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public; END IF; END \$\$;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION public.crypt(text, text) TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION public.gen_salt(text) TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION public.gen_salt(text, integer) TO sentinel;" "$DATABASE_NAME"
-    run_sql "GRANT EXECUTE ON FUNCTION public.gen_random_uuid() TO sentinel;" "$DATABASE_NAME"
+    run_sql "DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto' AND extnamespace != (SELECT oid FROM pg_namespace WHERE nspname = 'public')) THEN ALTER EXTENSION pgcrypto SET SCHEMA public; ELSE CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public; END IF; END \$\$;" "$AUTH_DATABASE_URL"
+    run_sql "GRANT EXECUTE ON FUNCTION public.crypt(text, text) TO sentinel;" "$AUTH_DATABASE_URL"
+    run_sql "GRANT EXECUTE ON FUNCTION public.gen_salt(text) TO sentinel;" "$AUTH_DATABASE_URL"
+    run_sql "GRANT EXECUTE ON FUNCTION public.gen_salt(text, integer) TO sentinel;" "$AUTH_DATABASE_URL"
+    run_sql "GRANT EXECUTE ON FUNCTION public.gen_random_uuid() TO sentinel;" "$AUTH_DATABASE_URL"
 
     echo -e "  ${GREEN}✓ Extension created and permissions granted${NC}"
     echo ""

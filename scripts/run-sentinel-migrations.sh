@@ -162,7 +162,7 @@ EOF
 if [ "$DRY_RUN" = true ]; then
     echo -e "${YELLOW}[DRY-RUN] Would build and run migrations${NC}"
 else
-    docker build -t sentinel-migrate:test -f /tmp/Dockerfile.migrate /tmp/sentinel > /dev/null 2>&1
+    docker build -t sentinel-migrate:test -f /tmp/Dockerfile.migrate /tmp/sentinel
     
     # Determine network
     if docker network ls --format '{{.Name}}' | grep -q "moshsplit_app-net"; then
@@ -176,34 +176,27 @@ else
     # Pre-check: Create pgcrypto in public schema if it doesn't exist (needed for migrations)
     echo "  → Ensuring pgcrypto extension exists in public schema..."
     if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
-        docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
+        docker exec -i moshsplit-db psql "$AUTH_DATABASE_URL" -c \
           "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;" 2>/dev/null || true
     else
-        PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c \
+        psql "$AUTH_DATABASE_URL" -c \
           "CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;" 2>/dev/null || true
     fi
 
-    # Pre-check: Grant public schema permissions to sentinel (migrations create tables in public, not auth)
     echo "  → Ensuring sentinel role has public schema grants..."
     if docker ps --format '{{.Names}}' | grep -q "moshsplit-db"; then
-        docker exec -i moshsplit-db psql -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c "
+        docker exec -i moshsplit-db psql "$AUTH_DATABASE_URL" -c "
             GRANT USAGE ON SCHEMA public TO sentinel;
             GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sentinel;
             GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sentinel;
             GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO sentinel;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON TABLES TO sentinel;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON SEQUENCES TO sentinel;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON FUNCTIONS TO sentinel;
         " 2>/dev/null || true
     else
-        PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$DATABASE_NAME" -c "
+        psql "$AUTH_DATABASE_URL" -c "
             GRANT USAGE ON SCHEMA public TO sentinel;
             GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sentinel;
             GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sentinel;
             GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO sentinel;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON TABLES TO sentinel;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON SEQUENCES TO sentinel;
-            ALTER DEFAULT PRIVILEGES FOR ROLE sentinel IN SCHEMA public GRANT ALL ON FUNCTIONS TO sentinel;
         " 2>/dev/null || true
     fi
     

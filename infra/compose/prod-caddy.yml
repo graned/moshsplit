@@ -61,12 +61,10 @@ services:
   pitboss-api-migrations:
     image: ghcr.io/graned/moshsplit/pitboss-api:${MOSHSPLIT_VERSION:-latest}
     environment:
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/moshsplit
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      PGOPTIONS: "-c search_path=app"
       RUST_LOG: info
     command: ["./pitboss-api", "--migrate"]
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - app-net
     restart: "no"
@@ -74,6 +72,8 @@ services:
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
+    profiles:
+      - demo
     # No ports exposed - only accessible via internal network
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -102,11 +102,10 @@ services:
       RUST_LOG: ${RUST_LOG:-info}
       SENTINEL_URL: http://sentinel:8000
       SENTINEL_PUBLIC_KEY: ${SENTINEL_PUBLIC_KEY}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
       # CORS: Allow requests from Caddy (same origin after proxy)
       CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
     depends_on:
-      postgres:
-        condition: service_healthy
       pitboss-api-migrations:
         condition: service_completed_successfully
       sentinel:
@@ -138,9 +137,6 @@ services:
       CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - app-net
     restart: unless-stopped
