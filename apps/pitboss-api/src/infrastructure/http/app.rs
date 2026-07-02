@@ -33,14 +33,8 @@ pub async fn build_app(database_url: &str) -> Result<Router, anyhow::Error> {
 
     tracing::info!("Sentinel client configured with URL: {}", sentinel_url);
 
-    // Use simpler approach - parse the original URL
-    let auth_db_url = if database_url.contains("@") {
-        let parts: Vec<&str> = database_url.split('@').collect();
-        let creds = parts.get(0).unwrap_or(&"postgres:password");
-        format!("{}@postgres:5432/sentinel_auth", creds)
-    } else {
-        "postgres://postgres:password@postgres:5432/sentinel_auth".to_string()
-    };
+    let auth_db_url = std::env::var("AUTH_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/sentinel_auth".to_string());
 
     let sentinel_auth_client = SentinelAuthClient::new(&auth_db_url)
         .map_err(|e| anyhow::anyhow!("Failed to connect to sentinel_auth: {}", e))?;
