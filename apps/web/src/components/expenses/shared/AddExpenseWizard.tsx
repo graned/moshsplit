@@ -49,6 +49,7 @@ const CATEGORY_I18N_KEYS: Record<string, string> = {
 };
 
 const STEP_KEYS = ['basicInfo', 'survivors', 'notes', 'confirm'] as const;
+const T_PREFIX = 'components.expenseWizard.';
 
 export interface ExpenseEditData {
   title: string;
@@ -87,13 +88,13 @@ export function AddExpenseWizard({
 }: AddExpenseWizardProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { t } = useTranslation('components');
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const steps: StepDefinition[] = useMemo(() => STEP_KEYS.map((key) => ({
-    label: t(`expenseWizard.${key}`),
+    label: t(`${T_PREFIX}${key}`),
   })), [t]);
 
   const memberUserIds = useMemo(() => members.map((m) => m.user_id), [members]);
@@ -180,15 +181,15 @@ export function AddExpenseWizard({
 
   const submit = async () => {
     if (amountCents <= 0) {
-      setError(t('expenseWizard.amountError'));
+        setError(t('components.expenseWizard.amountError'));
       return;
     }
     if (!title.trim()) {
-      setError(t('expenseWizard.titleError'));
+        setError(t('components.expenseWizard.titleError'));
       return;
     }
     if (selectedMemberIds.length === 0) {
-      setError(t('expenseWizard.survivorError'));
+        setError(t('components.expenseWizard.survivorError'));
       return;
     }
 
@@ -209,7 +210,7 @@ export function AddExpenseWizard({
       });
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('expenseWizard.deployError'));
+      setError(err instanceof Error ? err.message : t('components.expenseWizard.deployError'));
     } finally {
       setSubmitting(false);
     }
@@ -222,7 +223,7 @@ export function AddExpenseWizard({
         color="text.secondary"
         sx={{ mb: isMobile ? 1.5 : 2, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        {t('expenseWizard.whatKindOfDamage')}
+        {t('components.expenseWizard.whatKindOfDamage')}
       </Typography>
       <Box
         sx={{
@@ -290,7 +291,7 @@ export function AddExpenseWizard({
                 color={isSelected ? 'primary.main' : 'text.primary'}
                 sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}
               >
-                {t(CATEGORY_I18N_KEYS[value])}
+                {t(`components.${CATEGORY_I18N_KEYS[value]}`)}
               </Typography>
               {isSelected && <CheckIcon sx={{ fontSize: 14, color: 'primary.main' }} />}
             </Box>
@@ -305,15 +306,15 @@ export function AddExpenseWizard({
             color="text.secondary"
             sx={{ mt: 1, mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
           >
-            {t('expenseWizard.nameTheDamage')}
+            {t('components.expenseWizard.nameTheDamage')}
           </Typography>
           <TextField
-            label={t('expenseWizard.whatWasIt')}
+            label={t('components.expenseWizard.whatWasIt')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             fullWidth
             autoFocus
-            placeholder={t('expenseWizard.whatWasItPlaceholder')}
+            placeholder={t('components.expenseWizard.whatWasItPlaceholder')}
             sx={{
               mb: isMobile ? 2 : 3,
               '& .MuiInputBase-input': {
@@ -330,7 +331,7 @@ export function AddExpenseWizard({
         color="text.secondary"
         sx={{ mt: 1, mb: 1, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        {t('expenseWizard.howBadly')}
+        {t('components.expenseWizard.howBadly')}
       </Typography>
 
       {isMobile ? (
@@ -429,7 +430,7 @@ export function AddExpenseWizard({
             {amount ? formatCurrency(parseFloat(amount)) : `0${groupCurrency === 'USD' ? '.00' : ''}`}
           </Typography>
           <TextField
-            label={t('addExpense.amount')}
+            label={t('components.addExpense.amount')}
             value={amount}
             onChange={(e) => handleAmountChange(e.target.value)}
             fullWidth
@@ -485,7 +486,7 @@ export function AddExpenseWizard({
         </Avatar>
         <Box>
           <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
-            {t('expenseWizard.paidBy')}{' '}
+            {t('components.expenseWizard.paidBy')}{' '}
             <Typography component="span" color="primary.main">
               {currentUser.firstName} {currentUser.lastName}
             </Typography>
@@ -505,10 +506,10 @@ export function AddExpenseWizard({
         color="text.secondary"
         sx={{ mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        {t('expenseWizard.whoSurvived')}
+        {t('components.expenseWizard.whoSurvived')}
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: isMobile ? 1.5 : 2, fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-        {t('expenseWizard.responsibleVictims', { count: selectedMemberIds.length })}
+        {t('components.expenseWizard.responsibleVictims', { count: selectedMemberIds.length })}
       </Typography>
 
       <ParticipantSearch
@@ -516,7 +517,7 @@ export function AddExpenseWizard({
         onChange={setSelectedMemberIds}
         currentUserId={currentUser.id}
         users={memberUsers}
-        placeholder={t('expenseWizard.searchSurvivors')}
+        placeholder={t('components.expenseWizard.searchSurvivors')}
       />
 
       {amount && selectedMemberIds.length > 0 && (
@@ -532,7 +533,7 @@ export function AddExpenseWizard({
           }}
         >
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-            {t('expenseWizard.eachOwes')}
+            {t('components.expenseWizard.eachOwes')}
           </Typography>
           <Typography variant="h6" fontWeight={800} color="primary.main" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem' }}>
             {formatCurrency(equalShare / 100)}
@@ -549,21 +550,21 @@ export function AddExpenseWizard({
         color="text.secondary"
         sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
       >
-        {t('expenseWizard.notesHeading')}
+        {t('components.expenseWizard.notesHeading')}
       </Typography>
 
       <Typography variant="caption" color="text.muted" sx={{ textAlign: 'center', fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-        {t('expenseWizard.notesSubheading')}
+        {t('components.expenseWizard.notesSubheading')}
       </Typography>
 
       <TextField
-        label={t('expenseWizard.notesLabel')}
+        label={t('components.expenseWizard.notesLabel')}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         fullWidth
         multiline
         rows={isMobile ? 3 : 5}
-        placeholder={t('expenseWizard.notesPlaceholder')}
+        placeholder={t('components.expenseWizard.notesPlaceholder')}
         sx={{
           '& .MuiInputBase-root': {
             borderRadius: 2,
@@ -582,7 +583,7 @@ export function AddExpenseWizard({
           }}
         >
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            {t('expenseWizard.preview')}
+            {t('components.expenseWizard.preview')}
           </Typography>
           <Typography variant="body1" sx={{ mt: 0.5, fontStyle: 'italic', color: 'text.primary', fontSize: isMobile ? '0.8rem' : '1rem' }}>
             &ldquo;{notes}&rdquo;
@@ -602,7 +603,7 @@ export function AddExpenseWizard({
           color="text.secondary"
           sx={{ mb: isMobile ? 2 : 3, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, textAlign: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}
         >
-          {t('expenseWizard.deployHeading')}
+          {t('components.expenseWizard.deployHeading')}
         </Typography>
 
         <Box
@@ -621,23 +622,23 @@ export function AddExpenseWizard({
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 1 : 1.5 }}>
-            <SummaryRow label={t('expenseDetail.title')} value={title} />
-            {categoryName && <SummaryRow label={t('expenseWizard.confirmCategory')} value={categoryName} />}
+            <SummaryRow label={t('components.expenseDetail.title')} value={title} />
+            {categoryName && <SummaryRow label={t('components.expenseWizard.confirmCategory')} value={categoryName} />}
             <SummaryRow
-              label={t('expenseDetail.paidBy')}
+              label={t('components.expenseDetail.paidBy')}
               value={`${currentUser.firstName} ${currentUser.lastName}`.trim() || currentUser.email}
             />
             <SummaryRow
-              label={t('expenseWizard.confirmSplit')}
-              value={t('expenseWizard.equalAmong', { count: selectedMemberIds.length })}
+              label={t('components.expenseWizard.confirmSplit')}
+              value={t('components.expenseWizard.equalAmong', { count: selectedMemberIds.length })}
             />
-            <SummaryRow label={t('expenseWizard.eachOwes')} value={formatCurrency(equalShare / 100)} highlight />
+            <SummaryRow label={t('components.expenseWizard.eachOwes')} value={formatCurrency(equalShare / 100)} highlight />
           </Box>
 
           {notes && (
             <Box sx={{ mt: isMobile ? 1.5 : 2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                {t('expenseWizard.confirmNotes')}
+                {t('components.expenseWizard.confirmNotes')}
               </Typography>
               <Typography
                 variant="body2"
@@ -705,11 +706,11 @@ export function AddExpenseWizard({
             variant="outlined"
             sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
           >
-            {t('expenseWizard.back')}
+            {t('components.expenseWizard.back')}
           </Button>
         ) : (
           <Button onClick={onCancel} variant="outlined" sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
-            {t('expenseWizard.cancel')}
+            {t('components.expenseWizard.cancel')}
           </Button>
         )}
 
@@ -721,7 +722,7 @@ export function AddExpenseWizard({
             variant="contained"
             sx={{ flex: 1, fontSize: isMobile ? '0.8rem' : '0.875rem' }}
           >
-            {t('expenseWizard.next')}
+            {t('components.expenseWizard.next')}
           </Button>
         ) : (
           <Button
@@ -732,8 +733,8 @@ export function AddExpenseWizard({
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : undefined}
           >
             {submitting
-              ? (mode === 'edit' ? t('expenseWizard.updating') : t('expenseWizard.deploying'))
-              : (mode === 'edit' ? t('expenseWizard.updateDamage') : t('expenseWizard.deployDamage'))
+              ? (mode === 'edit' ? t('components.expenseWizard.updating') : t('components.expenseWizard.deploying'))
+              : (mode === 'edit' ? t('components.expenseWizard.updateDamage') : t('components.expenseWizard.deployDamage'))
             }
           </Button>
         )}

@@ -36,7 +36,7 @@ export function ParticipantSearch({
 }: ParticipantSearchProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { t } = useTranslation('components');
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +104,7 @@ export function ParticipantSearch({
           inputRef={inputRef}
           fullWidth
           size="small"
-          placeholder={placeholder ?? t('participantSearch.placeholder')}
+          placeholder={placeholder ?? t('components.participantSearch.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
@@ -143,7 +143,7 @@ export function ParticipantSearch({
             }}
           >
             <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
-              {t('participantSearch.selectAll')}
+              {t('components.participantSearch.selectAll')}
             </Typography>
           </Box>
           <Box
@@ -160,12 +160,12 @@ export function ParticipantSearch({
             }}
           >
             <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'text.secondary' }}>
-              {t('participantSearch.clearAll')}
+              {t('components.participantSearch.clearAll')}
             </Typography>
           </Box>
         </Box>
         <Typography sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600, color: 'primary.main' }}>
-          {t('participantSearch.selected', { count: value.length })}
+          {t('components.participantSearch.selected', { count: value.length })}
         </Typography>
       </Box>
 
@@ -184,7 +184,7 @@ export function ParticipantSearch({
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <PersonAddIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
             <Typography variant="body2" color="text.secondary">
-              {t('participantSearch.noResults')}
+              {t('components.participantSearch.noResults')}
             </Typography>
           </Box>
         ) : (
@@ -239,7 +239,7 @@ export function ParticipantSearch({
                         color="primary.main"
                         sx={{ ml: 1, fontWeight: 600 }}
                       >
-                        ({t('common.you')})
+                        ({t('components.common.you')})
                       </Typography>
                     )}
                   </Typography>

@@ -26,7 +26,7 @@ export default defineConfig({
         theme_color: '#6366f1',
         background_color: '#0f172a',
         display: 'standalone',
-        display_override: ['standalone', 'ios'],
+        display_override: ['standalone'],
         orientation: 'portrait',
         start_url: '/',
         scope: '/moshsplit/',

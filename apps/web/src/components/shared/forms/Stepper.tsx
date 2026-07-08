@@ -15,14 +15,14 @@ interface StepperProps {
 export function Stepper({ steps, activeStep }: StepperProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { t } = useTranslation('components');
+  const { t } = useTranslation();
 
   if (isMobile) {
     return (
       <Box sx={{ width: '100%', py: 1.5, px: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
           <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {t('stepper.stepOf', { current: activeStep + 1, total: steps.length })}
+            {t('components.stepper.stepOf', { current: activeStep + 1, total: steps.length })}
           </Typography>
           <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>
             {steps[activeStep]?.label}
