@@ -26,7 +26,11 @@ export default defineConfig({
         theme_color: '#6366f1',
         background_color: '#0f172a',
         display: 'standalone',
+        display_override: ['standalone', 'ios'],
+        orientation: 'portrait',
         start_url: '/',
+        scope: '/moshsplit/',
+        categories: ['finance', 'productivity'],
         icons: [
           {
             src: 'pwa-192x192.png',
