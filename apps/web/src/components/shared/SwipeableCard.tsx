@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, ReactNode } from 'react';
-import { Box, IconButton, useTheme } from '@mui/material';
+import { Box, IconButton, alpha, useTheme } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -91,21 +91,22 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        borderRadius: 2,
         cursor: disabled ? 'default' : 'grab',
         '&:active': { cursor: disabled ? 'default' : 'grabbing' },
       }}
     >
-      {/* Hidden action panel - positioned to the left, off-screen initially */}
+      {/* Hidden action panel - positioned to the right, slides in when card swiped */}
       <Box
         sx={{
           position: 'absolute',
           top: 0,
-          left: 0,
+          right: 0,
           bottom: 0,
           display: 'flex',
           alignItems: 'stretch',
           width: `${ACTION_WIDTH * 2}px`,
+          transform: (isDragging ? `translateX(${ACTION_WIDTH * 2 - translateX}px)` : translateX > 0 ? 'translateX(0)' : `translateX(${ACTION_WIDTH * 2}px)`),
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
           zIndex: 0,
         }}
       >
@@ -116,19 +117,19 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: theme.palette.primary.main,
+              bgcolor: alpha(theme.palette.primary.main, 0.2),
             }}
           >
             <IconButton
               onClick={handleEdit}
               size="small"
               sx={{
-                color: '#fff',
-                bgcolor: 'rgba(255,255,255,0.2)',
+                color: theme.palette.primary.main,
+                bgcolor: alpha(theme.palette.primary.main, 0.15),
                 width: 36,
                 height: 36,
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.3)',
+                  bgcolor: alpha(theme.palette.primary.main, 0.25),
                 },
               }}
             >
@@ -143,19 +144,19 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: theme.palette.error.main,
+              bgcolor: alpha(theme.palette.error.main, 0.2),
             }}
           >
             <IconButton
               onClick={handleDelete}
               size="small"
               sx={{
-                color: '#fff',
-                bgcolor: 'rgba(255,255,255,0.2)',
+                color: theme.palette.error.main,
+                bgcolor: alpha(theme.palette.error.main, 0.15),
                 width: 36,
                 height: 36,
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.3)',
+                  bgcolor: alpha(theme.palette.error.main, 0.25),
                 },
               }}
             >
@@ -165,14 +166,15 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
         )}
       </Box>
 
-      {/* Card content - slides right to reveal actions */}
+      {/* Card content - slides left to reveal actions on the right */}
       <Box
         sx={{
           position: 'relative',
           zIndex: 1,
           bgcolor: 'background.paper',
-          transform: `translateX(${translateX}px)`,
+          transform: `translateX(-${translateX}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          borderRadius: translateX > 0 ? 0 : 2,
         }}
       >
         {children}
