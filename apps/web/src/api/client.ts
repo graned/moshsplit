@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { refreshTokens } from '@moshsplit/auth-react';
 
 export interface ApiError {
   message: string;
@@ -34,7 +35,7 @@ class ApiClient {
     return match ? match.split('=')[1] : null;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, retryAfterRefresh = false): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -53,10 +54,14 @@ class ApiClient {
       headers,
     });
 
+    if (response.status === 401 && !retryAfterRefresh) {
+      const refreshed = await refreshTokens();
+      if (refreshed) {
+        return this.request<T>(endpoint, options, true);
+      }
+    }
+
     if (!response.ok) {
-      // Always include the HTTP status in the thrown error, regardless of
-      // what the server returns. This ensures is401Error() in
-      // createSentinelQueryClient.ts can always detect 401 responses.
       const body = await response.json().catch(() => ({}));
       const error: ApiError = {
         message: body.message || 'An unexpected error occurred',
