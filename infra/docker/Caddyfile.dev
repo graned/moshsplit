@@ -23,6 +23,31 @@
     # Explicitly using an http:// site block below, so this is belt-and-suspenders.
 }
 
+# ── test-external-login (External Login Test App) - Subdomain ───────────────
+# Access at: http://test.moshsplit.localhost/
+# Explicit http:// so Caddy never attempts TLS / ACME here.
+http://test.{$MOSHSPLIT_URL:-moshsplit.localhost} {
+    # Sentinel auth proxy for test app login
+    @sentinel {
+        path /sentinel/*
+    }
+    handle @sentinel {
+        uri strip_prefix /sentinel
+        reverse_proxy sentinel:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    reverse_proxy test-external-login:5174 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+    }
+}
+
 # ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────
 # Access at: http://sentinel.moshsplit.localhost/
 # Explicit http:// so Caddy never attempts TLS / ACME here.
