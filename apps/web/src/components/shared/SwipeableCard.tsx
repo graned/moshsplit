@@ -19,12 +19,8 @@ interface SwipeableCardProps {
 }
 
 const SWIPE_THRESHOLD = 60;
-const ACTION_WIDTH = 44;
+const ACTION_WIDTH = 56;
 
-/**
- * Horizontal swipe-right reveal card.
- * On desktop/touch, dragging right uncovers Edit/Delete action buttons.
- */
 export function SwipeableCard({ children, actions, disabled = false }: SwipeableCardProps) {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,8 +39,8 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging || disabled) return;
     currentXRef.current = e.touches[0].clientX;
-    const delta = currentXRef.current - startXRef.current;
-    // Only allow swiping right (positive delta), with resistance after threshold
+    const delta = startXRef.current - currentXRef.current;
+    // Swipe left: delta = startX - currentX (positive = left swipe)
     const clampedDelta = Math.max(0, delta);
     setTranslateX(clampedDelta);
   }, [isDragging, disabled]);
@@ -53,10 +49,8 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
     if (!isDragging) return;
     setIsDragging(false);
     if (translateX >= SWIPE_THRESHOLD) {
-      // Snap open
       setTranslateX(ACTION_WIDTH * 2);
     } else {
-      // Snap closed
       setTranslateX(0);
     }
   }, [isDragging, translateX]);
@@ -95,7 +89,7 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
         '&:active': { cursor: disabled ? 'default' : 'grabbing' },
       }}
     >
-      {/* Hidden action panel - positioned to the right, slides in when card swiped */}
+      {/* Action panel on the right */}
       <Box
         sx={{
           position: 'absolute',
@@ -105,7 +99,7 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
           display: 'flex',
           alignItems: 'stretch',
           width: `${ACTION_WIDTH * 2}px`,
-          transform: (isDragging ? `translateX(${ACTION_WIDTH * 2 - translateX}px)` : translateX > 0 ? 'translateX(0)' : `translateX(${ACTION_WIDTH * 2}px)`),
+          transform: translateX > 0 ? 'translateX(0)' : `translateX(${ACTION_WIDTH * 2}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
           zIndex: 0,
         }}
@@ -117,23 +111,24 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: alpha(theme.palette.primary.main, 0.2),
+              bgcolor: alpha(theme.palette.primary.main, 0.85),
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
             }}
           >
             <IconButton
               onClick={handleEdit}
-              size="small"
               sx={{
-                color: theme.palette.primary.main,
-                bgcolor: alpha(theme.palette.primary.main, 0.15),
-                width: 36,
-                height: 36,
+                color: '#fff',
+                bgcolor: alpha(theme.palette.primary.main, 0.3),
+                width: 44,
+                height: 44,
                 '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.25),
+                  bgcolor: alpha(theme.palette.primary.main, 0.5),
                 },
               }}
             >
-              <EditIcon sx={{ fontSize: 18 }} />
+              <EditIcon sx={{ fontSize: 20 }} />
             </IconButton>
           </Box>
         )}
@@ -144,29 +139,30 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: alpha(theme.palette.error.main, 0.2),
+              bgcolor: alpha(theme.palette.error.main, 0.85),
+              borderTopRightRadius: 2,
+              borderBottomRightRadius: 2,
             }}
           >
             <IconButton
               onClick={handleDelete}
-              size="small"
               sx={{
-                color: theme.palette.error.main,
-                bgcolor: alpha(theme.palette.error.main, 0.15),
-                width: 36,
-                height: 36,
+                color: '#fff',
+                bgcolor: alpha(theme.palette.error.main, 0.3),
+                width: 44,
+                height: 44,
                 '&:hover': {
-                  bgcolor: alpha(theme.palette.error.main, 0.25),
+                  bgcolor: alpha(theme.palette.error.main, 0.5),
                 },
               }}
             >
-              <DeleteIcon sx={{ fontSize: 18 }} />
+              <DeleteIcon sx={{ fontSize: 20 }} />
             </IconButton>
           </Box>
         )}
       </Box>
 
-      {/* Card content - slides left to reveal actions on the right */}
+      {/* Card content */}
       <Box
         sx={{
           position: 'relative',
@@ -174,7 +170,6 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
           bgcolor: 'background.paper',
           transform: `translateX(-${translateX}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-          borderRadius: translateX > 0 ? 0 : 2,
         }}
       >
         {children}
