@@ -54,6 +54,7 @@ http://test.{$MOSHSPLIT_URL:-moshsplit.localhost} {
             header_up X-Forwarded-For {remote}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Host {host}
+            header_up Authorization {header.Authorization}
         }
     }
 
