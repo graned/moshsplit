@@ -1,4 +1,12 @@
 import { Box, alpha, useTheme } from '@mui/material';
+import { SwipeableCard } from '../../shared/SwipeableCard';
+
+interface SwipeActions {
+  onEdit?: () => void;
+  onDelete?: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
+}
 
 interface MobileFeedCardProps {
   /** Rendered in a 36×36 rounded box on the left */
@@ -10,6 +18,8 @@ interface MobileFeedCardProps {
   /** Optional right-side content (amount + date column) */
   rightContent?: React.ReactNode;
   onClick?: () => void;
+  /** Swipe-right reveal actions (optional) */
+  swipeActions?: SwipeActions;
 }
 
 /**
@@ -20,6 +30,8 @@ interface MobileFeedCardProps {
  *  - Center: children (flex 1, overflow hidden)
  *  - Right:  rightContent (text-align right, shrink 0)
  *
+ * When swipeActions are provided, swiping right reveals Edit/Delete buttons.
+ *
  * No responsive breakpoints, no `useMediaQuery`, no Tooltip — mobile-only sizes always.
  */
 export function MobileFeedCard({
@@ -28,11 +40,12 @@ export function MobileFeedCard({
   children,
   rightContent,
   onClick,
+  swipeActions,
 }: MobileFeedCardProps) {
   const theme = useTheme();
   const accent = accentColor || theme.palette.primary.main;
 
-  return (
+  const card = (
     <Box
       onClick={onClick}
       sx={{
@@ -82,4 +95,14 @@ export function MobileFeedCard({
       )}
     </Box>
   );
+
+  if (swipeActions) {
+    return (
+      <SwipeableCard actions={swipeActions}>
+        {card}
+      </SwipeableCard>
+    );
+  }
+
+  return card;
 }

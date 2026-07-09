@@ -362,6 +362,8 @@ export default function MobileExpensePage() {
           fetchNextPage={fetchNextPage}
           activityType="expense"
           onExpenseClick={handleExpenseClick}
+          onExpenseEdit={handleExpenseClick}
+          onExpenseDelete={handleDeleteExpense}
         />
       </Box>
 

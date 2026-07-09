@@ -45,6 +45,8 @@ interface MobileExpenseCardProps {
   currentUserId?: string;
   currency?: string;
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function MobileExpenseCard({
@@ -53,6 +55,8 @@ export function MobileExpenseCard({
   currentUserId,
   currency = 'EUR',
   onClick,
+  onEdit,
+  onDelete,
 }: MobileExpenseCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -72,11 +76,22 @@ export function MobileExpenseCard({
     : theme.palette.primary.main;
 
   const isDeleted = Boolean(activity.deleted_at);
+  const canModify = activity.paid_by === currentUserId;
 
   return (
     <MobileFeedCard
       onClick={onClick}
       accentColor={theme.palette.primary.main}
+      swipeActions={
+        onEdit || onDelete
+          ? {
+              onEdit,
+              onDelete,
+              canEdit: canModify && !isDeleted,
+              canDelete: canModify && !isDeleted,
+            }
+          : undefined
+      }
       icon={
         iconSrc ? (
           <img
