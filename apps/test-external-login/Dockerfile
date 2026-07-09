@@ -32,7 +32,15 @@ COPY apps/test-external-login/ /app/apps/test-external-login/
 RUN pnpm --filter @moshsplit/sentinel-sdk build
 RUN pnpm --filter @moshsplit/auth-react build
 
-# Build the app
+# Build the app (pass Vite env vars at build time)
+ARG VITE_API_URL=http://localhost:8080
+ARG VITE_API_TOKEN=
+ARG VITE_SENTINEL_URL=/sentinel
+ARG VITE_MOSHSPLIT_URL=http://moshsplit.localhost
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_API_TOKEN=$VITE_API_TOKEN
+ENV VITE_SENTINEL_URL=$VITE_SENTINEL_URL
+ENV VITE_MOSHSPLIT_URL=$VITE_MOSHSPLIT_URL
 RUN pnpm --filter @moshsplit/test-external-login build
 
 
