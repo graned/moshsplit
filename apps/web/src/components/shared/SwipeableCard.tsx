@@ -95,18 +95,16 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
         '&:active': { cursor: disabled ? 'default' : 'grabbing' },
       }}
     >
-      {/* Hidden action panel */}
+      {/* Hidden action panel - positioned to the right, off-screen initially */}
       <Box
         sx={{
           position: 'absolute',
           top: 0,
-          right: 0,
+          right: `-${ACTION_WIDTH * 2}px`,
           bottom: 0,
           display: 'flex',
           alignItems: 'stretch',
           width: `${ACTION_WIDTH * 2}px`,
-          transform: `translateX(${translateX}px)`,
-          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
           zIndex: 0,
         }}
       >
