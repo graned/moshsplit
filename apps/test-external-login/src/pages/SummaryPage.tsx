@@ -62,10 +62,12 @@ function SummaryPage() {
 
     setRedirecting(true);
     try {
+      console.log('externalLogin called with:', { email: session.email, displayName: session.displayName });
       const loginResponse = await externalApi.externalLogin({
         api_token: API_TOKEN,
         email: session.email,
         display_name: session.displayName,
+        format: 'json',
       });
 
       const params = new URLSearchParams({
@@ -74,7 +76,8 @@ function SummaryPage() {
         user_id: loginResponse.user_id,
       });
 
-      window.location.href = `${MOSHSPLIT_URL}/?${params.toString()}`;
+      window.open(`${MOSHSPLIT_URL}/moshsplit/login?${params.toString()}`, '_blank');
+      setRedirecting(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'External login failed';
       setError(message);

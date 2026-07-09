@@ -34,7 +34,7 @@ RUN pnpm --filter @moshsplit/auth-react build
 
 # Build the app (pass Vite env vars at build time)
 ARG VITE_API_URL=/pitboss
-ARG VITE_API_TOKEN=sat_e91974dac53da17dd64b0d1bef35049542bd21ffbae0bc68cc7620ce32e5f936
+ARG VITE_API_TOKEN
 ARG VITE_SENTINEL_URL=/sentinel
 ARG VITE_MOSHSPLIT_URL=http://moshsplit.localhost
 ENV VITE_API_URL=$VITE_API_URL

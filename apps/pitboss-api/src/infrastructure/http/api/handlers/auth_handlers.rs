@@ -28,14 +28,23 @@ pub struct ExternalLoginRequest {
     /// active session. Defaults to false (always creates a new session).
     #[serde(default)]
     pub reuse_session: Option<bool>,
+    /// If "json", returns JSON response instead of redirect.
+    #[serde(default)]
+    pub format: Option<String>,
 }
 
 /// Response passed to the redirect URL on success.
+#[derive(Serialize)]
 pub struct ExternalLoginSuccess {
     pub user_id: String,
     pub access_token: String,
     pub refresh_token: String,
     pub expires_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExternalLoginQuery {
+    pub format: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -165,6 +174,16 @@ pub async fn external_login(
                 urlencoding::encode(&response.expires_at),
                 urlencoding::encode(&return_to),
             );
+
+            if payload.format.as_deref() == Some("json") {
+                let json_response = ExternalLoginSuccess {
+                    user_id: response.user_id,
+                    access_token: response.access_token,
+                    refresh_token: response.refresh_token,
+                    expires_at: response.expires_at,
+                };
+                return Ok((StatusCode::OK, axum::Json(json_response)).into_response());
+            }
 
             Ok(Redirect::to(&redirect_url).into_response())
         }

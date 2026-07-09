@@ -22,7 +22,6 @@ export interface ExternalLoginResponse {
   access_token: string;
   refresh_token: string;
   expires_at: string;
-  email_verified: boolean;
 }
 
 export const externalApi = {
@@ -44,7 +43,7 @@ export const externalApi = {
     return response.json();
   },
 
-  externalLogin: async (data: ExternalLoginRequest): Promise<ExternalLoginResponse> => {
+  externalLogin: async (data: ExternalLoginRequest & { format?: string }): Promise<ExternalLoginResponse> => {
     const response = await fetch(`${API_URL}/v1/auth/external-login`, {
       method: 'POST',
       headers: {
