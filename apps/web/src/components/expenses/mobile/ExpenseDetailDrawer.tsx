@@ -152,43 +152,41 @@ export function ExpenseDetailDrawer({
       onClose={onClose}
       title={t('components.expenseDetail.title')}
       clearAction={
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           {canDelete && (
             <Tooltip title={t('components.expenseDetail.deleteExpense')}>
               <IconButton
                 onClick={handleDelete}
-                size="small"
                 disabled={isLoading}
                 sx={{
                   color: theme.palette.error.main,
                   bgcolor: alpha(theme.palette.error.main, 0.1),
-                  width: 32,
-                  height: 32,
+                  width: 36,
+                  height: 36,
                   '&:hover': {
                     bgcolor: alpha(theme.palette.error.main, 0.2),
                   },
                 }}
               >
-                <DeleteIcon sx={{ fontSize: 16 }} />
+                <DeleteIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
           )}
           <Tooltip title={t('components.expenseDetail.edit')}>
             <IconButton
               onClick={handleEdit}
-              size="small"
               disabled={isLoading}
               sx={{
                 color: theme.palette.primary.main,
                 bgcolor: alpha(theme.palette.primary.main, 0.1),
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 '&:hover': {
                   bgcolor: alpha(theme.palette.primary.main, 0.2),
                 },
               }}
             >
-              <EditIcon sx={{ fontSize: 16 }} />
+              <EditIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
         </Box>
