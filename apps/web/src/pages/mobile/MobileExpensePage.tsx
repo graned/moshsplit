@@ -361,6 +361,7 @@ export default function MobileExpensePage() {
           isFetchingNextPage={isFetchingNextPage}
           fetchNextPage={fetchNextPage}
           activityType="expense"
+          userId={userId ?? undefined}
           onExpenseClick={handleExpenseClick}
           onExpenseEdit={handleExpenseClick}
           onExpenseDelete={handleDeleteExpense}
