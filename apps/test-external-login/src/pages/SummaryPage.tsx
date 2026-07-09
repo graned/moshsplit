@@ -95,14 +95,6 @@ function SummaryPage() {
     }).format(euros);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
   if (!session) {
     return null;
   }
