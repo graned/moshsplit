@@ -98,7 +98,6 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        borderRadius: 2,
         cursor: disabled ? 'default' : 'grab',
         '&:active': { cursor: disabled ? 'default' : 'grabbing' },
       }}
@@ -183,6 +182,7 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
           bgcolor: 'background.paper',
           transform: `translateX(${swipeRight - swipeLeft}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          borderRadius: 2,
         }}
       >
         {children}
