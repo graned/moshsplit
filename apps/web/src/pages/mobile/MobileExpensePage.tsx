@@ -193,6 +193,22 @@ export default function MobileExpensePage() {
     [expenseItems],
   );
 
+  const handleExpenseEditDirect = useCallback(
+    (expenseId: string) => {
+      const expense = expenseItems.find((item) => item.id === expenseId && item.type === 'expense') as ExpenseActivity | undefined;
+      if (!expense) return;
+      setExpenseToEdit({
+        id: expense.id,
+        title: expense.title,
+        amount_cents: expense.amount_cents,
+        paid_by: expense.paid_by,
+        split_data: {},
+        expense_type: expense.expense_type,
+      });
+    },
+    [expenseItems],
+  );
+
   const handleEditExpense = useCallback(
     (data: {
       id: string;
@@ -363,7 +379,7 @@ export default function MobileExpensePage() {
           activityType="expense"
           userId={userId ?? undefined}
           onExpenseClick={handleExpenseClick}
-          onExpenseEdit={handleExpenseClick}
+          onExpenseEdit={handleExpenseEditDirect}
           onExpenseDelete={handleDeleteExpense}
         />
       </Box>
