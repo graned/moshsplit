@@ -236,8 +236,8 @@ services:
     ports:
       - "5174:5174"
     environment:
-      - VITE_API_URL=http://localhost:8080
-      - VITE_API_TOKEN=sat_55ed768f14779d3dfbb4d867fb55e2b4e58b236a676afcac59ebe18592e3cb4a
+      - VITE_API_URL=/pitboss
+      - VITE_API_TOKEN=sat_e91974dac53da17dd64b0d1bef35049542bd21ffbae0bc68cc7620ce32e5f936
       - VITE_SENTINEL_URL=/sentinel
       - VITE_MOSHSPLIT_URL=http://moshsplit.localhost
     depends_on:
