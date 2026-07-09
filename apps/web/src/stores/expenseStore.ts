@@ -78,6 +78,7 @@ export const useExpenseStore = create<ExpenseState>((set) => ({
       queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
       queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
       queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['event-stats', eventId] });
       set({ isDeleting: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete expense';
