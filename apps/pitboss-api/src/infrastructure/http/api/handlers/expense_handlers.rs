@@ -19,6 +19,7 @@ use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
+use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::services::expense_service::ExpenseService;
 
 /// GET /v1/events/:id/expenses — list expenses.
@@ -48,6 +49,7 @@ pub async fn list_expenses(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
 
     let (items, has_more, next_cursor) = svc.list_expenses(
@@ -94,6 +96,7 @@ pub async fn create_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.create_expense(event_id, req, user_id)?;
@@ -123,6 +126,7 @@ pub async fn get_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.get_expense(expense_id)?;
@@ -155,6 +159,7 @@ pub async fn update_expense(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.update_expense(event_id, expense_id, req, user_id)?;
@@ -171,6 +176,7 @@ pub async fn update_expense(
     ),
     responses(
         (status = 204, description = "Expense deleted"),
+        (status = 403, description = "Forbidden — only creator can delete"),
         (status = 404, description = "Expense not found"),
     ),
     tag = "Expenses"
@@ -178,15 +184,17 @@ pub async fn update_expense(
 pub async fn delete_expense(
     State(state): State<Arc<AppState>>,
     Path((event_id, expense_id)): Path<(Uuid, Uuid)>,
+    CurrentUser(user_id): CurrentUser,
 ) -> Result<StatusCode, ServiceError> {
     let svc = ExpenseService::new(
         EventRepository::new(state.db_client.clone()),
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
 
-    svc.delete_expense(event_id, expense_id)?;
+    svc.delete_expense(event_id, expense_id, user_id)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -213,6 +221,7 @@ pub async fn list_expense_versions(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
 
     let versions = svc.get_expense_with_versions(expense_id)?;

@@ -12,7 +12,8 @@
     "loadError": "Failed to load activity feed"
   },
   "expenseCard": {
-    "split": "Split: {{count}}"
+    "split": "Split: {{count}}",
+    "deleted": "Deleted"
   },
   "settlementCard": {
     "honorRequested": "Honor requested:",
@@ -36,6 +37,11 @@
   "expenseDetail": {
     "title": "Expense Details",
     "edit": "Edit expense",
+    "deleteExpense": "Delete expense",
+    "deleteTitle": "Delete Expense",
+    "deleteWarning": "This will permanently delete the expense. Anyone owed money by this expense will no longer be owed.",
+    "confirmDelete": "Delete",
+    "cancel": "Cancel",
     "paidBy": "Paid by",
     "notes": "Notes",
     "splitType": {

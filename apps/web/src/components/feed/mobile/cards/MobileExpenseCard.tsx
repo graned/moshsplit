@@ -1,6 +1,6 @@
 import { Typography, Box, useTheme, alpha } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Receipt as ReceiptIcon } from '@mui/icons-material';
+import { Receipt as ReceiptIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
 import { MobileFeedCard } from '../MobileFeedCard';
@@ -45,6 +45,8 @@ interface MobileExpenseCardProps {
   currentUserId?: string;
   currency?: string;
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function MobileExpenseCard({
@@ -53,6 +55,8 @@ export function MobileExpenseCard({
   currentUserId,
   currency = 'EUR',
   onClick,
+  onEdit,
+  onDelete,
 }: MobileExpenseCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -71,10 +75,23 @@ export function MobileExpenseCard({
     ? EXPENSE_TYPE_COLORS[activity.expense_type]
     : theme.palette.primary.main;
 
+  const isDeleted = Boolean(activity.deleted_at);
+  const canModify = activity.paid_by === currentUserId;
+
   return (
     <MobileFeedCard
       onClick={onClick}
       accentColor={theme.palette.primary.main}
+      swipeActions={
+        onEdit || onDelete
+          ? {
+              onEdit,
+              onDelete,
+              canEdit: canModify && !isDeleted,
+              canDelete: canModify && !isDeleted,
+            }
+          : undefined
+      }
       icon={
         iconSrc ? (
           <img
@@ -165,6 +182,37 @@ export function MobileExpenseCard({
             }}
           >
             {categoryLabel}
+          </Typography>
+        </Box>
+      )}
+
+      {isDeleted && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            mb: 0.75,
+            px: 0.75,
+            py: 0.35,
+            borderRadius: 1.5,
+            backgroundColor: alpha(theme.palette.error.main, 0.1),
+            border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: 10, color: theme.palette.error.main }} />
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              color: theme.palette.error.main,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+            }}
+          >
+            {t('components.expenseCard.deleted')}
           </Typography>
         </Box>
       )}

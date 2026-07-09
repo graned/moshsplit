@@ -102,6 +102,7 @@ impl std::fmt::Display for ExpenseType {
             Self::Merch => write!(f, "merch"),
             Self::Camping => write!(f, "camping"),
             Self::Other => write!(f, "other"),
+            Self::Reimburse => write!(f, "reimburse"),
         }
     }
 }
@@ -117,6 +118,7 @@ impl std::str::FromStr for ExpenseType {
             "merch" => Ok(Self::Merch),
             "camping" => Ok(Self::Camping),
             "other" => Ok(Self::Other),
+            "reimburse" => Ok(Self::Reimburse),
             _ => Err(format!("invalid expense type: {s}")),
         }
     }

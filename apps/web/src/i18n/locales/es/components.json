@@ -12,7 +12,8 @@
     "loadError": "Error al cargar la actividad"
   },
   "expenseCard": {
-    "split": "Repartir: {{count}}"
+    "split": "Repartir: {{count}}",
+    "deleted": "Eliminado"
   },
   "settlementCard": {
     "honorRequested": "Honor solicitado:",
@@ -36,6 +37,11 @@
   "expenseDetail": {
     "title": "Detalles del gasto",
     "edit": "Editar gasto",
+    "deleteExpense": "Eliminar gasto",
+    "deleteTitle": "Eliminar Gasto",
+    "deleteWarning": "Esto eliminará permanentemente el gasto. Cualquier persona que debía recibir dinero por este gasto ya no recibirá.",
+    "confirmDelete": "Eliminar",
+    "cancel": "Cancelar",
     "paidBy": "Pagado por",
     "notes": "Notas",
     "splitType": {

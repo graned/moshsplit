@@ -42,6 +42,8 @@ interface MobileFeedListProps {
   isFetchingNextPage?: boolean;
   fetchNextPage?: () => void;
   onExpenseClick?: (expenseId: string) => void;
+  onExpenseEdit?: (expenseId: string) => void;
+  onExpenseDelete?: (expenseId: string) => void;
   onSettlementClick?: (settlementId: string) => void;
   className?: string;
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
@@ -106,6 +108,8 @@ export function MobileFeedList({
   isFetchingNextPage = false,
   fetchNextPage,
   onExpenseClick,
+  onExpenseEdit,
+  onExpenseDelete,
   onSettlementClick,
   className,
   scrollContainerRef,
@@ -191,8 +195,11 @@ export function MobileFeedList({
             key={item.id}
             activity={item}
             paidBy={paidBy}
+            currentUserId={userId}
             currency={currency}
             onClick={() => onExpenseClick?.(item.id)}
+            onEdit={onExpenseEdit ? () => onExpenseEdit(item.id) : undefined}
+            onDelete={onExpenseDelete ? () => onExpenseDelete(item.id) : undefined}
           />
         );
       }
@@ -276,7 +283,7 @@ export function MobileFeedList({
         </Box>
       );
     },
-    [getUser, currency, onExpenseClick, onSettlementClick]
+    [getUser, currency, onExpenseClick, onExpenseEdit, onExpenseDelete, onSettlementClick]
   );
 
   const defaultEmptyState = (

@@ -12,7 +12,8 @@
     "loadError": "Falha ao carregar o feed de atividades"
   },
   "expenseCard": {
-    "split": "Dividir: {{count}}"
+    "split": "Dividir: {{count}}",
+    "deleted": "Excluído"
   },
   "settlementCard": {
     "honorRequested": "Pedido de honra:",
@@ -36,6 +37,11 @@
   "expenseDetail": {
     "title": "Detalhes da Despesa",
     "edit": "Editar despesa",
+    "deleteExpense": "Excluir despesa",
+    "deleteTitle": "Excluir Despesa",
+    "deleteWarning": "Isso excluirá permanentemente a despesa. Qualquer pessoa que deveria receber dinheiro por esta despesa não receberá mais.",
+    "confirmDelete": "Excluir",
+    "cancel": "Cancelar",
     "paidBy": "Pago por",
     "notes": "Notas",
     "splitType": {
