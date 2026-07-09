@@ -115,8 +115,6 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
             justifyContent: 'center',
             width: `${ACTION_WIDTH}px`,
             bgcolor: alpha(theme.palette.error.main, 0.85),
-            borderTopLeftRadius: 2,
-            borderBottomLeftRadius: 2,
             transform: swipeRight > 0 ? 'translateX(0)' : `translateX(-${ACTION_WIDTH}px)`,
             transition: isDragging ? 'none' : 'transform 0.2s ease-out',
             zIndex: 0,
@@ -152,8 +150,6 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
             justifyContent: 'center',
             width: `${ACTION_WIDTH}px`,
             bgcolor: alpha(theme.palette.primary.main, 0.85),
-            borderTopRightRadius: 2,
-            borderBottomRightRadius: 2,
             transform: swipeLeft > 0 ? 'translateX(0)' : `translateX(${ACTION_WIDTH}px)`,
             transition: isDragging ? 'none' : 'transform 0.2s ease-out',
             zIndex: 0,
@@ -184,6 +180,7 @@ export function SwipeableCard({ children, actions, disabled = false }: Swipeable
           bgcolor: 'background.paper',
           transform: `translateX(${swipeRight - swipeLeft}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          borderRadius: swipeRight > 0 ? '2px 2px 2px 0' : swipeLeft > 0 ? '2px 0 0 2px' : '2px',
         }}
       >
         {children}
