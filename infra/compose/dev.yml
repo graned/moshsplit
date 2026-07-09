@@ -124,6 +124,7 @@ services:
       - ../../packages:/app/packages
     environment:
       DATABASE_URL: postgres://pitboss:password@postgres:5432/moshsplit
+      AUTH_DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
       PGOPTIONS: "-c search_path=app"
       RUST_LOG: debug
       SENTINEL_URL: http://sentinel:8000
