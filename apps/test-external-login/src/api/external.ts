@@ -4,12 +4,9 @@ const API_TOKEN = import.meta.env.VITE_API_TOKEN || '';
 export interface ExternalSummaryResponse {
   event_name: string;
   total_balance_cents: number;
-  expenses: Array<{
-    id: string;
-    description: string;
+  items: Array<{
+    title: string;
     amount_cents: number;
-    paid_by_email: string;
-    created_at: string;
   }>;
 }
 

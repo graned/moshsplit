@@ -208,17 +208,17 @@ function SummaryPage() {
               {/* Expenses List */}
               <Box>
                 <Typography variant="overline" sx={{ color: 'text.secondary', mb: 2, display: 'block' }}>
-                  Recent Expenses
+                  Expenses
                 </Typography>
-                {summary.expenses.length === 0 ? (
+                {summary.items.length === 0 ? (
                   <Typography variant="body2" sx={{ color: 'text.secondary', py: 2 }}>
                     No expenses recorded yet.
                   </Typography>
                 ) : (
                   <List disablePadding>
-                    {summary.expenses.map((expense) => (
+                    {summary.items.map((item, index) => (
                       <ListItem
-                        key={expense.id}
+                        key={index}
                         disablePadding
                         sx={{
                           py: 1.5,
@@ -226,13 +226,11 @@ function SummaryPage() {
                         }}
                       >
                         <ListItemText
-                          primary={expense.description}
-                          secondary={`Paid by ${expense.paid_by_email} on ${formatDate(expense.created_at)}`}
+                          primary={item.title}
                           primaryTypographyProps={{ fontWeight: 500 }}
-                          secondaryTypographyProps={{ sx: { color: 'text.secondary' } }}
                         />
                         <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {formatCents(expense.amount_cents)}
+                          {formatCents(item.amount_cents)}
                         </Typography>
                       </ListItem>
                     ))}

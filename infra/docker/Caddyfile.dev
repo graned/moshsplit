@@ -42,6 +42,21 @@ http://test.{$MOSHSPLIT_URL:-moshsplit.localhost} {
         }
     }
 
+    # Pitboss API proxy for test app
+    @pitboss {
+        path /pitboss/*
+    }
+    handle @pitboss {
+        uri strip_prefix /pitboss
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
     reverse_proxy test-external-login:5174 {
         header_up Host {host}
         header_up X-Real-IP {remote}
