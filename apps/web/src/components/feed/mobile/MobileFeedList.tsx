@@ -198,8 +198,8 @@ export function MobileFeedList({
             currentUserId={userId}
             currency={currency}
             onClick={() => onExpenseClick?.(item.id)}
-            onEdit={() => onExpenseEdit?.(item.id)}
-            onDelete={() => onExpenseDelete?.(item.id)}
+            onEdit={onExpenseEdit ? () => onExpenseEdit(item.id) : undefined}
+            onDelete={onExpenseDelete ? () => onExpenseDelete(item.id) : undefined}
           />
         );
       }
