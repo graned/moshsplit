@@ -19,7 +19,7 @@ interface SwipeableCardProps {
 }
 
 const SWIPE_THRESHOLD = 60;
-const ACTION_WIDTH = 56;
+const ACTION_WIDTH = 72;
 
 export function SwipeableCard({ children, actions, disabled = false }: SwipeableCardProps) {
   const theme = useTheme();
