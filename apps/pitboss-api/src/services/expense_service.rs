@@ -13,6 +13,7 @@ use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
+use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::schema_enums::{ExpenseType, SplitType};
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 use moshsplit_balance_engine::redistribute_shares;
@@ -22,6 +23,7 @@ pub struct ExpenseService {
     expense_repo: ExpenseRepository,
     version_repo: ExpenseVersionRepository,
     share_repo: ExpenseVersionShareRepository,
+    payment_repo: PaymentRepository,
 }
 
 impl ExpenseService {
@@ -30,8 +32,9 @@ impl ExpenseService {
         expense_repo: ExpenseRepository,
         version_repo: ExpenseVersionRepository,
         share_repo: ExpenseVersionShareRepository,
+        payment_repo: PaymentRepository,
     ) -> Self {
-        Self { event_repo, expense_repo, version_repo, share_repo }
+        Self { event_repo, expense_repo, version_repo, share_repo, payment_repo }
     }
 
     /// Parse a split_type string into a SplitType enum.
@@ -55,6 +58,7 @@ impl ExpenseService {
             "merch" => Ok(ExpenseType::Merch),
             "camping" => Ok(ExpenseType::Camping),
             "other" => Ok(ExpenseType::Other),
+            "reimburse" => Ok(ExpenseType::Reimburse),
             _ => Err(ServiceError::Validation(format!("Unknown expense_type: {}", s))),
         }
     }
@@ -543,21 +547,106 @@ impl ExpenseService {
         Ok(details)
     }
 
-    /// Soft-delete an expense.
-    pub fn delete_expense(&self, event_id: Uuid, expense_id: Uuid) -> Result<(), ServiceError> {
-        let expense = self
+    pub fn delete_expense(
+        &self,
+        event_id: Uuid,
+        expense_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<(), ServiceError> {
+        let expense_row = self
             .expense_repo
-            .find_by_id(expense_id)?
+            .find_by_id_with_latest_version(expense_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
 
-        if expense.event_id != event_id {
+        if expense_row.event_id != event_id {
             return Err(ServiceError::NotFound("Expense not found in this event".into()));
         }
-        if expense.deleted_at.is_some() {
+        if expense_row.deleted_at.is_some() {
             return Err(ServiceError::BusinessRule("Expense is already deleted".into()));
         }
 
-        self.expense_repo.soft_delete(expense_id, Utc::now())?;
+        if expense_row.created_by != user_id {
+            return Err(ServiceError::Forbidden(
+                "Only the expense creator can delete this expense".into(),
+            ));
+        }
+
+        let expense_owner = expense_row.created_by;
+        let original_title = expense_row.title.unwrap_or_else(|| "Deleted Expense".to_string());
+        let now = Utc::now();
+
+        let payments = self
+            .payment_repo
+            .find_by_event_id_and_to_user(event_id, expense_owner)?;
+
+        for payment in payments {
+            let original_payer = payment.from_user;
+            let amount = payment.amount_cents;
+
+            let expense_id = Uuid::new_v4();
+            let version_id = Uuid::new_v4();
+
+            let expense = Expense {
+                id: expense_id,
+                event_id,
+                created_by: expense_owner,
+                created_at: now,
+                current_version_id: Some(version_id),
+                deleted_at: None,
+            };
+            self.expense_repo.create(&expense)?;
+
+            let split_data = serde_json::json!({
+                "shares": [expense_owner.to_string(), original_payer.to_string()]
+            });
+
+            let version = ExpenseVersion {
+                id: version_id,
+                expense_id,
+                version_number: 1,
+                title: format!("Reimbursement for {}", original_title),
+                description: Some("Original expense deleted by owner".to_string()),
+                amount_cents: amount,
+                paid_by: expense_owner,
+                split_type: SplitType::Equal,
+                split_data,
+                notes: None,
+                created_by: expense_owner,
+                created_at: now,
+                expense_type: Some(ExpenseType::Reimburse),
+            };
+            self.version_repo.create(&version)?;
+
+            let half = amount / 2;
+            let owner_share = half;
+            let payer_share = amount - half;
+
+            let share_rows = vec![
+                ExpenseVersionShare {
+                    id: Uuid::new_v4(),
+                    expense_version_id: version_id,
+                    user_id: expense_owner,
+                    share_cents: owner_share,
+                },
+                ExpenseVersionShare {
+                    id: Uuid::new_v4(),
+                    expense_version_id: version_id,
+                    user_id: original_payer,
+                    share_cents: payer_share,
+                },
+            ];
+
+            let affected = self.share_repo.bulk_insert(&share_rows)?;
+            if affected != share_rows.len() {
+                return Err(ServiceError::Internal(format!(
+                    "Failed to insert reimbursement shares: expected {}, got {}",
+                    share_rows.len(),
+                    affected
+                )));
+            }
+        }
+
+        self.expense_repo.soft_delete(expense_id, now)?;
         Ok(())
     }
 

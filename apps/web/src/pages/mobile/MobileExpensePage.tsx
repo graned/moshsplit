@@ -12,10 +12,12 @@ import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { AddExpenseDrawer, ExpenseDetailDrawer } from '../../components/expenses';
+import { DeleteExpenseModal } from '../../components/expenses/mobile/DeleteExpenseModal';
 import { FilterDrawerLauncher, FilterDrawerContent } from '../../components/shared/filters';
 import { MobileFeedList } from '../../components/feed';
 import { useUsers } from '../../hooks/useUserCache';
 import { useUIStore } from '../../stores/uiStore';
+import { useExpenseStore } from '../../stores/expenseStore';
 import { UserInfo } from '../../api/users.api';
 import { MobilePageHeader } from '../../components/shared';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
@@ -54,6 +56,11 @@ export default function MobileExpensePage() {
     expense_type?: string;
   } | null>(null);
   const { addExpenseOpen, setAddExpenseOpen } = useUIStore();
+  const { deleteExpense, isDeleting } = useExpenseStore();
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [expenseToDeleteTitle, setExpenseToDeleteTitle] = useState<string>('');
 
   const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['event', paramEventId],
@@ -202,6 +209,29 @@ export default function MobileExpensePage() {
     },
     [],
   );
+
+  const handleDeleteExpense = useCallback(
+    (expenseId: string) => {
+      const expense = expenseItems.find((item) => item.id === expenseId && item.type === 'expense');
+      setExpenseToDelete(expenseId);
+      setExpenseToDeleteTitle(expense && 'title' in expense ? (expense as { title: string }).title : '');
+      setDeleteModalOpen(true);
+    },
+    [expenseItems],
+  );
+
+  const confirmDeleteExpense = useCallback(async () => {
+    if (!expenseToDelete || !eventId) return;
+    try {
+      await deleteExpense(eventId, expenseToDelete);
+      setDeleteModalOpen(false);
+      setExpenseToDelete(null);
+      setExpenseToDeleteTitle('');
+      setSelectedExpense(null);
+    } catch (err) {
+      console.error('Failed to delete expense:', err);
+    }
+  }, [expenseToDelete, eventId, deleteExpense]);
 
   if (!paramEventId) {
     return (
@@ -361,7 +391,20 @@ export default function MobileExpensePage() {
             eventId={eventId}
             currency={currency}
             userMap={userMap}
+            currentUserId={userId ?? ''}
             onEdit={handleEditExpense}
+            onDelete={handleDeleteExpense}
+          />
+          <DeleteExpenseModal
+            open={deleteModalOpen}
+            expenseTitle={expenseToDeleteTitle}
+            isDeleting={isDeleting}
+            onClose={() => {
+              setDeleteModalOpen(false);
+              setExpenseToDelete(null);
+              setExpenseToDeleteTitle('');
+            }}
+            onConfirm={confirmDeleteExpense}
           />
           </>
         )}

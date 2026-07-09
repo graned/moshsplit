@@ -17,6 +17,7 @@ use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::services::balance_service::BalanceService;
 use crate::services::expense_service::ExpenseService;
 use crate::services::member_service::MemberService;
@@ -102,6 +103,7 @@ pub async fn remove_member(
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
     );
     expense_svc.redistribute_expenses_for_member_removal(event_id, user_id, actor_id)?;
 

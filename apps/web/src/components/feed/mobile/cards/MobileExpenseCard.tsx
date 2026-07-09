@@ -1,6 +1,6 @@
 import { Typography, Box, useTheme, alpha } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Receipt as ReceiptIcon } from '@mui/icons-material';
+import { Receipt as ReceiptIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
 import { MobileFeedCard } from '../MobileFeedCard';
@@ -70,6 +70,8 @@ export function MobileExpenseCard({
   const categoryColor = activity.expense_type
     ? EXPENSE_TYPE_COLORS[activity.expense_type]
     : theme.palette.primary.main;
+
+  const isDeleted = Boolean(activity.deleted_at);
 
   return (
     <MobileFeedCard
@@ -165,6 +167,37 @@ export function MobileExpenseCard({
             }}
           >
             {categoryLabel}
+          </Typography>
+        </Box>
+      )}
+
+      {isDeleted && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            mb: 0.75,
+            px: 0.75,
+            py: 0.35,
+            borderRadius: 1.5,
+            backgroundColor: alpha(theme.palette.error.main, 0.1),
+            border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: 10, color: theme.palette.error.main }} />
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              color: theme.palette.error.main,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+            }}
+          >
+            {t('components.expenseCard.deleted')}
           </Typography>
         </Box>
       )}

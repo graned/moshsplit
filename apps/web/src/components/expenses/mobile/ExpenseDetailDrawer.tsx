@@ -3,6 +3,7 @@ import { Box, Typography, alpha, useTheme, Divider, Skeleton, Avatar, IconButton
 import { useQuery } from '@tanstack/react-query';
 import {
   Edit as EditIcon,
+  Delete as DeleteIcon,
   Person as PersonIcon,
   CalendarToday as CalendarIcon,
   Notes as NotesIcon,
@@ -58,6 +59,7 @@ interface ExpenseDetailDrawerProps {
   eventId: string;
   currency?: string;
   userMap: Record<string, UserInfo>;
+  currentUserId: string;
   onEdit?: (data: {
     id: string;
     title: string;
@@ -67,6 +69,7 @@ interface ExpenseDetailDrawerProps {
     notes?: string;
     expense_type?: string;
   }) => void;
+  onDelete?: (expenseId: string) => void;
 }
 
 export function ExpenseDetailDrawer({
@@ -76,7 +79,9 @@ export function ExpenseDetailDrawer({
   eventId,
   currency = 'EUR',
   userMap,
+  currentUserId,
   onEdit,
+  onDelete,
 }: ExpenseDetailDrawerProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -134,30 +139,59 @@ export function ExpenseDetailDrawer({
   const count = shares.length > 0 ? shares.length : (displayExpense?.participant_count ?? 0);
   const countLabel = count === 1 ? t('components.expenseDetail.person', { count }) : t('components.expenseDetail.people', { count });
   
+  const canDelete = fullExpense?.created_by === currentUserId;
+
+  const handleDelete = () => {
+    if (!displayExpense) return;
+    onDelete?.(displayExpense.id);
+  };
+
   return (
     <MobileDrawer
       open={open}
       onClose={onClose}
       title={t('components.expenseDetail.title')}
       clearAction={
-        <Tooltip title={t('components.expenseDetail.edit')}>
-          <IconButton
-            onClick={handleEdit}
-            size="small"
-            disabled={isLoading}
-            sx={{
-              color: theme.palette.primary.main,
-              bgcolor: alpha(theme.palette.primary.main, 0.1),
-              width: 32,
-              height: 32,
-              '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.2),
-              },
-            }}
-          >
-            <EditIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {canDelete && (
+            <Tooltip title={t('components.expenseDetail.deleteExpense')}>
+              <IconButton
+                onClick={handleDelete}
+                size="small"
+                disabled={isLoading}
+                sx={{
+                  color: theme.palette.error.main,
+                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                  width: 32,
+                  height: 32,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.error.main, 0.2),
+                  },
+                }}
+              >
+                <DeleteIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          <Tooltip title={t('components.expenseDetail.edit')}>
+            <IconButton
+              onClick={handleEdit}
+              size="small"
+              disabled={isLoading}
+              sx={{
+                color: theme.palette.primary.main,
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                width: 32,
+                height: 32,
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.primary.main, 0.2),
+                },
+              }}
+            >
+              <EditIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       }
     >
       {isLoading ? (

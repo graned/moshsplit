@@ -16,6 +16,7 @@ export interface ExpenseActivity extends ActivityItemBase {
   paid_by: string;
   participant_count: number;
   expense_type?: string;
+  deleted_at?: string;
 }
 
 /** Settlement activity – a payment between users (pending) */

@@ -242,6 +242,7 @@ pub enum ExpenseType {
     Merch,
     Camping,
     Other,
+    Reimburse,
 }
 
 impl ToSql<ExpenseTypeType, Pg> for ExpenseType {
@@ -254,6 +255,7 @@ impl ToSql<ExpenseTypeType, Pg> for ExpenseType {
             Self::Merch => out.write_all(b"merch")?,
             Self::Camping => out.write_all(b"camping")?,
             Self::Other => out.write_all(b"other")?,
+            Self::Reimburse => out.write_all(b"reimburse")?,
         }
         Ok(IsNull::No)
     }
@@ -269,6 +271,7 @@ impl FromSql<ExpenseTypeType, Pg> for ExpenseType {
             b"merch" => Ok(Self::Merch),
             b"camping" => Ok(Self::Camping),
             b"other" => Ok(Self::Other),
+            b"reimburse" => Ok(Self::Reimburse),
             _ => Err("Unrecognized ExpenseType variant".into()),
         }
     }
@@ -284,6 +287,7 @@ impl ToSql<Text, Pg> for ExpenseType {
             Self::Merch => out.write_all(b"merch")?,
             Self::Camping => out.write_all(b"camping")?,
             Self::Other => out.write_all(b"other")?,
+            Self::Reimburse => out.write_all(b"reimburse")?,
         }
         Ok(IsNull::No)
     }
@@ -299,6 +303,7 @@ impl FromSql<Text, Pg> for ExpenseType {
             b"merch" => Ok(Self::Merch),
             b"camping" => Ok(Self::Camping),
             b"other" => Ok(Self::Other),
+            b"reimburse" => Ok(Self::Reimburse),
             _ => Err("Unrecognized ExpenseType variant".into()),
         }
     }

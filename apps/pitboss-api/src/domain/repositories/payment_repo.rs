@@ -51,4 +51,21 @@ impl PaymentRepository {
 
         Ok((rows, has_more))
     }
+
+    pub fn find_by_event_id_and_to_user(
+        &self,
+        event_id: Uuid,
+        to_user: Uuid,
+    ) -> Result<Vec<Payment>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let results = payment::table
+            .filter(payment::event_id.eq(event_id))
+            .filter(payment::to_user.eq(to_user))
+            .order_by(payment::recorded_at.desc())
+            .load(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
+    }
 }
