@@ -18,7 +18,7 @@ use axum::routing::{delete, get, patch, post};
 use axum::Router;
 use sentinel_client::AuthMiddleware;
 use tower_http::catch_panic::CatchPanicLayer;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{CorsLayer, AllowOrigin, AllowMethods, AllowHeaders};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -41,6 +41,26 @@ use crate::infrastructure::http::api::middlewares::response_wrapper;
 use crate::infrastructure::http::api::openapi::{ApiDoc, ExternalApiDoc};
 use crate::infrastructure::http::api::routes::admin_router;
 use crate::infrastructure::http::AppState;
+
+fn build_cors_layer() -> CorsLayer {
+    let allowed_origins = std::env::var("CORS_ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| "*".to_string());
+
+    let cors = CorsLayer::new()
+        .allow_methods(AllowMethods::any())
+        .allow_headers(AllowHeaders::any());
+
+    if allowed_origins == "*" {
+        cors.allow_origin(AllowOrigin::any())
+    } else {
+        let origins: Vec<axum::http::HeaderValue> = allowed_origins
+            .split(',')
+            .map(|s| s.trim())
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        cors.allow_origin(AllowOrigin::list(origins))
+    }
+}
 
 /// Build the API router with all middleware layers applied.
 ///
@@ -244,7 +264,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .layer(middleware::from_fn(
             request_id_middleware::request_id_middleware,
         ))
-        .layer(CorsLayer::permissive());
+        .layer(build_cors_layer());
 
     let protected_api = protected_api
         .layer(middleware::from_fn(move |req, next| {
@@ -263,7 +283,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .layer(middleware::from_fn(
             request_id_middleware::request_id_middleware,
         ))
-        .layer(CorsLayer::permissive());
+        .layer(build_cors_layer());
 
     let api_routes = Router::new()
         .merge(public_api)
