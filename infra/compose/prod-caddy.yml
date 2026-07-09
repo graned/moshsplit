@@ -177,10 +177,9 @@ services:
       # Runtime config - override build-time env vars
       - ./config.js:/usr/share/nginx/html/config.js:ro
     environment:
-      # Build-time variables (baked into image)
-      # For runtime configuration, consider runtime env injection
       VITE_API_BASE_URL: /pitboss
       VITE_SENTINEL_URL: /sentinel
+      VITE_APP_VERSION: ${MOSHSPLIT_VERSION:-latest}
     depends_on:
       pitboss-api:
         condition: service_healthy
