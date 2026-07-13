@@ -205,6 +205,7 @@ services:
       SPIN_API_TOKEN: ${SPIN_API_TOKEN:?SPIN_API_TOKEN is required}
       SPIN_API_URL: https://${MOSHSPLIT_VIRALATAS_URL}/pitboss
       SPIN_MOSHSPLIT_URL: https://${MOSHSPLIT_VIRALATAS_URL}
+      SPIN_SENTINEL_URL: https://${MOSHSPLIT_VIRALATAS_URL}/sentinel
     depends_on: []
     networks:
       - app-net
