@@ -4,14 +4,17 @@
 # Caddy automatically handles SSL/TLS certificate provisioning and renewal.
 #
 # Environment Variables:
-#   {$MOSHSPLIT_URL} - Your domain (e.g., moshsplit.example.com)
+#   {$MOSHSPLIT_VIRALATAS_URL} - viralatas.org domain (e.g., split.viralatas.org)
+#   {$MOSHSPLIT_URL} - moshsplit.com domain (e.g., pit.moshsplit.com)
 #
-# Routing:
-#   sentinel.{$MOSHSPLIT_URL} -> Sentinel UI (management dashboard)
-#   /sentinel/*      -> Sentinel API (auth service)
-#   /pitboss/*   -> Pitboss API (backend API)
-#   /moshsplit/* -> Web frontend (React PWA)
-#   /            -> Redirects to /moshsplit/
+# Routing (viralatas.org):
+#   sentinel.viralatas.org -> Sentinel UI
+#   {$MOSHSPLIT_VIRALATAS_URL} -> Main app
+#
+# Routing (moshsplit.com):
+#   sentinel.moshsplit.com -> Sentinel UI
+#   pit.moshsplit.com -> Main app
+#   spin.moshsplit.com -> Test app (spin)
 
 # ── Sentinel UI (Management Dashboard) ─────────────────────────────────────
 # Access at: https://sentinel.viralatas.org/
@@ -52,7 +55,7 @@ sentinel.moshsplit.com {
 }
 
 # ── Main Application (viralatas.org) ────────────────────────────────────────
-{$MOSHSPLIT_URL} {
+{$MOSHSPLIT_VIRALATAS_URL} {
     encode gzip zstd
 
     log {
