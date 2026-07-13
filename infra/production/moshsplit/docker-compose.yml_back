@@ -5,17 +5,18 @@
 #
 # Usage:
 #   1. Create .env file with required variables (see .env.example)
-#   2. docker compose -f infra/compose/prod-caddy.yml up -d
+#   2. Set MOSHSPLIT_URL=moshsplit.example.com in .env
+#   3. docker compose -f infra/compose/prod-caddy.yml up -d
 #
 # Access:
-#   - Main App (MoshPit):  https://pit.moshsplit.com/
-#   - Sentinel Admin:       https://sentinel.moshsplit.com/
-#   - Test App (Spin):      https://spin.moshsplit.com/ (testing only)
+#   - Web Frontend: https://moshsplit.example.com/moshsplit/
+#   - Pitboss API:  https://moshsplit.example.com/pitboss/
+#   - Sentinel UI:  https://moshsplit.example.com/auth/
+#   - Sentinel API: https://moshsplit.example.com/sentinel/
 #
 # Images:
 #   - ghcr.io/graned/moshsplit/pitboss-api:<tag>
 #   - ghcr.io/graned/moshsplit/web:<tag>
-#   - ghcr.io/graned/moshsplit/spin:<tag> (test app, testing profile)
 #   - Sentinel uses official image: ghcr.io/graned/sentinel-core:v1.1.0
 
 services:
@@ -29,12 +30,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ../docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
     environment:
-      MOSHSPLIT_VIRALATAS_URL: ${MOSHSPLIT_VIRALATAS_URL:?MOSHSPLIT_VIRALATAS_URL is required}
+      MOSHSPLIT_URL: ${MOSHSPLIT_URL:?MOSHSPLIT_URL is required}
     depends_on:
       pitboss-api:
         condition: service_healthy
@@ -61,49 +62,26 @@ services:
     image: ghcr.io/graned/moshsplit/pitboss-api:${MOSHSPLIT_VERSION:-latest}
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-      PGOPTIONS: "-c search_path=app"
+      #PGOPTIONS: "-c search_path=app"
       RUST_LOG: info
     command: ["./pitboss-api", "--migrate"]
     networks:
       - app-net
     restart: "no"
 
-  # ── PostgreSQL ──────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    profiles:
-      - demo
-    # No ports exposed - only accessible via internal network
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-moshsplit}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d
-    networks:
-      - app-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
   # ── pitboss-api (Rust / Axum) ──────────────────────────────────────────────
   pitboss-api:
     image: ghcr.io/graned/moshsplit/pitboss-api:${MOSHSPLIT_VERSION:-latest}
     # No ports exposed - accessed via Caddy
     environment:
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-      PGOPTIONS: "-c search_path=app"
+      #PGOPTIONS: "-c search_path=app"
       RUST_LOG: ${RUST_LOG:-info}
       SENTINEL_URL: http://sentinel:8000
       SENTINEL_PUBLIC_KEY: ${SENTINEL_PUBLIC_KEY}
-      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
       # CORS: Allow requests from Caddy (same origin after proxy)
-      CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},https://pit.moshsplit.com,https://spin.moshsplit.com,http://localhost:80,http://localhost:5173
+      CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
     depends_on:
       pitboss-api-migrations:
         condition: service_completed_successfully
@@ -121,7 +99,7 @@ services:
 
   # ── Sentinel (auth service) ───────────────────────────────────────────────
   sentinel:
-    image: ghcr.io/graned/sentinel-ui:${SENTINEL_VERSION:?SENTINEL_VERSION is required}
+    image: ghcr.io/graned/sentinel-core:${SENTINEL_VERSION:?SENTINEL_VERSION is required}
     # No ports exposed - accessed via Caddy
     environment:
       DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
@@ -129,16 +107,18 @@ services:
       HEX_KEY: ${HEX_KEY:?HEX_KEY is required}
       CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:?CONFIG_ENCRYPTION_KEY is required}
       RUST_LOG: ${RUST_LOG:-info}
-      # OIDC issuer URL uses the public URL
+      # OIDC issuer URL now uses the public URL
       OIDC_ISSUER_URL: https://${MOSHSPLIT_URL}/sentinel
       # Frontend URL for redirects
       FRONTEND_URL: https://${MOSHSPLIT_URL}/moshsplit
-      CORS_ALLOWED_ORIGINS: https://pit.moshsplit.com,https://spin.moshsplit.com,http://${MOSHSPLIT_VIRALATAS_URL},http://localhost:80,http://localhost:5173
+      CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
     networks:
       - app-net
     restart: unless-stopped
+    volumes:
+      - ./do-ca.crt:/ca-certificate.crt:ro
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8000/v1/api/system/health"]
       interval: 30s
@@ -148,7 +128,8 @@ services:
 
   # ── Sentinel UI (management dashboard) ─────────────────────────────────────
   sentinel-ui:
-    image: ghcr.io/graned/sentinel-ui:${SENTINEL_VERSION:?SENTINEL_VERSION is required}
+    #image: ghcr.io/graned/sentinel-ui:${SENTINEL_VERSION:?SENTINEL_VERSION is required}
+    image: ghcr.io/graned/sentinel-ui:v1.3.9
     # No ports exposed - accessed via Caddy
     volumes:
       - ./sentinel-ui-nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -172,13 +153,15 @@ services:
   web:
     image: ghcr.io/graned/moshsplit/web:${MOSHSPLIT_VERSION:-latest}
     # No ports exposed - accessed via Caddy
-    volumes:
+    #volumes:
       # Runtime config - override build-time env vars
-      - ./config.js:/usr/share/nginx/html/config.js:ro
+      #- ./config.js:/usr/share/nginx/html/config.js:ro
     environment:
+      # Build-time variables (baked into image)
+      # For runtime configuration, consider runtime env injection
       VITE_API_BASE_URL: /pitboss
       VITE_SENTINEL_URL: /sentinel
-      VITE_APP_VERSION: ${MOSHSPLIT_VERSION:-latest}
+      VITE_APP_VERSION: v0.14.0 
     depends_on:
       pitboss-api:
         condition: service_healthy
@@ -191,30 +174,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  # ── Spin (Test External Login App - MoshPit) ────────────────────────────────
-  # Access at: https://spin.moshsplit.com/
-  # Only for integration testing - stop after tests pass
-  # Token is injected at runtime via environment variable
-  spin:
-    image: ghcr.io/graned/moshsplit/spin:${MOSHSPLIT_VERSION:-latest}
-    profiles:
-      - testing
-    environment:
-      SPIN_API_TOKEN: ${SPIN_API_TOKEN:?SPIN_API_TOKEN is required}
-    entrypoint: ["/bin/sh", "-c", "echo \"window.__SPIN_CONFIG__ = { VITE_API_TOKEN: '${SPIN_API_TOKEN}' };\" > /usr/share/nginx/html/config.js && exec nginx -g 'daemon off;'"]
-    depends_on:
-      pitboss-api:
-        condition: service_healthy
-    networks:
-      - app-net
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
 
 volumes:
   pgdata:

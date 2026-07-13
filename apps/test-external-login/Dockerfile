@@ -30,8 +30,10 @@ RUN pnpm --filter @moshsplit/test-external-login build
 FROM nginx:alpine AS prod
 
 COPY --from=builder /app/apps/test-external-login/dist /usr/share/nginx/html
-COPY apps/test-external-login/public/config.js /usr/share/nginx/html/config.js
+COPY apps/test-external-login/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

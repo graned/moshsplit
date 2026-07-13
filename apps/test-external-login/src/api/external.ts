@@ -2,11 +2,13 @@ declare global {
   interface Window {
     __SPIN_CONFIG__?: {
       VITE_API_TOKEN?: string;
+      VITE_API_URL?: string;
+      VITE_MOSHSPLIT_URL?: string;
     };
   }
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const getApiUrl = () => window.__SPIN_CONFIG__?.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const getApiToken = () => window.__SPIN_CONFIG__?.VITE_API_TOKEN || '';
 
 export interface ExternalSummaryResponse {
@@ -34,7 +36,7 @@ export interface ExternalLoginResponse {
 
 export const externalApi = {
   getSummary: async (email: string): Promise<ExternalSummaryResponse> => {
-    const response = await fetch(`${API_URL}/v1/balances/external-summary`, {
+    const response = await fetch(`${getApiUrl()}/v1/balances/external-summary`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +54,7 @@ export const externalApi = {
   },
 
   externalLogin: async (data: ExternalLoginRequest & { format?: string }): Promise<ExternalLoginResponse> => {
-    const response = await fetch(`${API_URL}/v1/auth/external-login`, {
+    const response = await fetch(`${getApiUrl()}/v1/auth/external-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

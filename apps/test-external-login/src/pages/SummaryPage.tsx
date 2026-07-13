@@ -4,7 +4,7 @@ import { Box, Paper, Typography, Button, CircularProgress, List, ListItem, ListI
 import { OpenInNew as OpenInNewIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { externalApi, ExternalSummaryResponse } from '../api/external';
 
-const MOSHSPLIT_URL = import.meta.env.VITE_MOSHSPLIT_URL || 'http://moshsplit.localhost';
+const getMoshsplitUrl = () => window.__SPIN_CONFIG__?.VITE_MOSHSPLIT_URL || import.meta.env.VITE_MOSHSPLIT_URL || 'http://moshsplit.localhost';
 const getApiToken = () => window.__SPIN_CONFIG__?.VITE_API_TOKEN || '';
 
 interface LoginSession {
@@ -75,7 +75,7 @@ function SummaryPage() {
         user_id: loginResponse.user_id,
       });
 
-      window.open(`${MOSHSPLIT_URL}/moshsplit/login?${params.toString()}`, '_blank');
+      window.open(`${getMoshsplitUrl()}/moshsplit/login?${params.toString()}`, '_blank');
       setRedirecting(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'External login failed';
