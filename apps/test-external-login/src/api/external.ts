@@ -4,6 +4,7 @@ declare global {
       VITE_API_TOKEN?: string;
       VITE_API_URL?: string;
       VITE_MOSHSPLIT_URL?: string;
+      VITE_SENTINEL_URL?: string;
     };
   }
 }

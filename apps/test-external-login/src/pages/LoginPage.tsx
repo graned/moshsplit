@@ -4,7 +4,7 @@ import { Box, TextField, Button, Typography, InputAdornment, IconButton, Paper, 
 import { Visibility, VisibilityOff, Email as EmailIcon, Lock as LockIcon } from '@mui/icons-material';
 import { AuthClient } from '@moshsplit/sentinel-sdk';
 
-const SENTINEL_URL = import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
+const getSentinelUrl = () => window.__SPIN_CONFIG__?.VITE_SENTINEL_URL || import.meta.env.VITE_SENTINEL_URL || 'http://localhost:9000';
 
 interface LoginSession {
   email: string;
@@ -26,7 +26,7 @@ function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const authClient = new AuthClient(SENTINEL_URL);
+  const authClient = new AuthClient(getSentinelUrl());
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
