@@ -37,7 +37,7 @@ export function MobilePageHeader({
         flexDirection: 'column',
         gap: children ? 1.5 : 0,
         px: 2,
-        pt: 1.5,
+        pt: 'calc(12px + env(safe-area-inset-top, 0px))',
         pb: 1.5,
         ...(hasBgImage
           ? {
