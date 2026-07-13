@@ -17,7 +17,7 @@ use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::infrastructure::http::AppState;
 use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
-use crate::domain::repositories::event_member_repo::EventMemberRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::services::balance_service::BalanceService;
 use crate::services::stats_service::StatsService;
