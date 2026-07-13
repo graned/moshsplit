@@ -259,7 +259,7 @@ function SummaryPage() {
             {redirecting ? 'Redirecting...' : 'Open Moshsplit'}
           </Button>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-            Calls /v1/auth/external-login and redirects to {MOSHSPLIT_URL}
+            Calls /v1/auth/external-login and redirects to {getMoshsplitUrl()}
           </Typography>
         </Box>
       </Container>
