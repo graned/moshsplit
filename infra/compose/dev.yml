@@ -56,6 +56,8 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
+      test-external-login:
+        condition: service_healthy
     networks:
       - app-net
     restart: unless-stopped
@@ -159,7 +161,7 @@ services:
       # (same-origin relative paths through Caddy reverse proxy).
       OIDC_ISSUER_URL: http://${MOSHSPLIT_URL:-moshsplit.localhost}/sentinel
       FRONTEND_URL: http://${MOSHSPLIT_URL:-moshsplit.localhost}/moshsplit
-      CORS_ALLOWED_ORIGINS: http://${MOSHSPLIT_URL:-moshsplit.localhost}
+      CORS_ALLOWED_ORIGINS: http://${MOSHSPLIT_URL:-moshsplit.localhost},http://test.${MOSHSPLIT_URL:-moshsplit.localhost}
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
     depends_on:
@@ -221,6 +223,32 @@ services:
       - app-net
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ── test-external-login (External Login Test App) ──────────────────────────
+  test-external-login:
+    build:
+      context: ../..
+      dockerfile: apps/test-external-login/Dockerfile
+      args:
+        VITE_API_TOKEN: sat_f7f33f48d93df70ddac11c1429073af8d088190890cf6d199d9d0e5a6edd1cef
+    ports:
+      - "5174:5174"
+    environment:
+      - VITE_API_URL=/pitboss
+      - VITE_API_TOKEN=sat_f7f33f48d93df70ddac11c1429073af8d088190890cf6d199d9d0e5a6edd1cef
+      - VITE_SENTINEL_URL=/sentinel
+      - VITE_MOSHSPLIT_URL=http://moshsplit.localhost
+    depends_on:
+      pitboss-api:
+        condition: service_healthy
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/"]
       interval: 10s
       timeout: 5s
       retries: 10

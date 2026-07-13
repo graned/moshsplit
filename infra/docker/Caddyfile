@@ -4,16 +4,19 @@
 # Caddy automatically handles SSL/TLS certificate provisioning and renewal.
 #
 # Environment Variables:
-#   {$MOSHSPLIT_URL} - Your domain (e.g., moshsplit.example.com)
+#   {$MOSHSPLIT_VIRALATAS_URL} - viralatas.org domain (e.g., split.viralatas.org)
+#   {$MOSHSPLIT_URL} - moshsplit.com domain (e.g., pit.moshsplit.com)
 #
-# Routing:
-#   sentinel.{$MOSHSPLIT_URL} -> Sentinel UI (management dashboard)
-#   /sentinel/*      -> Sentinel API (auth service)
-#   /pitboss/*   -> Pitboss API (backend API)
-#   /moshsplit/* -> Web frontend (React PWA)
-#   /            -> Redirects to /moshsplit/
+# Routing (viralatas.org):
+#   sentinel.viralatas.org -> Sentinel UI
+#   {$MOSHSPLIT_VIRALATAS_URL} -> Main app
+#
+# Routing (moshsplit.com):
+#   sentinel.moshsplit.com -> Sentinel UI
+#   pit.moshsplit.com -> Main app
+#   spin.moshsplit.com -> Test app (spin)
 
-# ── Sentinel UI (Management Dashboard) - Subdomain ───────────────────────────
+# ── Sentinel UI (Management Dashboard) ─────────────────────────────────────
 # Access at: https://sentinel.viralatas.org/
 sentinel.viralatas.org {
     encode gzip zstd
@@ -32,27 +35,40 @@ sentinel.viralatas.org {
     }
 }
 
-# ── Main Application ──────────────────────────────────────────────────────────
-{$MOSHSPLIT_URL} {
-    # Enable compression
+# ── Sentinel Admin (moshsplit.com) ─────────────────────────────────────────
+# Access at: https://sentinel.moshsplit.com/
+sentinel.moshsplit.com {
     encode gzip zstd
 
-    # Logging
     log {
         output stdout
         format json
     }
 
-    # ── Sentinel Auth Service ──────────────────────────────────────────────
-    # Routes: /auth/* -> sentinel:8000
-    # Strips /auth prefix before forwarding
+    reverse_proxy sentinel-ui:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}
+
+# ── Main Application (viralatas.org) ────────────────────────────────────────
+{$MOSHSPLIT_VIRALATAS_URL} {
+    encode gzip zstd
+
+    log {
+        output stdout
+        format json
+    }
+
     @sentinel {
         path /sentinel/*
     }
     handle @sentinel {
         uri strip_prefix /sentinel
         reverse_proxy sentinel:8000 {
-            # Pass original host and scheme
             header_up Host {host}
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
@@ -61,9 +77,6 @@ sentinel.viralatas.org {
         }
     }
 
-    # ── Pitboss API Service ────────────────────────────────────────────────
-    # Routes: /pitboss/* -> pitboss-api:8080
-    # Strips /pitboss prefix before forwarding
     @pitboss {
         path /pitboss/*
     }
@@ -75,14 +88,10 @@ sentinel.viralatas.org {
             header_up X-Forwarded-For {remote}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Host {host}
-            # Preserve Authorization header (hop-by-hop, Caddy strips by default)
             header_up Authorization {header.Authorization}
         }
     }
 
-    # ── Pitboss Direct Routes (Swagger / API / Docs) ──────────────────────────
-    # pitboss-api serves Swagger UI at /docs/external and /docs/internal,
-    # OpenAPI specs at /api-docs/..., and API endpoints at /v1/...
     @pitbossDirect {
         path /api-docs/*
         path /docs/*
@@ -98,9 +107,6 @@ sentinel.viralatas.org {
         }
     }
 
-    # ── Web Frontend (MoshSplit) ───────────────────────────────────────────
-    # Routes: /moshsplit/* -> web:80
-    # Strips /moshsplit prefix before forwarding
     @moshsplit {
         path /moshsplit /moshsplit/*
     }
@@ -115,10 +121,6 @@ sentinel.viralatas.org {
         }
     }
 
-    # ── Default Catch-All (Root-Level Assets & Safety Net) ────────────────
-    # Requests not matching any known path (e.g. /assets/*, /pwa-*.png,
-    # /config.js, /favicon.svg) are forwarded to the web frontend so the
-    # nginx static file server can serve them.
     @default {
         not path /sentinel/*
         not path /pitboss/*
@@ -137,10 +139,142 @@ sentinel.viralatas.org {
         }
     }
 
-    # ── Root Redirect ──────────────────────────────────────────────────────
-    # Redirect exact / to /moshsplit/ so users don't need to type the base path.
-    # The React app serves exclusively under /moshsplit/ (Vite base config).
     redir / /moshsplit/ 301
+}
+
+# ── Main Application (moshsplit.com) ────────────────────────────────────────
+# Access at: https://pit.moshsplit.com/
+pit.moshsplit.com {
+    encode gzip zstd
+
+    log {
+        output stdout
+        format json
+    }
+
+    @sentinel {
+        path /sentinel/*
+    }
+    handle @sentinel {
+        uri strip_prefix /sentinel
+        reverse_proxy sentinel:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    @pitboss {
+        path /pitboss/*
+    }
+    handle @pitboss {
+        uri strip_prefix /pitboss
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            header_up Authorization {header.Authorization}
+        }
+    }
+
+    @pitbossDirect {
+        path /api-docs/*
+        path /docs/*
+        path /v1/*
+    }
+    handle @pitbossDirect {
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    @moshsplit {
+        path /moshsplit /moshsplit/*
+    }
+    handle @moshsplit {
+        uri strip_prefix /moshsplit
+        reverse_proxy web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    @default {
+        not path /sentinel/*
+        not path /pitboss/*
+        not path /moshsplit /moshsplit/*
+        not path /api-docs/*
+        not path /docs/*
+        not path /v1/*
+    }
+    handle @default {
+        reverse_proxy web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    redir / /moshsplit/ 301
+}
+
+# ── Test External Login (MoshPit) ──────────────────────────────────────────────
+# Access at: https://spin.moshsplit.com/
+# Only available during integration testing - stop after tests pass
+spin.moshsplit.com {
+    encode gzip zstd
+
+    log {
+        output stdout
+        format json
+    }
+
+    @sentinel {
+        path /sentinel/*
+    }
+    handle @sentinel {
+        uri strip_prefix /sentinel
+        reverse_proxy sentinel:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    @pitboss {
+        path /pitboss/*
+    }
+    handle @pitboss {
+        uri strip_prefix /pitboss
+        reverse_proxy pitboss-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            header_up Authorization {header.Authorization}
+        }
+    }
+
+    reverse_proxy spin:5174 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+    }
 }
 
 # ── CORS Headers (if needed for cross-origin requests) ─────────────────────
