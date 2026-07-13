@@ -1,6 +1,7 @@
 //! EventMemberRepository — CRUD + queries for the `app::event_member` table.
 
 use diesel::prelude::*;
+use diesel::sql_query;
 use uuid::Uuid;
 
 use crate::errors::RepositoryError;
@@ -112,20 +113,31 @@ impl EventMemberRepository {
     }
 
     pub fn is_member_of_any_active_event(&self, user_id: Uuid) -> Result<bool, RepositoryError> {
-        use diesel::dsl::exists;
+        use diesel::deserialize::QueryableByName;
 
         let mut conn = self.db_client.get_conn()?;
-        let result = diesel::select(exists(
-            event_member::table
-                .filter(event_member::user_id.eq(user_id))
-                .filter(event_member::left_at.is_null())
-                .inner_join(crate::schema::app::event::table.on(
-                    crate::schema::app::event::id.eq(event_member::event_id)
-                        .and(crate::schema::app::event::status.eq("active"))
-                )),
-        ))
-        .first::<bool>(&mut conn)
-        .map_err(RepositoryError::from)?;
-        Ok(result)
+
+        #[derive(Debug, Clone, QueryableByName)]
+        struct MemberExistsRow {
+            #[diesel(sql_type = diesel::sql_types::Bool)]
+            member_exists: bool,
+        }
+
+        let sql = r#"
+            SELECT EXISTS(
+                SELECT 1 FROM app.event_member em
+                JOIN app.event e ON e.id = em.event_id
+                WHERE em.user_id = $1
+                  AND em.left_at IS NULL
+                  AND e.status = 'active'
+            ) AS member_exists
+        "#;
+
+        let result: MemberExistsRow = sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(result.member_exists)
     }
 }
