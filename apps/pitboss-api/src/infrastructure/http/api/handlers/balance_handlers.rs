@@ -17,6 +17,7 @@ use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::infrastructure::http::AppState;
 use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::event_member_repo::EventMemberRepository;
 use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::services::balance_service::BalanceService;
 use crate::services::stats_service::StatsService;
@@ -276,18 +277,17 @@ pub async fn external_summary(
         }
     };
 
-    // Step 4 — fetch the user's first active event
-    let balance_repo = BalanceRepository::new(state.db_client.clone());
-
-    let (event_id, event_name, rows) = balance_repo
-        .external_expense_breakdown(user_id)
-        .map_err(ServiceError::from)?;
-
-    if event_name.is_empty() {
+    let member_repo = EventMemberRepository::new(state.db_client.clone());
+    if !member_repo.is_member_of_any_active_event(user_id)? {
         return Err(ServiceError::NotFound(
             "User is not a member of any active event".into(),
         ));
     }
+
+    let balance_repo = BalanceRepository::new(state.db_client.clone());
+    let (event_id, event_name, rows) = balance_repo
+        .external_expense_breakdown(user_id)
+        .map_err(ServiceError::from)?;
 
     // Step 5 — get the full balance row for compute_balance (paid/owes/payments/settlements)
     let balance_row = balance_repo

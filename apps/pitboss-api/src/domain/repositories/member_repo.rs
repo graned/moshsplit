@@ -96,7 +96,6 @@ impl EventMemberRepository {
         Ok(result)
     }
 
-    /// Check if a user is an active member of an event.
     pub fn is_active_member(&self, event_id: Uuid, user_id: Uuid) -> Result<bool, RepositoryError> {
         use diesel::dsl::exists;
 
@@ -106,6 +105,24 @@ impl EventMemberRepository {
                 .filter(event_member::event_id.eq(event_id))
                 .filter(event_member::user_id.eq(user_id))
                 .filter(event_member::left_at.is_null()),
+        ))
+        .first::<bool>(&mut conn)
+        .map_err(RepositoryError::from)?;
+        Ok(result)
+    }
+
+    pub fn is_member_of_any_active_event(&self, user_id: Uuid) -> Result<bool, RepositoryError> {
+        use diesel::dsl::exists;
+
+        let mut conn = self.db_client.get_conn()?;
+        let result = diesel::select(exists(
+            event_member::table
+                .filter(event_member::user_id.eq(user_id))
+                .filter(event_member::left_at.is_null())
+                .inner_join(crate::schema::app::event::table.on(
+                    crate::schema::app::event::id.eq(event_member::event_id)
+                        .and(crate::schema::app::event::status.eq("active"))
+                )),
         ))
         .first::<bool>(&mut conn)
         .map_err(RepositoryError::from)?;
