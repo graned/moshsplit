@@ -5,18 +5,17 @@
 #
 # Usage:
 #   1. Create .env file with required variables (see .env.example)
-#   2. Set MOSHSPLIT_URL=moshsplit.example.com in .env
-#   3. docker compose -f infra/compose/prod-caddy.yml up -d
+#   2. docker compose -f infra/compose/prod-caddy.yml up -d
 #
 # Access:
-#   - Web Frontend: https://moshsplit.example.com/moshsplit/
-#   - Pitboss API:  https://moshsplit.example.com/pitboss/
-#   - Sentinel UI:  https://moshsplit.example.com/auth/
-#   - Sentinel API: https://moshsplit.example.com/sentinel/
+#   - Main App (MoshPit):  https://pit.moshsplit.com/
+#   - Sentinel Admin:       https://sentinel.moshsplit.com/
+#   - Test App (Spin):      https://spin.moshsplit.com/ (testing only)
 #
 # Images:
 #   - ghcr.io/graned/moshsplit/pitboss-api:<tag>
 #   - ghcr.io/graned/moshsplit/web:<tag>
+#   - ghcr.io/graned/moshsplit/spin:<tag> (test app, testing profile)
 #   - Sentinel uses official image: ghcr.io/graned/sentinel-core:v1.1.0
 
 services:
@@ -104,7 +103,7 @@ services:
       SENTINEL_PUBLIC_KEY: ${SENTINEL_PUBLIC_KEY}
       AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
       # CORS: Allow requests from Caddy (same origin after proxy)
-      CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
+      CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},https://pit.moshsplit.com,https://spin.moshsplit.com,http://localhost:80,http://localhost:5173
     depends_on:
       pitboss-api-migrations:
         condition: service_completed_successfully
@@ -130,11 +129,11 @@ services:
       HEX_KEY: ${HEX_KEY:?HEX_KEY is required}
       CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:?CONFIG_ENCRYPTION_KEY is required}
       RUST_LOG: ${RUST_LOG:-info}
-      # OIDC issuer URL now uses the public URL
+      # OIDC issuer URL uses the public URL
       OIDC_ISSUER_URL: https://${MOSHSPLIT_URL}/sentinel
       # Frontend URL for redirects
       FRONTEND_URL: https://${MOSHSPLIT_URL}/moshsplit
-      CORS_ALLOWED_ORIGINS: https://${MOSHSPLIT_URL},http://localhost:80,http://localhost:5173
+      CORS_ALLOWED_ORIGINS: https://pit.moshsplit.com,https://spin.moshsplit.com,http://localhost:80,http://localhost:5173
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
     networks:
@@ -192,6 +191,34 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  # ── Spin (Test External Login App - MoshPit) ────────────────────────────────
+  # Access at: https://spin.moshsplit.com/
+  # Only for integration testing - stop after tests pass
+  spin:
+    build:
+      context: ../..
+      dockerfile: apps/test-external-login/Dockerfile
+      args:
+        VITE_API_TOKEN: ${SPIN_API_TOKEN:?SPIN_API_TOKEN is required for test app}
+    profiles:
+      - testing
+    environment:
+      VITE_API_URL: /pitboss
+      VITE_SENTINEL_URL: /sentinel
+      VITE_MOSHSPLIT_URL: https://pit.moshsplit.com
+    depends_on:
+      pitboss-api:
+        condition: service_healthy
+    networks:
+      - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   pgdata:
