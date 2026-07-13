@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const API_URL = process.env.VITE_API_URL || 'http://localhost:8080';
-const API_TOKEN = process.env.VITE_API_TOKEN || '';
 const MOSHSPLIT_URL = process.env.VITE_MOSHSPLIT_URL || 'http://moshsplit.localhost';
 
 export default defineConfig({
@@ -24,7 +23,6 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(API_URL),
-    'import.meta.env.VITE_API_TOKEN': JSON.stringify(API_TOKEN),
     'import.meta.env.VITE_MOSHSPLIT_URL': JSON.stringify(MOSHSPLIT_URL),
   },
 });

@@ -5,7 +5,7 @@ import { OpenInNew as OpenInNewIcon, ArrowBack as ArrowBackIcon } from '@mui/ico
 import { externalApi, ExternalSummaryResponse } from '../api/external';
 
 const MOSHSPLIT_URL = import.meta.env.VITE_MOSHSPLIT_URL || 'http://moshsplit.localhost';
-const API_TOKEN = import.meta.env.VITE_API_TOKEN || '';
+const getApiToken = () => window.__SPIN_CONFIG__?.VITE_API_TOKEN || '';
 
 interface LoginSession {
   email: string;
@@ -62,9 +62,8 @@ function SummaryPage() {
 
     setRedirecting(true);
     try {
-      console.log('externalLogin called with:', { email: session.email, displayName: session.displayName });
       const loginResponse = await externalApi.externalLogin({
-        api_token: API_TOKEN,
+        api_token: getApiToken(),
         email: session.email,
         display_name: session.displayName,
         format: 'json',
@@ -160,7 +159,7 @@ function SummaryPage() {
                 {error}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Make sure the pitboss-api is running and VITE_API_TOKEN is configured correctly.
+                Make sure the pitboss-api is running and the API token is configured correctly.
               </Typography>
             </Box>
           )}

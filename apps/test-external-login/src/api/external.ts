@@ -1,5 +1,13 @@
+declare global {
+  interface Window {
+    __SPIN_CONFIG__?: {
+      VITE_API_TOKEN?: string;
+    };
+  }
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const API_TOKEN = import.meta.env.VITE_API_TOKEN || '';
+const getApiToken = () => window.__SPIN_CONFIG__?.VITE_API_TOKEN || '';
 
 export interface ExternalSummaryResponse {
   event_name: string;
@@ -30,7 +38,7 @@ export const externalApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_TOKEN}`,
+        'Authorization': `Bearer ${getApiToken()}`,
       },
       body: JSON.stringify({ email }),
     });
@@ -48,7 +56,7 @@ export const externalApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_TOKEN}`,
+        'Authorization': `Bearer ${getApiToken()}`,
       },
       body: JSON.stringify(data),
     });

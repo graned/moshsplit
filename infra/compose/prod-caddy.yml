@@ -195,18 +195,14 @@ services:
   # ── Spin (Test External Login App - MoshPit) ────────────────────────────────
   # Access at: https://spin.moshsplit.com/
   # Only for integration testing - stop after tests pass
+  # Token is injected at runtime via environment variable
   spin:
-    build:
-      context: ../..
-      dockerfile: apps/test-external-login/Dockerfile
-      args:
-        VITE_API_TOKEN: ${SPIN_API_TOKEN:?SPIN_API_TOKEN is required for test app}
+    image: ghcr.io/graned/moshsplit/spin:${MOSHSPLIT_VERSION:-latest}
     profiles:
       - testing
     environment:
-      VITE_API_URL: /pitboss
-      VITE_SENTINEL_URL: /sentinel
-      VITE_MOSHSPLIT_URL: https://pit.moshsplit.com
+      SPIN_API_TOKEN: ${SPIN_API_TOKEN:?SPIN_API_TOKEN is required}
+    entrypoint: ["/bin/sh", "-c", "echo \"window.__SPIN_CONFIG__ = { VITE_API_TOKEN: '${SPIN_API_TOKEN}' };\" > /usr/share/nginx/html/config.js && exec nginx -g 'daemon off;'"]
     depends_on:
       pitboss-api:
         condition: service_healthy
@@ -214,7 +210,7 @@ services:
       - app-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5174/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
       interval: 10s
       timeout: 5s
       retries: 3
