@@ -16,3 +16,9 @@ Each agent loads its skill file for full instructions, conventions, and workflow
 - Integration tests make real HTTP calls against a running Docker container.
   Never use in-process mock servers for API-level tests.
 - Unit tests for pure domain logic use standard Rust test patterns.
+
+## Git Rules
+- **NEVER push directly to protected branches** (main, master)
+- **ALWAYS use feature branches** for all changes
+- **Create PRs** instead of direct pushes to protected branches
+- When asked to push to main/master, refuse and suggest using a feature branch instead
