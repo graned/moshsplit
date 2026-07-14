@@ -293,7 +293,7 @@ impl ActivityService {
             LEFT JOIN app.expense e ON e.id = s.expense_id
             WHERE s.event_id = $1
               AND s.status = 'rejected'
-              AND (s.expense_id IS NULL OR e.deleted_at IS NULL)
+              AND (s.expense_id IS NOT NULL AND e.deleted_at IS NOT NULL)
               AND ($2::timestamptz IS NULL
                    OR s.reviewed_at < $2
                    OR (s.reviewed_at = $2 AND s.id < $5::uuid))

@@ -30,6 +30,7 @@ export interface UserBalanceResponse {
 }
 
 export interface ExpenseBreakdown {
+  expense_id: string;
   title: string;
   amount_cents: number;
   paid_cents: number;

@@ -41,6 +41,8 @@ pub struct UserBalanceRow {
 /// An individual expense breakdown entry for the "explain" endpoint.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct ExpenseBreakdownRow {
+    #[diesel(sql_type = DUuid)]
+    pub expense_id: Uuid,
     #[diesel(sql_type = Text)]
     pub title: String,
     #[diesel(sql_type = Integer)]
@@ -291,6 +293,7 @@ impl BalanceRepository {
                 GROUP BY sh.expense_version_id
             )
             SELECT
+                lv.expense_id,
                 lv.title,
                 lv.amount_cents,
                 CASE WHEN lv.paid_by = $2 THEN lv.amount_cents ELSE 0 END AS paid_cents,
@@ -345,6 +348,7 @@ impl BalanceRepository {
                 GROUP BY sh.expense_version_id
             )
             SELECT
+                lv.expense_id,
                 lv.title,
                 lv.amount_cents,
                 CASE WHEN lv.paid_by = $2 THEN lv.amount_cents ELSE 0 END AS paid_cents,

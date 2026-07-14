@@ -303,6 +303,7 @@ export function MobileBalanceDrawer({
             amountColor={amountColor}
             darkColor={darkColor}
             displayName={displayName}
+            breakdownItems={resolvedBreakdownItems}
             onComplete={() => setView('breakdown')}
             onCancel={() => setView('breakdown')}
           />

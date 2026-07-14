@@ -38,6 +38,7 @@ interface RestoreHonorModalProps {
   currency: string;
   eventId: string;
   fromUserId: string;
+  expense_id?: string;
 }
 
 type SettleMode = 'full' | 'partial';
@@ -52,6 +53,7 @@ export function RestoreHonorModal({
   currency,
   eventId,
   fromUserId,
+  expense_id,
 }: RestoreHonorModalProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -96,6 +98,7 @@ export function RestoreHonorModal({
         to_user: toUser,
         amount_cents: Math.round(amount * 100),
         note: note.trim() || undefined,
+        expense_id: expense_id ?? '',
       };
 
       await createSettlement(eventId, req);
@@ -103,7 +106,7 @@ export function RestoreHonorModal({
     } catch (err) {
       // Error is stored in the store's error state
     }
-  }, [amount, note, fromUserId, toUser, eventId, createSettlement]);
+  }, [amount, note, fromUserId, toUser, eventId, createSettlement, expense_id]);
 
   const handleSuccessClose = () => {
     setShowSuccess(false);

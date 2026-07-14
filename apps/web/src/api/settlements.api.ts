@@ -13,6 +13,7 @@ export interface Settlement {
   created_at: string;
   note?: string;
   proof_url?: string;
+  expense_id?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   rejection_note?: string;
@@ -79,6 +80,7 @@ export interface CreateSettlementRequest {
   amount_cents: number;
   note?: string;
   proof_url?: string;
+  expense_id: string;
 }
 
 export interface UpdateSettlementStatusRequest {

@@ -15,6 +15,7 @@ function formatAmount(cents: number, currency = 'EUR') {
 }
 
 export interface BreakdownItem {
+  expense_id?: string;
   label: string;
   amount: number;
   type: 'expense' | 'settlement';

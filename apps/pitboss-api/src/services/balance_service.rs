@@ -145,6 +145,7 @@ impl BalanceService {
         let expenses: Vec<ExpenseBreakdown> = expense_rows
             .into_iter()
             .map(|r| ExpenseBreakdown {
+                expense_id: r.expense_id,
                 title: r.title,
                 amount_cents: r.amount_cents,
                 paid_cents: r.paid_cents,
@@ -212,6 +213,7 @@ impl BalanceService {
             .expense_breakdown_between(event_id, user_id, counterparty_id)?
             .into_iter()
             .map(|r| ExpenseBreakdown {
+                expense_id: r.expense_id,
                 title: r.title,
                 amount_cents: r.amount_cents,
                 paid_cents: r.paid_cents,

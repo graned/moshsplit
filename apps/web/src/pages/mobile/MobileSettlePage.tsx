@@ -154,10 +154,10 @@ export default function MobileSettlePage() {
     const items: BreakdownItem[] = [];
     for (const expense of explainBalance.expenses) {
       if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
+        items.push({ expense_id: expense.expense_id, label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
       if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+        items.push({ expense_id: expense.expense_id, label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
     }
     for (const settlement of explainBalance.settlements) {
@@ -177,10 +177,10 @@ export default function MobileSettlePage() {
     const items: BreakdownItem[] = [];
     for (const expense of explainBalance.expenses) {
       if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
+        items.push({ expense_id: expense.expense_id, label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
       if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+        items.push({ expense_id: expense.expense_id, label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
     }
     for (const settlement of explainBalance.settlements) {

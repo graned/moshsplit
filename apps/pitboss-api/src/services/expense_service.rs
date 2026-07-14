@@ -631,74 +631,83 @@ impl ExpenseService {
             .unwrap_or_else(|| "Deleted Expense".to_string());
         let now = Utc::now();
 
-        let payments = self
-            .payment_repo
-            .find_by_event_id_and_to_user(event_id, expense_owner)?;
+        let amount_cents = expense_row.amount_cents.unwrap_or(0);
+        let participant_ids = expense_row.participant_ids.unwrap_or_default();
+        let participant_count = participant_ids.len() as i32;
 
-        for payment in payments {
-            let original_payer = payment.from_user;
-            let amount = payment.amount_cents;
+        if participant_count > 0 && amount_cents > 0 {
+            let owner_share = amount_cents / participant_count;
+            let net_overpayment = amount_cents - owner_share;
 
-            let expense_id = Uuid::new_v4();
-            let version_id = Uuid::new_v4();
+            if net_overpayment > 0 {
+                let mut shares: Vec<(Uuid, i32)> = Vec::new();
+                shares.push((expense_owner, owner_share));
 
-            let expense = Expense {
-                id: expense_id,
-                event_id,
-                created_by: expense_owner,
-                created_at: now,
-                current_version_id: Some(version_id),
-                deleted_at: None,
-            };
-            self.expense_repo.create(&expense)?;
+                for participant_id in &participant_ids {
+                    if *participant_id != expense_owner {
+                        let participant_share = amount_cents / participant_count;
+                        shares.push((*participant_id, participant_share));
+                    }
+                }
 
-            let split_data = serde_json::json!({
-                "shares": [expense_owner.to_string(), original_payer.to_string()]
-            });
+                let total_shares: i32 = shares.iter().map(|(_, s)| s).sum();
+                if total_shares == amount_cents {
+                    let reimbursement_expense_id = Uuid::new_v4();
+                    let version_id = Uuid::new_v4();
 
-            let version = ExpenseVersion {
-                id: version_id,
-                expense_id,
-                version_number: 1,
-                title: format!("Reimbursement for {}", original_title),
-                description: Some("Original expense deleted by owner".to_string()),
-                amount_cents: amount,
-                paid_by: expense_owner,
-                split_type: SplitType::Equal,
-                split_data,
-                notes: None,
-                created_by: expense_owner,
-                created_at: now,
-                expense_type: Some(ExpenseType::Reimburse),
-            };
-            self.version_repo.create(&version)?;
+                    let expense = Expense {
+                        id: reimbursement_expense_id,
+                        event_id,
+                        created_by: expense_owner,
+                        created_at: now,
+                        current_version_id: Some(version_id),
+                        deleted_at: None,
+                    };
+                    self.expense_repo.create(&expense)?;
 
-            let half = amount / 2;
-            let owner_share = half;
-            let payer_share = amount - half;
+                    let split_data = serde_json::json!({
+                        "shares": shares
+                            .iter()
+                            .map(|(uid, _)| uid.to_string())
+                            .collect::<Vec<_>>()
+                    });
 
-            let share_rows = vec![
-                ExpenseVersionShare {
-                    id: Uuid::new_v4(),
-                    expense_version_id: version_id,
-                    user_id: expense_owner,
-                    share_cents: owner_share,
-                },
-                ExpenseVersionShare {
-                    id: Uuid::new_v4(),
-                    expense_version_id: version_id,
-                    user_id: original_payer,
-                    share_cents: payer_share,
-                },
-            ];
+                    let version = ExpenseVersion {
+                        id: version_id,
+                        expense_id: reimbursement_expense_id,
+                        version_number: 1,
+                        title: format!("Reimbursement for {}", original_title),
+                        description: Some("Original expense deleted by owner".to_string()),
+                        amount_cents: net_overpayment,
+                        paid_by: expense_owner,
+                        split_type: SplitType::Equal,
+                        split_data,
+                        notes: None,
+                        created_by: expense_owner,
+                        created_at: now,
+                        expense_type: Some(ExpenseType::Reimburse),
+                    };
+                    self.version_repo.create(&version)?;
 
-            let affected = self.share_repo.bulk_insert(&share_rows)?;
-            if affected != share_rows.len() {
-                return Err(ServiceError::Internal(format!(
-                    "Failed to insert reimbursement shares: expected {}, got {}",
-                    share_rows.len(),
-                    affected
-                )));
+                    let share_rows: Vec<ExpenseVersionShare> = shares
+                        .into_iter()
+                        .map(|(user_id, share_cents)| ExpenseVersionShare {
+                            id: Uuid::new_v4(),
+                            expense_version_id: version_id,
+                            user_id,
+                            share_cents,
+                        })
+                        .collect();
+
+                    let affected = self.share_repo.bulk_insert(&share_rows)?;
+                    if affected != share_rows.len() {
+                        return Err(ServiceError::Internal(format!(
+                            "Failed to insert reimbursement shares: expected {}, got {}",
+                            share_rows.len(),
+                            affected
+                        )));
+                    }
+                }
             }
         }
 

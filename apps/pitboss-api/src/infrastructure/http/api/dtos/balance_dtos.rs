@@ -46,6 +46,7 @@ pub struct SimplifiedDebtsResponse {
 /// Breakdown of a single expense for the "explain" endpoint.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ExpenseBreakdown {
+    pub expense_id: Uuid,
     pub title: String,
     pub amount_cents: i32,
     pub paid_cents: i32,
