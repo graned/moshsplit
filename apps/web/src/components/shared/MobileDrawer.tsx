@@ -67,13 +67,15 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, onBack, c
           bgcolor: '#1A1A1A',
           borderTopLeftRadius: fullScreen ? 0 : 20,
           borderTopRightRadius: fullScreen ? 0 : 20,
-          height: fullScreen ? '100dvh' : undefined,
+          height: fullScreen ? '100vh' : undefined,
           maxHeight: fullScreen ? undefined : '92dvh',
           overflow: 'hidden',
           overscrollBehavior: 'none',
           display: 'flex',
           flexDirection: 'column',
-          pt: fullScreen ? 'env(safe-area-inset-top)' : 0,
+          pt: 'env(safe-area-inset-top)',
+          pb: 'env(safe-area-inset-bottom)',
+          boxSizing: 'border-box',
         },
       }}
     >
