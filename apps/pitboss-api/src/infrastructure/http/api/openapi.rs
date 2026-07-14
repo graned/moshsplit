@@ -179,9 +179,9 @@ struct SecurityAddon;
 
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut OpenApi) {
-        let components = openapi.components.get_or_insert_with(|| {
-            ComponentsBuilder::new().build()
-        });
+        let components = openapi
+            .components
+            .get_or_insert_with(|| ComponentsBuilder::new().build());
 
         // Bearer auth for external-login (API token)
         components.add_security_scheme(
@@ -190,7 +190,9 @@ impl Modify for SecurityAddon {
                 HttpBuilder::new()
                     .scheme(HttpAuthScheme::Bearer)
                     .bearer_format("JWT")
-                    .description(Some("API token used as Bearer token in Authorization header"))
+                    .description(Some(
+                        "API token used as Bearer token in Authorization header",
+                    ))
                     .build(),
             ),
         );
@@ -202,7 +204,9 @@ impl Modify for SecurityAddon {
                 HttpBuilder::new()
                     .scheme(HttpAuthScheme::Bearer)
                     .bearer_format("API Token")
-                    .description(Some("External API token (sat_...) used as Bearer token in Authorization header"))
+                    .description(Some(
+                        "External API token (sat_...) used as Bearer token in Authorization header",
+                    ))
                     .build(),
             ),
         );

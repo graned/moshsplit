@@ -34,6 +34,10 @@
   "settlementRejectedCard": {
     "rejected": "Acordo rejeitado"
   },
+  "expenseDeletedCard": {
+    "deleted": "Despesa excluída",
+    "expense": "despesa"
+  },
   "expenseDetail": {
     "title": "Detalhes da Despesa",
     "edit": "Editar despesa",

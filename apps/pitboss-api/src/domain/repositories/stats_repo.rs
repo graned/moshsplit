@@ -156,8 +156,6 @@ impl StatsRepository {
             .optional()
             .map_err(RepositoryError::from)?;
 
-        result.ok_or_else(|| {
-            RepositoryError::Database("Failed to compute event stats".into())
-        })
+        result.ok_or_else(|| RepositoryError::Database("Failed to compute event stats".into()))
     }
 }

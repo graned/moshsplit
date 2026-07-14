@@ -65,8 +65,17 @@ export interface SettlementRejectedActivity extends ActivityItemBase {
   reviewed_at: string;
 }
 
+/** Expense deleted activity – an expense was deleted */
+export interface ExpenseDeletedActivity extends ActivityItemBase {
+  type: 'expense_deleted';
+  expense_id: string;
+  title: string;
+  amount_cents: number;
+  paid_by: string;
+}
+
 /** Discriminated union of all activity item types */
-export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity | ExpenseUpdatedActivity | SettlementRejectedActivity;
+export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity | ExpenseUpdatedActivity | SettlementRejectedActivity | ExpenseDeletedActivity;
 
 /** Helper type-guards */
 export function isExpenseActivity(item: ActivityItem): item is ExpenseActivity {
@@ -91,6 +100,10 @@ export function isExpenseUpdatedActivity(item: ActivityItem): item is ExpenseUpd
 
 export function isSettlementRejectedActivity(item: ActivityItem): item is SettlementRejectedActivity {
   return item.type === 'settlement_rejected';
+}
+
+export function isExpenseDeletedActivity(item: ActivityItem): item is ExpenseDeletedActivity {
+  return item.type === 'expense_deleted';
 }
 
 // ─── API Calls ─────────────────────────────────────────────────────────────

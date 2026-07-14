@@ -3,13 +3,13 @@
 use chrono::Utc;
 use uuid::Uuid;
 
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::payment_dtos::{
     CreatePaymentRequest, PaymentListItem, PaymentResponse,
 };
-use crate::domain::repositories::event_repo::EventRepository;
-use crate::domain::repositories::member_repo::EventMemberRepository;
-use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::schema_models::Payment;
 
 pub struct PaymentService {
@@ -24,7 +24,11 @@ impl PaymentService {
         payment_repo: PaymentRepository,
         member_repo: EventMemberRepository,
     ) -> Self {
-        Self { event_repo, payment_repo, member_repo }
+        Self {
+            event_repo,
+            payment_repo,
+            member_repo,
+        }
     }
 
     /// Create a new payment (immutable).
@@ -100,7 +104,9 @@ impl PaymentService {
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
-        let (rows, has_more) = self.payment_repo.list_by_event_id_paginated(event_id, cursor, limit)?;
+        let (rows, has_more) = self
+            .payment_repo
+            .list_by_event_id_paginated(event_id, cursor, limit)?;
 
         let items: Vec<PaymentListItem> = rows
             .into_iter()
@@ -124,14 +130,20 @@ impl PaymentService {
     }
 
     /// Get a single payment by ID.
-    pub fn get_payment(&self, event_id: Uuid, payment_id: Uuid) -> Result<PaymentResponse, ServiceError> {
+    pub fn get_payment(
+        &self,
+        event_id: Uuid,
+        payment_id: Uuid,
+    ) -> Result<PaymentResponse, ServiceError> {
         let payment = self
             .payment_repo
             .find_by_id(payment_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Payment {} not found", payment_id)))?;
 
         if payment.event_id != event_id {
-            return Err(ServiceError::NotFound("Payment not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Payment not found in this event".into(),
+            ));
         }
 
         Ok(PaymentResponse {

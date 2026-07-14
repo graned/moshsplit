@@ -1,8 +1,6 @@
 mod common;
 
-use common::{
-    assert_valid_envelope, delete_json, get_json, patch_json, post_json,
-};
+use common::{assert_valid_envelope, delete_json, get_json, patch_json, post_json};
 use reqwest::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
@@ -44,8 +42,7 @@ async fn test_create_event_defaults_currency() {
 
 #[tokio::test]
 async fn test_create_event_empty_name_returns_error() {
-    let (status, body) =
-        post_json("/v1/events", &json!({"name": ""})).await;
+    let (status, body) = post_json("/v1/events", &json!({"name": ""})).await;
 
     assert!(!status.is_success());
     assert_valid_envelope(&body, false);
@@ -54,8 +51,7 @@ async fn test_create_event_empty_name_returns_error() {
 #[tokio::test]
 async fn test_get_event_returns_200() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
     let (status, body) = get_json(&format!("/v1/events/{event_id}")).await;
@@ -87,8 +83,7 @@ async fn test_list_events_returns_200() {
 #[tokio::test]
 async fn test_update_event_returns_200() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
     let new_name = format!("Updated {name}");
 
@@ -101,17 +96,13 @@ async fn test_update_event_returns_200() {
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
     assert_eq!(body["data"]["name"], new_name);
-    assert_eq!(
-        body["data"]["description"],
-        "Updated description"
-    );
+    assert_eq!(body["data"]["description"], "Updated description");
 }
 
 #[tokio::test]
 async fn test_delete_event_archives_it() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
     let (status, _body) = delete_json(&format!("/v1/events/{event_id}")).await;
@@ -119,8 +110,7 @@ async fn test_delete_event_archives_it() {
     // DELETE returns 204 No Content
     assert_eq!(status, StatusCode::NO_CONTENT);
 
-    let (get_status, get_body) =
-        get_json(&format!("/v1/events/{event_id}")).await;
+    let (get_status, get_body) = get_json(&format!("/v1/events/{event_id}")).await;
     assert_eq!(get_status, StatusCode::OK);
     assert_eq!(get_body["data"]["status"], "deleted");
 }
@@ -130,8 +120,7 @@ async fn test_delete_event_archives_it() {
 #[tokio::test]
 async fn test_add_member_returns_201() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
     let user_id = Uuid::new_v4();
 
@@ -150,8 +139,7 @@ async fn test_add_member_returns_201() {
 #[tokio::test]
 async fn test_list_members_returns_200() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
     let user_id = Uuid::new_v4();
 
@@ -161,8 +149,7 @@ async fn test_list_members_returns_200() {
     )
     .await;
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{event_id}/members")).await;
+    let (status, body) = get_json(&format!("/v1/events/{event_id}/members")).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -173,8 +160,7 @@ async fn test_list_members_returns_200() {
 #[tokio::test]
 async fn test_remove_member_returns_200() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
     let user_id = Uuid::new_v4();
 
@@ -184,10 +170,7 @@ async fn test_remove_member_returns_200() {
     )
     .await;
 
-    let (status, _body) = delete_json(&format!(
-        "/v1/events/{event_id}/members/{user_id}"
-    ))
-    .await;
+    let (status, _body) = delete_json(&format!("/v1/events/{event_id}/members/{user_id}")).await;
 
     // DELETE returns 204 No Content
     assert_eq!(status, StatusCode::NO_CONTENT);
@@ -196,15 +179,11 @@ async fn test_remove_member_returns_200() {
 #[tokio::test]
 async fn test_remove_nonexistent_member_returns_error() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
     let fake_user = Uuid::new_v4();
 
-    let (status, body) = delete_json(&format!(
-        "/v1/events/{event_id}/members/{fake_user}"
-    ))
-    .await;
+    let (status, body) = delete_json(&format!("/v1/events/{event_id}/members/{fake_user}")).await;
 
     assert!(!status.is_success());
     assert_valid_envelope(&body, false);
@@ -226,8 +205,7 @@ async fn test_get_event_invalid_uuid_returns_400() {
 #[tokio::test]
 async fn test_add_member_invalid_user_id_returns_error() {
     let name = unique_event_name();
-    let (_, create_body) =
-        post_json("/v1/events", &json!({"name": name})).await;
+    let (_, create_body) = post_json("/v1/events", &json!({"name": name})).await;
     let event_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
     let (status, body) = post_json(

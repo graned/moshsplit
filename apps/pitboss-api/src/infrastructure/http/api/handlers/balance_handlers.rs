@@ -7,6 +7,10 @@ use axum::Json;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::domain::repositories::balance_repo::BalanceRepository;
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
     BalancesResponse, ExplainBalanceBetweenResponse, ExplainBalanceResponse, ExternalBalanceItem,
@@ -15,10 +19,6 @@ use crate::infrastructure::http::api::dtos::balance_dtos::{
 };
 use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::infrastructure::http::AppState;
-use crate::domain::repositories::balance_repo::BalanceRepository;
-use crate::domain::repositories::event_repo::EventRepository;
-use crate::domain::repositories::member_repo::EventMemberRepository;
-use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::services::balance_service::BalanceService;
 use crate::services::stats_service::StatsService;
 
@@ -221,7 +221,9 @@ pub async fn external_summary(
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|h| h.strip_prefix("Bearer ").map(|s| s.to_string()))
-        .ok_or_else(|| ServiceError::Unauthorized("Missing or invalid Authorization header".into()))?;
+        .ok_or_else(|| {
+            ServiceError::Unauthorized("Missing or invalid Authorization header".into())
+        })?;
 
     // Step 2 — validate API token via Sentinel token exchange (ignore the session, just check validity)
     let validation_result = state
@@ -267,7 +269,9 @@ pub async fn external_summary(
                 .find(|u| u.email.to_lowercase() == email)
                 .map(|u| Uuid::parse_str(&u.user_id).ok())
                 .flatten()
-                .ok_or_else(|| ServiceError::NotFound(format!("No user found with email {email}")))?,
+                .ok_or_else(|| {
+                    ServiceError::NotFound(format!("No user found with email {email}"))
+                })?,
             Err(e) => {
                 tracing::warn!("Failed to fetch users from Sentinel: {}", e);
                 return Err(ServiceError::Unauthorized(

@@ -18,12 +18,9 @@ use crate::errors::ApiError;
 /// the Sentinel auth middleware). Returns 403 if the user lacks the admin
 /// role, or 401 if no authenticated user is found.
 pub async fn require_admin(req: Request<Body>, next: Next) -> Result<Response, ApiError> {
-    let authenticated = req
-        .extensions()
-        .get::<AuthenticatedUser>()
-        .ok_or_else(|| {
-            ApiError::unauthorized("Authentication required. No authenticated user found.")
-        })?;
+    let authenticated = req.extensions().get::<AuthenticatedUser>().ok_or_else(|| {
+        ApiError::unauthorized("Authentication required. No authenticated user found.")
+    })?;
 
     // Check for admin role (case-insensitive)
     let has_admin_role = authenticated

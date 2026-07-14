@@ -162,6 +162,8 @@ pub mod app {
             reviewed_by -> Nullable<Uuid>,
             reviewed_at -> Nullable<Timestamptz>,
             rejection_note -> Nullable<Text>,
+            expense_id -> Nullable<Uuid>,
+            deleted_at -> Nullable<Timestamptz>,
         }
     }
 

@@ -7,10 +7,6 @@ use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, MemberListItem};
-use crate::infrastructure::http::api::extractors::CurrentUser;
-use crate::infrastructure::http::AppState;
 use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
@@ -18,6 +14,11 @@ use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, MemberListItem};
+use crate::infrastructure::http::api::extractors::CurrentUser;
+use crate::infrastructure::http::AppState;
 use crate::services::balance_service::BalanceService;
 use crate::services::expense_service::ExpenseService;
 use crate::services::member_service::MemberService;
@@ -104,6 +105,7 @@ pub async fn remove_member(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
     expense_svc.redistribute_expenses_for_member_removal(event_id, user_id, actor_id)?;
 
@@ -118,7 +120,8 @@ pub async fn remove_member(
     let _ = BalanceService::new(
         EventRepository::new(state.db_client.clone()),
         BalanceRepository::new(state.db_client.clone()),
-    ).recalculate_event_balances(event_id);
+    )
+    .recalculate_event_balances(event_id);
 
     Ok(StatusCode::NO_CONTENT)
 }

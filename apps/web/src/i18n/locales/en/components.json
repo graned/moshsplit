@@ -34,6 +34,10 @@
   "settlementRejectedCard": {
     "rejected": "Settlement rejected"
   },
+  "expenseDeletedCard": {
+    "deleted": "Expense deleted",
+    "expense": "expense"
+  },
   "expenseDetail": {
     "title": "Expense Details",
     "edit": "Edit expense",

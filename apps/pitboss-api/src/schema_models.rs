@@ -4,7 +4,9 @@
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
-use crate::schema_enums::{EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType};
+use crate::schema_enums::{
+    EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType,
+};
 use diesel::prelude::*;
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -26,7 +28,7 @@ pub struct Event {
     pub name: String,
     pub description: Option<String>,
     pub currency: String,
-    pub status: EventStatus,
+    pub status: crate::schema_enums::EventStatus,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -39,7 +41,7 @@ pub struct EventImage {
     pub event_id: uuid::Uuid,
     pub url: String,
     pub alt_text: Option<String>,
-    pub image_type: EventImageType,
+    pub image_type: crate::schema_enums::EventImageType,
     pub sort_order: i32,
     pub uploaded_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -51,7 +53,7 @@ pub struct EventMember {
     pub id: uuid::Uuid,
     pub event_id: uuid::Uuid,
     pub user_id: uuid::Uuid,
-    pub role: EventMemberRole,
+    pub role: crate::schema_enums::EventMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
     pub left_at: Option<chrono::DateTime<chrono::Utc>>,
 }
@@ -77,12 +79,12 @@ pub struct ExpenseVersion {
     pub description: Option<String>,
     pub amount_cents: i32,
     pub paid_by: uuid::Uuid,
-    pub split_type: SplitType,
+    pub split_type: crate::schema_enums::SplitType,
     pub split_data: serde_json::Value,
     pub notes: Option<String>,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    pub expense_type: Option<ExpenseType>,
+    pub expense_type: Option<crate::schema_enums::ExpenseType>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -118,7 +120,7 @@ pub struct Settlement {
     pub from_user: uuid::Uuid,
     pub to_user: uuid::Uuid,
     pub amount_cents: i32,
-    pub status: SettlementStatus,
+    pub status: crate::schema_enums::SettlementStatus,
     pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_by: uuid::Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -127,5 +129,6 @@ pub struct Settlement {
     pub reviewed_by: Option<uuid::Uuid>,
     pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
     pub rejection_note: Option<String>,
+    pub expense_id: Option<uuid::Uuid>,
+    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 }
-

@@ -24,7 +24,8 @@ async fn main() -> anyhow::Result<()> {
     if std::env::args().any(|a| a == "--migrate") {
         let db_client = pitboss_api::infrastructure::clients::DbClient::new(&db_url)
             .map_err(|e| anyhow::anyhow!("Failed to connect to Postgres: {}", e))?;
-        db_client.run_migrations()
+        db_client
+            .run_migrations()
             .map_err(|e| anyhow::anyhow!("Migration failed: {}", e))?;
         tracing::info!("Migrations complete — exiting");
         return Ok(());

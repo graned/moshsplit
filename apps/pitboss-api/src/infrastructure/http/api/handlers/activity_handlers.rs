@@ -6,10 +6,10 @@ use axum::extract::{Path, Query, State};
 use axum::Json;
 use uuid::Uuid;
 
+use crate::domain::repositories::event_repo::EventRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::activity_dtos::{ActivityResponse, ListActivityParams};
 use crate::infrastructure::http::AppState;
-use crate::domain::repositories::event_repo::EventRepository;
 use crate::services::activity_service::ActivityService;
 
 /// GET /v1/events/:id/activity — list activity feed for an event.

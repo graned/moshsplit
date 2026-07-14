@@ -22,7 +22,7 @@
 
 mod common;
 
-use common::{get_json, test_client, assert_valid_envelope, BASE_URL};
+use common::{assert_valid_envelope, get_json, test_client, BASE_URL};
 use reqwest::StatusCode;
 
 // ---------------------------------------------------------------------------
@@ -102,5 +102,8 @@ async fn test_request_id_is_stable_across_middleware() {
         .expect("X-Request-Id header should be valid UTF-8")
         .to_string();
 
-    assert_eq!(returned_id, custom_id, "echoed X-Request-Id should match the sent value");
+    assert_eq!(
+        returned_id, custom_id,
+        "echoed X-Request-Id should match the sent value"
+    );
 }

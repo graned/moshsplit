@@ -11,8 +11,8 @@ use diesel::sql_types::{Integer, Nullable, Text, Timestamptz, Uuid as DUuid};
 use diesel::RunQueryDsl;
 use uuid::Uuid;
 
-use crate::errors::{RepositoryError, ServiceError};
 use crate::domain::repositories::event_repo::EventRepository;
+use crate::errors::{RepositoryError, ServiceError};
 use crate::infrastructure::clients::DbClient;
 use crate::infrastructure::http::api::dtos::activity_dtos::{ActivityItem, ActivityResponse};
 
@@ -80,7 +80,10 @@ pub struct ActivityService {
 
 impl ActivityService {
     pub fn new(event_repo: EventRepository, db_client: DbClient) -> Self {
-        Self { event_repo, db_client }
+        Self {
+            event_repo,
+            db_client,
+        }
     }
 
     /// List activity items for an event with cursor-based pagination.
@@ -243,6 +246,35 @@ impl ActivityService {
             UNION ALL
 
             SELECT
+                'expense_deleted' AS item_type,
+                e.id,
+                e.deleted_at    AS created_at,
+                ev.title,
+                ev.amount_cents,
+                ev.paid_by,
+                (
+                    SELECT COUNT(*)::INTEGER
+                    FROM app.expense_version_share sh
+                    WHERE sh.expense_version_id = e.current_version_id
+                ) AS participant_count,
+                ev.expense_type::TEXT,
+                NULL::UUID      AS from_user,
+                NULL::UUID      AS to_user,
+                NULL::UUID      AS user_id,
+                NULL::UUID      AS approved_by,
+                NULL::timestamptz AS reviewed_at,
+                e.id            AS expense_id
+            FROM app.expense e
+            LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
+            WHERE e.event_id = $1
+              AND e.deleted_at IS NOT NULL
+              AND ($2::timestamptz IS NULL
+                   OR e.deleted_at < $2
+                   OR (e.deleted_at = $2 AND e.id < $5::uuid))
+
+            UNION ALL
+
+            SELECT
                 'settlement_rejected' AS item_type,
                 s.id,
                 s.reviewed_at   AS created_at,
@@ -256,10 +288,12 @@ impl ActivityService {
                 NULL::UUID      AS user_id,
                 s.reviewed_by   AS approved_by,
                 s.reviewed_at,
-                NULL::UUID      AS expense_id
+                s.expense_id
             FROM app.settlement s
+            LEFT JOIN app.expense e ON e.id = s.expense_id
             WHERE s.event_id = $1
               AND s.status = 'rejected'
+              AND (s.expense_id IS NULL OR e.deleted_at IS NULL)
               AND ($2::timestamptz IS NULL
                    OR s.reviewed_at < $2
                    OR (s.reviewed_at = $2 AND s.id < $5::uuid))
@@ -337,6 +371,14 @@ impl ActivityService {
                     created_at: row.created_at,
                     reviewed_at: row.reviewed_at.unwrap_or(row.created_at),
                 },
+                "expense_deleted" => ActivityItem::ExpenseDeleted {
+                    id: row.id,
+                    expense_id: row.expense_id.unwrap_or_default(),
+                    title: row.title.unwrap_or_else(|| "Untitled".to_string()),
+                    amount_cents: row.amount_cents.unwrap_or(0),
+                    paid_by: row.paid_by.unwrap_or_default(),
+                    created_at: row.created_at,
+                },
                 other => ActivityItem::MemberJoin {
                     id: row.id,
                     user_id: Uuid::nil(),
@@ -353,7 +395,8 @@ impl ActivityService {
                 | ActivityItem::HonorRestored { id, created_at, .. }
                 | ActivityItem::MemberJoin { id, created_at, .. }
                 | ActivityItem::ExpenseUpdated { id, created_at, .. }
-                | ActivityItem::SettlementRejected { id, created_at, .. } => {
+                | ActivityItem::SettlementRejected { id, created_at, .. }
+                | ActivityItem::ExpenseDeleted { id, created_at, .. } => {
                     encode_cursor(*created_at, *id)
                 }
             })

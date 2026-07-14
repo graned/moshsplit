@@ -96,9 +96,7 @@ macro_rules! impl_repository {
             }
 
             /// Fetch all rows from the table.
-            pub fn find_all(
-                &self,
-            ) -> Result<Vec<$entity>, $crate::errors::RepositoryError> {
+            pub fn find_all(&self) -> Result<Vec<$entity>, $crate::errors::RepositoryError> {
                 use diesel::RunQueryDsl;
                 let mut conn = self.db_client.get_conn()?;
                 let results = $table
@@ -108,10 +106,7 @@ macro_rules! impl_repository {
             }
 
             /// Delete a row by primary key.  Returns the number of rows affected.
-            pub fn delete(
-                &self,
-                id: $pk_type,
-            ) -> Result<usize, $crate::errors::RepositoryError> {
+            pub fn delete(&self, id: $pk_type) -> Result<usize, $crate::errors::RepositoryError> {
                 use diesel::QueryDsl;
                 use diesel::RunQueryDsl;
                 let mut conn = self.db_client.get_conn()?;
@@ -135,13 +130,10 @@ macro_rules! impl_repository {
             }
 
             /// Check whether a row with the given primary key exists.
-            pub fn exists(
-                &self,
-                id: $pk_type,
-            ) -> Result<bool, $crate::errors::RepositoryError> {
+            pub fn exists(&self, id: $pk_type) -> Result<bool, $crate::errors::RepositoryError> {
+                use diesel::dsl::exists;
                 use diesel::QueryDsl;
                 use diesel::RunQueryDsl;
-                use diesel::dsl::exists;
                 let mut conn = self.db_client.get_conn()?;
                 let result = diesel::select(exists($table.find(id)))
                     .first::<bool>(&mut conn)

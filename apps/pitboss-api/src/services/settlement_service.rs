@@ -3,16 +3,17 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest, SettlementHistoryItem, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
-};
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::domain::repositories::settlement_repo::{SettlementRepository, SettlementStatusUpdate};
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::settlement_dtos::{
+    ApproveSettlementRequest, CreateSettlementRequest, RejectSettlementRequest,
+    SettlementHistoryItem, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
+};
 use crate::schema_enums::SettlementStatus;
-use std::str::FromStr;
 use crate::schema_models::Settlement;
+use std::str::FromStr;
 
 pub struct SettlementService {
     event_repo: EventRepository,
@@ -26,7 +27,11 @@ impl SettlementService {
         settlement_repo: SettlementRepository,
         member_repo: EventMemberRepository,
     ) -> Self {
-        Self { event_repo, settlement_repo, member_repo }
+        Self {
+            event_repo,
+            settlement_repo,
+            member_repo,
+        }
     }
 
     /// Propose a new settlement (status = pending).
@@ -75,6 +80,8 @@ impl SettlementService {
             reviewed_by: None,
             reviewed_at: None,
             rejection_note: None,
+            expense_id: req.expense_id,
+            deleted_at: None,
         };
 
         self.settlement_repo.create(&settlement)?;
@@ -93,10 +100,14 @@ impl SettlementService {
         let settlement = self
             .settlement_repo
             .find_by_id(settlement_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("Settlement {} not found", settlement_id))
+            })?;
 
         if settlement.event_id != event_id {
-            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Settlement not found in this event".into(),
+            ));
         }
 
         if settlement.status != SettlementStatus::Pending {
@@ -113,7 +124,8 @@ impl SettlementService {
             ));
         }
 
-        self.settlement_repo.approve_settlement(settlement_id, reviewer_id)?;
+        self.settlement_repo
+            .approve_settlement(settlement_id, reviewer_id)?;
 
         // Fetch updated settlement
         self.get_settlement(event_id, settlement_id)
@@ -130,10 +142,14 @@ impl SettlementService {
         let settlement = self
             .settlement_repo
             .find_by_id(settlement_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("Settlement {} not found", settlement_id))
+            })?;
 
         if settlement.event_id != event_id {
-            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Settlement not found in this event".into(),
+            ));
         }
 
         if settlement.status != SettlementStatus::Pending {
@@ -150,7 +166,8 @@ impl SettlementService {
             ));
         }
 
-        self.settlement_repo.reject_settlement(settlement_id, reviewer_id, req.rejection_note)?;
+        self.settlement_repo
+            .reject_settlement(settlement_id, reviewer_id, req.rejection_note)?;
 
         // Fetch updated settlement
         self.get_settlement(event_id, settlement_id)
@@ -166,10 +183,14 @@ impl SettlementService {
         let settlement = self
             .settlement_repo
             .find_by_id(settlement_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("Settlement {} not found", settlement_id))
+            })?;
 
         if settlement.event_id != event_id {
-            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Settlement not found in this event".into(),
+            ));
         }
 
         if settlement.status != SettlementStatus::Pending {
@@ -190,7 +211,8 @@ impl SettlementService {
             settled_at: None,
         };
 
-        self.settlement_repo.update_status(settlement_id, &changes)?;
+        self.settlement_repo
+            .update_status(settlement_id, &changes)?;
 
         self.get_settlement(event_id, settlement_id)
     }
@@ -205,10 +227,14 @@ impl SettlementService {
         let settlement = self
             .settlement_repo
             .find_by_id(settlement_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("Settlement {} not found", settlement_id))
+            })?;
 
         if settlement.event_id != event_id {
-            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Settlement not found in this event".into(),
+            ));
         }
 
         let now = Utc::now();
@@ -220,17 +246,22 @@ impl SettlementService {
             )));
         }
 
-        let parsed_status = SettlementStatus::from_str(&req.status)
-            .map_err(ServiceError::Validation)?;
+        let parsed_status =
+            SettlementStatus::from_str(&req.status).map_err(ServiceError::Validation)?;
 
-        let settled_at = if parsed_status == SettlementStatus::Confirmed { Some(now) } else { None };
+        let settled_at = if parsed_status == SettlementStatus::Confirmed {
+            Some(now)
+        } else {
+            None
+        };
 
         let changes = SettlementStatusUpdate {
             status: Some(parsed_status),
             settled_at,
         };
 
-        self.settlement_repo.update_status(settlement_id, &changes)?;
+        self.settlement_repo
+            .update_status(settlement_id, &changes)?;
 
         // Fetch updated settlement
         self.get_settlement(event_id, settlement_id)
@@ -248,13 +279,15 @@ impl SettlementService {
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
-        let (rows, has_more) =
-            self.settlement_repo.list_by_event_id_paginated(event_id, status_filter, cursor, limit)?;
+        let (rows, has_more) = self.settlement_repo.list_by_event_id_paginated(
+            event_id,
+            status_filter,
+            cursor,
+            limit,
+        )?;
 
-        let items: Vec<SettlementListItem> = rows
-            .into_iter()
-            .map(settlement_to_list_item)
-            .collect();
+        let items: Vec<SettlementListItem> =
+            rows.into_iter().map(settlement_to_list_item).collect();
 
         let next_cursor = if has_more {
             items.last().map(|i| i.created_at.to_rfc3339())
@@ -286,10 +319,8 @@ impl SettlementService {
             limit,
         )?;
 
-        let items: Vec<SettlementListItem> = rows
-            .into_iter()
-            .map(settlement_to_list_item)
-            .collect();
+        let items: Vec<SettlementListItem> =
+            rows.into_iter().map(settlement_to_list_item).collect();
 
         let next_cursor = if has_more {
             items.last().map(|i| i.created_at.to_rfc3339())
@@ -312,9 +343,9 @@ impl SettlementService {
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
-        let (rows, has_more, next_cursor) =
-            self.settlement_repo
-                .list_confirmed_for_user_paginated(event_id, user_id, cursor, limit)?;
+        let (rows, has_more, next_cursor) = self
+            .settlement_repo
+            .list_confirmed_for_user_paginated(event_id, user_id, cursor, limit)?;
 
         let items: Vec<SettlementHistoryItem> = rows
             .into_iter()
@@ -341,14 +372,22 @@ impl SettlementService {
     }
 
     /// Get a single settlement by ID.
-    pub fn get_settlement(&self, event_id: Uuid, settlement_id: Uuid) -> Result<SettlementResponse, ServiceError> {
+    pub fn get_settlement(
+        &self,
+        event_id: Uuid,
+        settlement_id: Uuid,
+    ) -> Result<SettlementResponse, ServiceError> {
         let settlement = self
             .settlement_repo
             .find_by_id(settlement_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Settlement {} not found", settlement_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("Settlement {} not found", settlement_id))
+            })?;
 
         if settlement.event_id != event_id {
-            return Err(ServiceError::NotFound("Settlement not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Settlement not found in this event".into(),
+            ));
         }
 
         Ok(settlement_to_response(&settlement))
@@ -371,6 +410,7 @@ fn settlement_to_response(s: &Settlement) -> SettlementResponse {
         reviewed_by: s.reviewed_by,
         reviewed_at: s.reviewed_at,
         rejection_note: s.rejection_note.clone(),
+        expense_id: s.expense_id,
     }
 }
 
@@ -388,5 +428,6 @@ fn settlement_to_list_item(s: Settlement) -> SettlementListItem {
         reviewed_by: s.reviewed_by,
         reviewed_at: s.reviewed_at,
         rejection_note: s.rejection_note,
+        expense_id: s.expense_id,
     }
 }

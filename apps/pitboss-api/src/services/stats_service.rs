@@ -2,10 +2,10 @@
 
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::stats_repo::StatsRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 
 pub struct StatsService {
     event_repo: EventRepository,
@@ -14,7 +14,10 @@ pub struct StatsService {
 
 impl StatsService {
     pub fn new(event_repo: EventRepository, stats_repo: StatsRepository) -> Self {
-        Self { event_repo, stats_repo }
+        Self {
+            event_repo,
+            stats_repo,
+        }
     }
 
     /// Get statistics for an event from the perspective of a specific user.

@@ -26,10 +26,7 @@ pub struct EventImageUpdateChangeset {
 
 impl EventImageRepository {
     /// Find all images for a given event, ordered by (image_type, sort_order).
-    pub fn find_by_event_id(
-        &self,
-        event_id: Uuid,
-    ) -> Result<Vec<EventImage>, RepositoryError> {
+    pub fn find_by_event_id(&self, event_id: Uuid) -> Result<Vec<EventImage>, RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
         let results = event_image::table
             .filter(event_image::event_id.eq(event_id))
