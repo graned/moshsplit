@@ -82,8 +82,10 @@ COPY apps/web/ /app/apps/web/
 # For direct deployment, use full URLs (e.g., http://pitboss-api:8080)
 ARG VITE_API_BASE_URL=/pitboss
 ARG VITE_SENTINEL_URL=/sentinel
+ARG VITE_APP_VERSION=latest
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 ENV VITE_SENTINEL_URL=${VITE_SENTINEL_URL}
+ENV VITE_APP_VERSION=${VITE_APP_VERSION}
 
 # Build packages first (TypeScript -> JS)
 RUN pnpm --filter @moshsplit/sentinel-sdk build
