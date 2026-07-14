@@ -6,12 +6,12 @@ use axum::extract::{Path, State};
 use axum::Json;
 use uuid::Uuid;
 
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::stats_dtos::EventStats;
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
-use crate::domain::repositories::event_repo::EventRepository;
-use crate::domain::repositories::stats_repo::StatsRepository;
 use crate::services::stats_service::StatsService;
 
 /// GET /v1/events/:id/stats — event statistics for the current user.

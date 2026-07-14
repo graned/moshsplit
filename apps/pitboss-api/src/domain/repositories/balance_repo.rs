@@ -446,10 +446,7 @@ impl BalanceRepository {
             .map_err(RepositoryError::from)?;
 
         // Extract the event ID and name from the first row (all rows share the same event)
-        let event_id = results
-            .first()
-            .map(|r| r.event_id)
-            .unwrap_or_default();
+        let event_id = results.first().map(|r| r.event_id).unwrap_or_default();
         let event_name = results
             .first()
             .map(|r| r.event_name.clone())

@@ -13,8 +13,8 @@
 mod common;
 
 use common::{
-    assert_valid_envelope, delete_json_with_auth, get_json_with_auth,
-    patch_json_with_auth, post_json, post_json_with_auth, test_client, BASE_URL,
+    assert_valid_envelope, delete_json_with_auth, get_json_with_auth, patch_json_with_auth,
+    post_json, post_json_with_auth, test_client, BASE_URL,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -113,11 +113,7 @@ impl ScenarioBuilder {
             &self.token,
         )
         .await;
-        assert_eq!(
-            status,
-            StatusCode::CREATED,
-            "add_member failed for {label}"
-        );
+        assert_eq!(status, StatusCode::CREATED, "add_member failed for {label}");
         assert_valid_envelope(&body, true);
         self.members.insert(label.to_string(), uid.clone());
         uid
@@ -241,10 +237,7 @@ impl ScenarioBuilder {
     /// Confirm a settlement (status -> "confirmed").
     async fn confirm_settlement(&self, settlement_id: &str) {
         let (status, body) = patch_json_with_auth(
-            &format!(
-                "/v1/events/{}/settlements/{}",
-                self.event_id, settlement_id
-            ),
+            &format!("/v1/events/{}/settlements/{}", self.event_id, settlement_id),
             &json!({"status": "confirmed"}),
             &self.token,
         )
@@ -281,11 +274,7 @@ impl ScenarioBuilder {
             &self.token,
         )
         .await;
-        assert_eq!(
-            status,
-            StatusCode::OK,
-            "update_expense '{title}' failed"
-        );
+        assert_eq!(status, StatusCode::OK, "update_expense '{title}' failed");
         assert_valid_envelope(&body, true);
     }
 
@@ -377,10 +366,7 @@ impl ScenarioBuilder {
 
             let key = (from.to_string(), to.to_string());
             let expected_amt = expected_map.remove(&key).unwrap_or_else(|| {
-                panic!(
-                    "Unexpected transfer: {} -> {} ({} cents)",
-                    from, to, amount
-                )
+                panic!("Unexpected transfer: {} -> {} ({} cents)", from, to, amount)
             });
             assert_eq!(
                 amount, expected_amt,
@@ -432,10 +418,7 @@ impl ScenarioBuilder {
     ) {
         let uid = &self.members[label];
         let (status, body) = get_json_with_auth(
-            &format!(
-                "/v1/events/{}/balances/{}/explain",
-                self.event_id, uid
-            ),
+            &format!("/v1/events/{}/balances/{}/explain", self.event_id, uid),
             &self.token,
         )
         .await;
@@ -631,34 +614,22 @@ async fn test_p0_explain_balance() {
     //   Groceries: paid=2000, share=400  → net +1600
     //   Gas:       paid=0,    share=800  → net -800
     //   Total: +800
-    s.assert_explain_balance(
-        "A",
-        800,
-        &[("Groceries", 2000, 400), ("Gas", 0, 800)],
-    )
-    .await;
+    s.assert_explain_balance("A", 800, &[("Groceries", 2000, 400), ("Gas", 0, 800)])
+        .await;
 
     // B's explain:
     //   Groceries: paid=0,    share=400  → net -400
     //   Gas:       paid=4000, share=800  → net +3200
     //   Total: +2800
-    s.assert_explain_balance(
-        "B",
-        2800,
-        &[("Groceries", 0, 400), ("Gas", 4000, 800)],
-    )
-    .await;
+    s.assert_explain_balance("B", 2800, &[("Groceries", 0, 400), ("Gas", 4000, 800)])
+        .await;
 
     // C's explain (debtor):
     //   Groceries: paid=0, share=400  → net -400
     //   Gas:       paid=0, share=800  → net -800
     //   Total: -1200
-    s.assert_explain_balance(
-        "C",
-        -1200,
-        &[("Groceries", 0, 400), ("Gas", 0, 800)],
-    )
-    .await;
+    s.assert_explain_balance("C", -1200, &[("Groceries", 0, 400), ("Gas", 0, 800)])
+        .await;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -735,14 +706,8 @@ async fn test_p1_expense_versioning_affects_balance() {
     s.assert_user_balance("B", 0, 1000, -1000).await;
 
     // Update expense to 4000
-    s.update_expense(
-        &expense_id,
-        "Updated",
-        4000,
-        "A",
-        &["A", "B"],
-    )
-    .await;
+    s.update_expense(&expense_id, "Updated", 4000, "A", &["A", "B"])
+        .await;
 
     // Verify updated balance: A=+2000, B=-2000
     s.assert_user_balance("A", 4000, 2000, 2000).await;
@@ -780,10 +745,7 @@ async fn test_p1_soft_deleted_expense_excluded() {
 
     // Delete expense 2
     let (del_status, _) = delete_json_with_auth(
-        &format!(
-            "/v1/events/{}/expenses/{}",
-            s.event_id, expense_id
-        ),
+        &format!("/v1/events/{}/expenses/{}", s.event_id, expense_id),
         &s.token,
     )
     .await;
@@ -876,10 +838,7 @@ async fn test_p2_zero_balance_user() {
     // C's explain should show expense (non-participant: paid=0, share=0) and zero balance
     let uid = &s.members["C"];
     let (status, body) = get_json_with_auth(
-        &format!(
-            "/v1/events/{}/balances/{}/explain",
-            s.event_id, uid
-        ),
+        &format!("/v1/events/{}/balances/{}/explain", s.event_id, uid),
         &s.token,
     )
     .await;
@@ -887,9 +846,21 @@ async fn test_p2_zero_balance_user() {
     assert_eq!(body["data"]["balance_cents"].as_i64().unwrap(), 0);
     // C appears in the expense breakdown with paid=0, share=0 (not a participant)
     let expenses = body["data"]["expenses"].as_array().unwrap();
-    assert_eq!(expenses.len(), 1, "expenses should include the event's expense");
-    assert_eq!(expenses[0]["paid_cents"].as_i64().unwrap(), 0, "C paid nothing");
-    assert_eq!(expenses[0]["share_cents"].as_i64().unwrap(), 0, "C has no share");
+    assert_eq!(
+        expenses.len(),
+        1,
+        "expenses should include the event's expense"
+    );
+    assert_eq!(
+        expenses[0]["paid_cents"].as_i64().unwrap(),
+        0,
+        "C paid nothing"
+    );
+    assert_eq!(
+        expenses[0]["share_cents"].as_i64().unwrap(),
+        0,
+        "C has no share"
+    );
 }
 
 /// P2.3: Custom splits — different amounts per participant.
@@ -944,11 +915,8 @@ async fn test_p2_single_member_no_expenses() {
     let s = ScenarioBuilder::new(&unique_name("p2-single")).await;
 
     // Only the creator is a member
-    let (status, body) = get_json_with_auth(
-        &format!("/v1/events/{}/balances", s.event_id),
-        &s.token,
-    )
-    .await;
+    let (status, body) =
+        get_json_with_auth(&format!("/v1/events/{}/balances", s.event_id), &s.token).await;
     assert_eq!(status, StatusCode::OK);
     let balances = body["data"]["balances"].as_array().unwrap();
     assert_eq!(balances.len(), 1, "only the creator should be in balances");
@@ -1216,11 +1184,8 @@ async fn test_get_balances_returns_200() {
     s.add_equal_expense("Test", 3000, "payer", &["payer", "other"])
         .await;
 
-    let (status, body) = get_json_with_auth(
-        &format!("/v1/events/{}/balances", s.event_id),
-        &s.token,
-    )
-    .await;
+    let (status, body) =
+        get_json_with_auth(&format!("/v1/events/{}/balances", s.event_id), &s.token).await;
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
     let data = &body["data"];

@@ -52,9 +52,8 @@ pub async fn response_wrapper_middleware(request: Request<Body>, next: Next) -> 
         // ── Success path ──────────────────────────────────────────────
         // Try to parse the body as JSON; fall back to wrapping the raw
         // string representation.
-        let data: Value = serde_json::from_slice(&body_bytes).unwrap_or_else(|_| {
-            Value::String(String::from_utf8_lossy(&body_bytes).into_owned())
-        });
+        let data: Value = serde_json::from_slice(&body_bytes)
+            .unwrap_or_else(|_| Value::String(String::from_utf8_lossy(&body_bytes).into_owned()));
 
         let envelope = ApiResponse {
             success: true,
@@ -92,10 +91,7 @@ pub async fn response_wrapper_middleware(request: Request<Body>, next: Next) -> 
                 .to_string();
             crate::errors::ApiError::new(code, message, status)
         } else {
-            let reason = status
-                .canonical_reason()
-                .unwrap_or("Unknown")
-                .to_string();
+            let reason = status.canonical_reason().unwrap_or("Unknown").to_string();
             crate::errors::ApiError::new(
                 status.as_str().to_string(),
                 if error_message.is_empty() {

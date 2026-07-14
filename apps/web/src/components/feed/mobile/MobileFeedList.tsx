@@ -10,6 +10,7 @@ import {
   isMemberJoinActivity,
   isExpenseUpdatedActivity,
   isSettlementRejectedActivity,
+  isExpenseDeletedActivity,
 } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
 import { MobileExpenseCard } from './cards/MobileExpenseCard';
@@ -18,6 +19,7 @@ import { MobileHonorCard } from './cards/MobileHonorCard';
 import { MobileMemberJoinCard } from './cards/MobileMemberJoinCard';
 import { MobileExpenseUpdatedCard } from './cards/MobileExpenseUpdatedCard';
 import { MobileSettlementRejectedCard } from './cards/MobileSettlementRejectedCard';
+import { MobileExpenseDeletedCard } from './cards/MobileExpenseDeletedCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
 
 type FeedDisplayItem =
@@ -271,6 +273,20 @@ export function MobileFeedList({
             activity={item}
             fromUser={fromUser}
             toUser={toUser}
+            currentUserId={userId}
+            currency={currency}
+          />
+        );
+      }
+
+      if (isExpenseDeletedActivity(item)) {
+        const paidBy = getUser(item.paid_by);
+
+        return (
+          <MobileExpenseDeletedCard
+            key={item.id}
+            activity={item}
+            paidBy={paidBy}
             currentUserId={userId}
             currency={currency}
           />

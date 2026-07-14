@@ -83,7 +83,11 @@ impl<T: Serialize> ApiResponse<T> {
         Self {
             success: false,
             data: None,
-            error: Some(ApiError::new(code, message, StatusCode::INTERNAL_SERVER_ERROR)),
+            error: Some(ApiError::new(
+                code,
+                message,
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
             timestamp,
             request_id,
         }

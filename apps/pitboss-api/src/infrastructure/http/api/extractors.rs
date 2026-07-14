@@ -19,12 +19,9 @@ impl<S: Send + Sync> FromRequestParts<S> for CurrentUser {
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let authenticated = parts
-            .extensions
-            .get::<AuthenticatedUser>()
-            .ok_or_else(|| {
-                ApiError::unauthorized("Authentication required. No authenticated user found.")
-            })?;
+        let authenticated = parts.extensions.get::<AuthenticatedUser>().ok_or_else(|| {
+            ApiError::unauthorized("Authentication required. No authenticated user found.")
+        })?;
 
         // Parse the user_id string into a Uuid
         let user_id = Uuid::parse_str(&authenticated.user_id).map_err(|_| {

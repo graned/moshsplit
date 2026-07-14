@@ -93,6 +93,15 @@ pub enum ActivityItem {
         user_name: Option<String>,
         created_at: DateTime<Utc>,
     },
+    /// An expense was deleted.
+    ExpenseDeleted {
+        id: Uuid,
+        expense_id: Uuid,
+        title: String,
+        amount_cents: i32,
+        paid_by: Uuid,
+        created_at: DateTime<Utc>,
+    },
 }
 
 /// Response envelope for the activity feed.

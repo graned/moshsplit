@@ -51,15 +51,18 @@ impl From<diesel::result::Error> for RepositoryError {
     fn from(err: diesel::result::Error) -> Self {
         match &err {
             diesel::result::Error::NotFound => RepositoryError::NotFound(err.to_string()),
-            diesel::result::Error::DatabaseError(db_kind, info) => {
-                match db_kind {
-                    diesel::result::DatabaseErrorKind::UniqueViolation =>
-                        RepositoryError::Validation(format!("Unique constraint: {}", info.message())),
-                    diesel::result::DatabaseErrorKind::ForeignKeyViolation =>
-                        RepositoryError::Validation(format!("Foreign key violation: {}", info.message())),
-                    _ => RepositoryError::Database(info.message().to_string()),
+            diesel::result::Error::DatabaseError(db_kind, info) => match db_kind {
+                diesel::result::DatabaseErrorKind::UniqueViolation => {
+                    RepositoryError::Validation(format!("Unique constraint: {}", info.message()))
                 }
-            }
+                diesel::result::DatabaseErrorKind::ForeignKeyViolation => {
+                    RepositoryError::Validation(format!(
+                        "Foreign key violation: {}",
+                        info.message()
+                    ))
+                }
+                _ => RepositoryError::Database(info.message().to_string()),
+            },
             _ => RepositoryError::Database(err.to_string()),
         }
     }
@@ -200,9 +203,7 @@ impl ApiError {
 impl From<ServiceError> for ApiError {
     fn from(err: ServiceError) -> Self {
         match err {
-            ServiceError::NotFound(msg) => {
-                ApiError::new("NOT_FOUND", msg, StatusCode::NOT_FOUND)
-            }
+            ServiceError::NotFound(msg) => ApiError::new("NOT_FOUND", msg, StatusCode::NOT_FOUND),
             ServiceError::Validation(msg) => {
                 ApiError::new("VALIDATION_ERROR", msg, StatusCode::BAD_REQUEST)
             }
@@ -212,15 +213,11 @@ impl From<ServiceError> for ApiError {
             ServiceError::Database(msg) => {
                 ApiError::new("DATABASE_ERROR", msg, StatusCode::INTERNAL_SERVER_ERROR)
             }
-            ServiceError::Conflict(msg) => {
-                ApiError::new("CONFLICT", msg, StatusCode::CONFLICT)
-            }
+            ServiceError::Conflict(msg) => ApiError::new("CONFLICT", msg, StatusCode::CONFLICT),
             ServiceError::Unauthorized(msg) => {
                 ApiError::new("UNAUTHORIZED", msg, StatusCode::UNAUTHORIZED)
             }
-            ServiceError::Forbidden(msg) => {
-                ApiError::new("FORBIDDEN", msg, StatusCode::FORBIDDEN)
-            }
+            ServiceError::Forbidden(msg) => ApiError::new("FORBIDDEN", msg, StatusCode::FORBIDDEN),
             ServiceError::Internal(msg) => {
                 ApiError::new("INTERNAL_ERROR", msg, StatusCode::INTERNAL_SERVER_ERROR)
             }

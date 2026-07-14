@@ -89,8 +89,7 @@ impl EventMemberRepository {
 
         let mut conn = self.db_client.get_conn()?;
         let result = diesel::select(exists(
-            event_member::table
-                .filter(event_member::user_id.eq(user_id)),
+            event_member::table.filter(event_member::user_id.eq(user_id)),
         ))
         .first::<bool>(&mut conn)
         .map_err(RepositoryError::from)?;

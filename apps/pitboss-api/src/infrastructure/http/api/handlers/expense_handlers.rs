@@ -7,19 +7,20 @@ use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::common::{PaginatedResponse, PaginationMeta};
-use crate::infrastructure::http::api::dtos::expense_dtos::{
-    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail, ListExpensesParams,
-    UpdateExpenseRequest,
-};
-use crate::infrastructure::http::api::extractors::CurrentUser;
-use crate::infrastructure::http::AppState;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::common::{PaginatedResponse, PaginationMeta};
+use crate::infrastructure::http::api::dtos::expense_dtos::{
+    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
+    ListExpensesParams, UpdateExpenseRequest,
+};
+use crate::infrastructure::http::api::extractors::CurrentUser;
+use crate::infrastructure::http::AppState;
 use crate::services::expense_service::ExpenseService;
 
 /// GET /v1/events/:id/expenses — list expenses.
@@ -50,6 +51,7 @@ pub async fn list_expenses(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
 
     let (items, has_more, next_cursor) = svc.list_expenses(
@@ -97,6 +99,7 @@ pub async fn create_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.create_expense(event_id, req, user_id)?;
@@ -127,6 +130,7 @@ pub async fn get_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.get_expense(expense_id)?;
@@ -160,6 +164,7 @@ pub async fn update_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.update_expense(event_id, expense_id, req, user_id)?;
@@ -192,6 +197,7 @@ pub async fn delete_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
 
     svc.delete_expense(event_id, expense_id, user_id)?;
@@ -222,6 +228,7 @@ pub async fn list_expense_versions(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        SettlementRepository::new(state.db_client.clone()),
     );
 
     let versions = svc.get_expense_with_versions(expense_id)?;

@@ -3,10 +3,12 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::event_dtos::{CreateEventRequest, EventListItem, EventResponse, UpdateEventRequest};
 use crate::domain::repositories::event_repo::{EventRepository, EventUpdateChangeset};
 use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::event_dtos::{
+    CreateEventRequest, EventListItem, EventResponse, UpdateEventRequest,
+};
 use crate::schema_enums::{EventMemberRole, EventStatus};
 use crate::schema_models::{Event, EventMember};
 
@@ -17,13 +19,22 @@ pub struct EventService {
 
 impl EventService {
     pub fn new(event_repo: EventRepository, member_repo: EventMemberRepository) -> Self {
-        Self { event_repo, member_repo }
+        Self {
+            event_repo,
+            member_repo,
+        }
     }
 
     /// Create a new event and automatically add the creator as an admin member.
-    pub fn create_event(&self, req: CreateEventRequest, created_by: Uuid) -> Result<EventResponse, ServiceError> {
+    pub fn create_event(
+        &self,
+        req: CreateEventRequest,
+        created_by: Uuid,
+    ) -> Result<EventResponse, ServiceError> {
         if req.name.trim().is_empty() {
-            return Err(ServiceError::Validation("Event name cannot be empty".into()));
+            return Err(ServiceError::Validation(
+                "Event name cannot be empty".into(),
+            ));
         }
 
         let now = Utc::now();
@@ -74,7 +85,9 @@ impl EventService {
         cursor: Option<&str>,
         limit: i64,
     ) -> Result<(Vec<EventListItem>, bool, Option<String>), ServiceError> {
-        let (rows, has_more) = self.event_repo.list_by_status_paginated(status, cursor, limit)?;
+        let (rows, has_more) = self
+            .event_repo
+            .list_by_status_paginated(status, cursor, limit)?;
 
         let items: Vec<EventListItem> = rows
             .into_iter()
@@ -119,7 +132,11 @@ impl EventService {
     }
 
     /// Partially update an event.
-    pub fn patch_event(&self, event_id: Uuid, req: UpdateEventRequest) -> Result<EventResponse, ServiceError> {
+    pub fn patch_event(
+        &self,
+        event_id: Uuid,
+        req: UpdateEventRequest,
+    ) -> Result<EventResponse, ServiceError> {
         // Verify event exists
         let _existing = self
             .event_repo
@@ -128,8 +145,12 @@ impl EventService {
 
         let now = Utc::now();
 
-        let status = req.status
-            .map(|s| s.parse::<EventStatus>().map_err(|_| ServiceError::Validation(format!("Invalid status: {}", s))))
+        let status = req
+            .status
+            .map(|s| {
+                s.parse::<EventStatus>()
+                    .map_err(|_| ServiceError::Validation(format!("Invalid status: {}", s)))
+            })
             .transpose()?;
 
         let changes = EventUpdateChangeset {
@@ -154,7 +175,9 @@ impl EventService {
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
         if existing.status == EventStatus::Deleted {
-            return Err(ServiceError::BusinessRule("Event is already deleted".into()));
+            return Err(ServiceError::BusinessRule(
+                "Event is already deleted".into(),
+            ));
         }
 
         let now = Utc::now();

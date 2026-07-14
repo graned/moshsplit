@@ -8,17 +8,24 @@ use std::io::Write;
 // ── Re-export auto-generated SQL types from schema.rs ──────────────────────────
 
 use crate::schema::app::sql_types::{
-    EventImageType as EventImageTypeType,
-    EventMemberRole as EventMemberRoleType,
-    EventStatus as EventStatusType,
-    ExpenseType as ExpenseTypeType,
-    SettlementStatus as SettlementStatusType,
-    SplitType as SplitTypeType,
+    EventImageType as EventImageTypeType, EventMemberRole as EventMemberRoleType,
+    EventStatus as EventStatusType, ExpenseType as ExpenseTypeType,
+    SettlementStatus as SettlementStatusType, SplitType as SplitTypeType,
 };
 
 // ── Rust enum types with Diesel mappings ───────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
 #[diesel(sql_type = EventStatusType)]
 pub enum EventStatus {
     Active,
@@ -71,7 +78,17 @@ impl FromSql<Text, Pg> for EventStatus {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
 #[diesel(sql_type = EventMemberRoleType)]
 pub enum EventMemberRole {
     Admin,
@@ -118,7 +135,17 @@ impl FromSql<Text, Pg> for EventMemberRole {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
 #[diesel(sql_type = SplitTypeType)]
 pub enum SplitType {
     Equal,
@@ -175,7 +202,17 @@ impl FromSql<Text, Pg> for SplitType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
 #[diesel(sql_type = SettlementStatusType)]
 pub enum SettlementStatus {
     Pending,
@@ -232,7 +269,17 @@ impl FromSql<Text, Pg> for SettlementStatus {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
 #[diesel(sql_type = ExpenseTypeType)]
 pub enum ExpenseType {
     Food,
@@ -309,7 +356,17 @@ impl FromSql<Text, Pg> for ExpenseType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, diesel::FromSqlRow, diesel::AsExpression)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
 #[diesel(sql_type = EventImageTypeType)]
 pub enum EventImageType {
     Banner,

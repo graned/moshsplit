@@ -205,7 +205,11 @@ impl SettlementRepository {
                          LIMIT {}",
                         fetch_limit
                     ),
-                    vec![event_id.to_string(), user_id.to_string(), cursor_ts.to_rfc3339()],
+                    vec![
+                        event_id.to_string(),
+                        user_id.to_string(),
+                        cursor_ts.to_rfc3339(),
+                    ],
                 )
             } else {
                 (
@@ -261,9 +265,7 @@ impl SettlementRepository {
             results.truncate(limit as usize);
         }
 
-        let next_cursor = results
-            .last()
-            .map(|r| r.settled_at.to_rfc3339());
+        let next_cursor = results.last().map(|r| r.settled_at.to_rfc3339());
 
         Ok((results, has_more, next_cursor))
     }
@@ -286,7 +288,11 @@ impl SettlementRepository {
             .into_boxed();
 
         if let Some(uid) = user_id {
-            query = query.filter(settlement::from_user.eq(uid).or(settlement::to_user.eq(uid)));
+            query = query.filter(
+                settlement::from_user
+                    .eq(uid)
+                    .or(settlement::to_user.eq(uid)),
+            );
         }
 
         if let Some(s) = status_filter {
@@ -315,5 +321,26 @@ impl SettlementRepository {
         };
 
         Ok((rows, has_more))
+    }
+
+    /// Soft-delete rejected settlements linked to a specific expense.
+    /// Sets deleted_at to now() for all rejected settlements with the given expense_id.
+    pub fn soft_delete_for_expense(&self, expense_id: Uuid) -> Result<usize, RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        let now = chrono::Utc::now();
+
+        let affected = diesel::update(
+            settlement::table
+                .filter(settlement::expense_id.eq(expense_id))
+                .filter(settlement::status.eq(SettlementStatus::Rejected))
+                .filter(settlement::deleted_at.is_null()),
+        )
+        .set(settlement::deleted_at.eq(now))
+        .execute(&mut conn)
+        .map_err(RepositoryError::from)?;
+
+        Ok(affected)
     }
 }

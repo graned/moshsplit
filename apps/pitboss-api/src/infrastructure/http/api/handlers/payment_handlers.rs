@@ -7,16 +7,18 @@ use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::common::{CursorParams, PaginatedResponse, PaginationMeta};
+use crate::infrastructure::http::api::dtos::common::{
+    CursorParams, PaginatedResponse, PaginationMeta,
+};
 use crate::infrastructure::http::api::dtos::payment_dtos::{
     CreatePaymentRequest, PaymentListItem, PaymentResponse,
 };
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
-use crate::domain::repositories::event_repo::EventRepository;
-use crate::domain::repositories::member_repo::EventMemberRepository;
-use crate::domain::repositories::payment_repo::PaymentRepository;
 use crate::services::payment_service::PaymentService;
 
 /// GET /v1/events/:id/payments — list payments.

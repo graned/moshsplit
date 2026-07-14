@@ -62,12 +62,11 @@ impl AdminStatsService {
             .map_err(RepositoryError::from)?;
 
         // Check system health via a simple query
-        let system_health = match sql_query("SELECT 1 AS _dummy")
-            .get_result::<HealthCheckRow>(&mut conn)
-        {
-            Ok(_) => SystemHealth::Healthy,
-            Err(_) => SystemHealth::Unhealthy,
-        };
+        let system_health =
+            match sql_query("SELECT 1 AS _dummy").get_result::<HealthCheckRow>(&mut conn) {
+                Ok(_) => SystemHealth::Healthy,
+                Err(_) => SystemHealth::Unhealthy,
+            };
 
         Ok(AdminStats {
             total_events: row.total_events,

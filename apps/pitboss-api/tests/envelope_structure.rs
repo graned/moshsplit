@@ -16,10 +16,13 @@ async fn test_envelope_structure_is_identical_to_sentinel() {
     assert_eq!(status, StatusCode::OK);
 
     // 1. Exact top-level fields — no more, no fewer
-    let top_keys: std::collections::BTreeSet<&str> =
-        body.as_object().unwrap().keys().map(|k| k.as_str()).collect();
-    let expected: std::collections::BTreeSet<&str> =
-        ENVELOPE_FIELDS.iter().copied().collect();
+    let top_keys: std::collections::BTreeSet<&str> = body
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(|k| k.as_str())
+        .collect();
+    let expected: std::collections::BTreeSet<&str> = ENVELOPE_FIELDS.iter().copied().collect();
     assert_eq!(
         top_keys, expected,
         "envelope should contain exactly {expected:?}, got {top_keys:?}"
@@ -54,10 +57,13 @@ async fn test_error_envelope_has_exact_fields() {
 
     assert_eq!(status, StatusCode::NOT_FOUND);
 
-    let top_keys: std::collections::BTreeSet<&str> =
-        body.as_object().unwrap().keys().map(|k| k.as_str()).collect();
-    let expected: std::collections::BTreeSet<&str> =
-        ENVELOPE_FIELDS.iter().copied().collect();
+    let top_keys: std::collections::BTreeSet<&str> = body
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(|k| k.as_str())
+        .collect();
+    let expected: std::collections::BTreeSet<&str> = ENVELOPE_FIELDS.iter().copied().collect();
     assert_eq!(
         top_keys, expected,
         "error envelope should contain exactly {expected:?}, got {top_keys:?}"

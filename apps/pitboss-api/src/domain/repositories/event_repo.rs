@@ -100,13 +100,10 @@ impl EventRepository {
             }
         }
 
-        query = query
-            .order_by(event::created_at.desc())
-            .limit(fetch_limit);
+        query = query.order_by(event::created_at.desc()).limit(fetch_limit);
 
-        let results: Vec<EventWithMemberCount> = query
-            .load(&mut conn)
-            .map_err(RepositoryError::from)?;
+        let results: Vec<EventWithMemberCount> =
+            query.load(&mut conn).map_err(RepositoryError::from)?;
 
         let has_more = results.len() as i64 == fetch_limit;
         let rows = if has_more {
