@@ -26,10 +26,7 @@ pub async fn get_json(path: &str) -> (StatusCode, Value) {
         .expect("HTTP request failed — is the pitboss-api container running?");
 
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
@@ -44,15 +41,16 @@ pub async fn post_json(path: &str, body: &Value) -> (StatusCode, Value) {
         .expect("HTTP request failed");
 
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
 /// POST JSON body with an Authorization: Bearer header and deserialize the response.
-pub async fn post_json_with_auth(path: &str, body: &Value, bearer_token: &str) -> (StatusCode, Value) {
+pub async fn post_json_with_auth(
+    path: &str,
+    body: &Value,
+    bearer_token: &str,
+) -> (StatusCode, Value) {
     let client = test_client();
     let resp = client
         .post(format!("{BASE_URL}{path}"))
@@ -63,10 +61,7 @@ pub async fn post_json_with_auth(path: &str, body: &Value, bearer_token: &str) -
         .expect("HTTP request failed");
 
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
@@ -96,7 +91,11 @@ pub async fn get_raw_with_auth(path: &str, bearer_token: &str) -> reqwest::Respo
 }
 
 /// PATCH JSON body with an Authorization: Bearer header and deserialize the response.
-pub async fn patch_json_with_auth(path: &str, body: &Value, bearer_token: &str) -> (StatusCode, Value) {
+pub async fn patch_json_with_auth(
+    path: &str,
+    body: &Value,
+    bearer_token: &str,
+) -> (StatusCode, Value) {
     let client = test_client();
     let resp = client
         .patch(format!("{BASE_URL}{path}"))
@@ -107,10 +106,7 @@ pub async fn patch_json_with_auth(path: &str, body: &Value, bearer_token: &str) 
         .expect("HTTP request failed");
 
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
@@ -128,10 +124,7 @@ pub async fn delete_json_with_auth(path: &str, bearer_token: &str) -> (StatusCod
     if status == StatusCode::NO_CONTENT {
         return (status, Value::Null);
     }
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
@@ -146,10 +139,7 @@ pub async fn get_json_with_auth(path: &str, bearer_token: &str) -> (StatusCode, 
         .expect("HTTP request failed");
 
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
@@ -164,10 +154,7 @@ pub async fn patch_json(path: &str, body: &Value) -> (StatusCode, Value) {
         .expect("HTTP request failed");
 
     let status = resp.status();
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
@@ -185,20 +172,14 @@ pub async fn delete_json(path: &str) -> (StatusCode, Value) {
     if status == StatusCode::NO_CONTENT {
         return (status, Value::Null);
     }
-    let body: Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: Value = resp.json().await.expect("Response body is not valid JSON");
     (status, body)
 }
 
 /// Assert the response body matches Sentinel's standard envelope.
 pub fn assert_valid_envelope(body: &Value, expected_success: bool) {
     for field in ENVELOPE_FIELDS {
-        assert!(
-            body.get(field).is_some(),
-            "envelope missing field: {field}"
-        );
+        assert!(body.get(field).is_some(), "envelope missing field: {field}");
     }
 
     assert_eq!(body["success"], expected_success, "success mismatch");
@@ -215,7 +196,10 @@ pub fn assert_valid_envelope(body: &Value, expected_success: bool) {
         .as_str()
         .expect("request_id should be a string");
     let parsed = uuid::Uuid::parse_str(rid);
-    assert!(parsed.is_ok(), "request_id should be a valid UUID, got: {rid}");
+    assert!(
+        parsed.is_ok(),
+        "request_id should be a valid UUID, got: {rid}"
+    );
     assert_eq!(
         parsed.unwrap().get_version(),
         Some(uuid::Version::Random),
@@ -228,7 +212,10 @@ pub fn assert_valid_envelope(body: &Value, expected_success: bool) {
         assert!(body["error"].is_object(), "error should be an object");
         let err = &body["error"];
         assert!(err["code"].is_string(), "error.code should be a string");
-        assert!(err["message"].is_string(), "error.message should be a string");
+        assert!(
+            err["message"].is_string(),
+            "error.message should be a string"
+        );
     }
 }
 
@@ -260,7 +247,9 @@ pub async fn post_json_follow_redirect(
 
     if status == StatusCode::FOUND || status == StatusCode::SEE_OTHER {
         if let Some(location) = resp.headers().get("location") {
-            let location_str = location.to_str().map_err(|e| format!("Invalid location header: {e}"))?;
+            let location_str = location
+                .to_str()
+                .map_err(|e| format!("Invalid location header: {e}"))?;
             if let Some(query_pos) = location_str.find('?') {
                 let query = &location_str[query_pos + 1..];
                 return Ok(parse_query_params(query));

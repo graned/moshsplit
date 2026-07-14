@@ -1,8 +1,6 @@
 mod common;
 
-use common::{
-    assert_valid_envelope, get_json, post_json,
-};
+use common::{assert_valid_envelope, get_json, post_json};
 use reqwest::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
@@ -14,11 +12,7 @@ struct TestFixture {
 
 impl TestFixture {
     async fn new(name: &str) -> Self {
-        let (_, body) = post_json(
-            "/v1/events",
-            &json!({"name": name, "currency": "EUR"}),
-        )
-        .await;
+        let (_, body) = post_json("/v1/events", &json!({"name": name, "currency": "EUR"})).await;
         let event_id = body["data"]["id"].as_str().unwrap().to_string();
 
         let mut members = Vec::new();
@@ -79,8 +73,11 @@ async fn test_get_payment_returns_200() {
     .await;
     let payment_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/payments/{}", fix.event_id, payment_id)).await;
+    let (status, body) = get_json(&format!(
+        "/v1/events/{}/payments/{}",
+        fix.event_id, payment_id
+    ))
+    .await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -102,8 +99,7 @@ async fn test_list_payments_returns_200() {
     )
     .await;
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/payments", fix.event_id)).await;
+    let (status, body) = get_json(&format!("/v1/events/{}/payments", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -229,8 +225,7 @@ async fn test_list_payments_pagination() {
     }
 
     // Test with limit
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/payments?limit=2", fix.event_id)).await;
+    let (status, body) = get_json(&format!("/v1/events/{}/payments?limit=2", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);

@@ -157,9 +157,7 @@ pub async fn external_login(
                 );
                 match svc.auto_join_first_event(user_id) {
                     Ok(true) => tracing::info!("Auto-joined user {user_id} to first active event"),
-                    Ok(false) => {
-                        /* already a member — no-op */
-                    }
+                    Ok(false) => { /* already a member — no-op */ }
                     Err(e) => tracing::warn!("Failed to auto-join user {user_id}: {e}"),
                 }
             }

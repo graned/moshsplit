@@ -18,9 +18,8 @@
 mod common;
 
 use common::{
-    assert_valid_envelope, get_json, get_json_with_auth, parse_query_params,
-    patch_json_with_auth, post_json, post_json_follow_redirect, post_json_with_auth,
-    test_client, BASE_URL,
+    assert_valid_envelope, get_json, get_json_with_auth, parse_query_params, patch_json_with_auth,
+    post_json, post_json_follow_redirect, post_json_with_auth, test_client, BASE_URL,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -104,10 +103,7 @@ async fn get_events(bearer_token: &str) -> Vec<serde_json::Value> {
         .expect("HTTP request failed — is the pitboss-api container running?");
 
     let status = resp.status();
-    let body: serde_json::Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: serde_json::Value = resp.json().await.expect("Response body is not valid JSON");
 
     assert_eq!(status, StatusCode::OK, "list-events setup call failed");
     assert_valid_envelope(&body, true);
@@ -129,10 +125,7 @@ async fn get_members(event_id: &str, bearer_token: &str) -> Vec<serde_json::Valu
         .expect("HTTP request failed");
 
     let status = resp.status();
-    let body: serde_json::Value = resp
-        .json()
-        .await
-        .expect("Response body is not valid JSON");
+    let body: serde_json::Value = resp.json().await.expect("Response body is not valid JSON");
 
     assert_eq!(status, StatusCode::OK, "list-members setup call failed");
     assert_valid_envelope(&body, true);
@@ -144,12 +137,7 @@ async fn get_members(event_id: &str, bearer_token: &str) -> Vec<serde_json::Valu
 }
 
 /// Create an expense in the given event, split equally among the given participants.
-async fn create_expense(
-    event_id: &str,
-    paid_by: &str,
-    participants: &[&str],
-    bearer_token: &str,
-) {
+async fn create_expense(event_id: &str, paid_by: &str, participants: &[&str], bearer_token: &str) {
     let (status, body) = post_json_with_auth(
         &format!("/v1/events/{event_id}/expenses"),
         &json!({
@@ -163,7 +151,11 @@ async fn create_expense(
     )
     .await;
 
-    assert_eq!(status, StatusCode::CREATED, "create-expense setup call failed");
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "create-expense setup call failed"
+    );
     assert_valid_envelope(&body, true);
 }
 
@@ -185,19 +177,31 @@ async fn test_external_login_success() {
     .expect("external-login call failed");
 
     assert!(
-        result.get("user_id").map(|s| !s.is_empty()).unwrap_or(false),
+        result
+            .get("user_id")
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
         "user_id should be in redirect params"
     );
     assert!(
-        result.get("access_token").map(|s| !s.is_empty()).unwrap_or(false),
+        result
+            .get("access_token")
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
         "access_token should be in redirect params"
     );
     assert!(
-        result.get("refresh_token").map(|s| !s.is_empty()).unwrap_or(false),
+        result
+            .get("refresh_token")
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
         "refresh_token should be in redirect params"
     );
     assert!(
-        result.get("expires_at").map(|s| !s.is_empty()).unwrap_or(false),
+        result
+            .get("expires_at")
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
         "expires_at should be in redirect params"
     );
     assert_eq!(
@@ -222,8 +226,7 @@ async fn test_external_login_missing_email() {
 
     let status = resp.status();
     assert!(
-        status == StatusCode::UNPROCESSABLE_ENTITY
-            || status == StatusCode::BAD_REQUEST,
+        status == StatusCode::UNPROCESSABLE_ENTITY || status == StatusCode::BAD_REQUEST,
         "expected 422 or 400 for missing email, got: {status}"
     );
 }
@@ -251,7 +254,10 @@ async fn test_external_login_invalid_api_token() {
 
     assert_eq!(status, StatusCode::FOUND, "should redirect on error");
     assert!(
-        location.as_ref().map(|l| l.contains("error=")).unwrap_or(false),
+        location
+            .as_ref()
+            .map(|l| l.contains("error="))
+            .unwrap_or(false),
         "redirect should contain error param"
     );
 
@@ -281,9 +287,7 @@ async fn test_external_summary_valid_token_and_known_email() {
         !events.is_empty(),
         "known user should belong to at least one event"
     );
-    let event_id = events[0]["id"]
-        .as_str()
-        .expect("event should have an id");
+    let event_id = events[0]["id"].as_str().expect("event should have an id");
 
     // Fetch event members — we need a second participant so the expense
     // balance for the payer is non-zero.
@@ -325,15 +329,10 @@ async fn test_external_summary_valid_token_and_known_email() {
         data["total_balance_cents"].is_i64(),
         "data.total_balance_cents should be an integer"
     );
-    assert!(
-        data["items"].is_array(),
-        "data.items should be an array"
-    );
+    assert!(data["items"].is_array(), "data.items should be an array");
 
     // Items should contain the expense we just created
-    let items = data["items"]
-        .as_array()
-        .expect("items should be an array");
+    let items = data["items"].as_array().expect("items should be an array");
     assert!(!items.is_empty(), "items should not be empty");
 
     for item in items {
@@ -405,10 +404,7 @@ async fn test_swagger_ui_internal_returns_200() {
         "expected text/html content-type, got: {content_type}"
     );
 
-    let text = resp
-        .text()
-        .await
-        .expect("Failed to read response body");
+    let text = resp.text().await.expect("Failed to read response body");
     assert!(
         text.contains("Swagger UI"),
         "response should contain 'Swagger UI' in the HTML"
@@ -436,10 +432,7 @@ async fn test_swagger_ui_external_returns_200() {
         "expected text/html content-type, got: {content_type}"
     );
 
-    let text = resp
-        .text()
-        .await
-        .expect("Failed to read response body");
+    let text = resp.text().await.expect("Failed to read response body");
     assert!(
         text.contains("Swagger UI"),
         "response should contain 'Swagger UI' in the HTML"
@@ -460,7 +453,9 @@ async fn test_internal_openapi_json_has_paths() {
         "response should contain 'paths' field"
     );
 
-    let paths = body["paths"].as_object().expect("paths should be an object");
+    let paths = body["paths"]
+        .as_object()
+        .expect("paths should be an object");
     assert!(
         paths.len() > 0,
         "internal OpenAPI should have at least one path entry"

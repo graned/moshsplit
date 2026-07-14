@@ -6,17 +6,17 @@ use chrono::{DateTime, Utc};
 use moshsplit_balance_engine::{compute_balance, simplified_debts, UserBalance};
 use uuid::Uuid;
 
+use crate::domain::repositories::balance_repo::{BalanceRepository, UserBalanceRow};
+use crate::domain::repositories::event_repo::EventRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
-    BalancesResponse, DebtTransfer, ExplainBalanceBetweenResponse, ExplainBalanceResponse,
-    ExpenseBreakdown, PaymentBreakdown, SettlementBreakdown, SimplifiedDebtsResponse,
+    BalancesResponse, DebtTransfer, ExpenseBreakdown, ExplainBalanceBetweenResponse,
+    ExplainBalanceResponse, PaymentBreakdown, SettlementBreakdown, SimplifiedDebtsResponse,
     UserBalanceItem, UserBalanceResponse,
 };
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
     IncomingBalanceItem, IncomingBalancesResponse, OutgoingBalanceItem, OutgoingBalancesResponse,
 };
-use crate::domain::repositories::balance_repo::{BalanceRepository, UserBalanceRow};
-use crate::domain::repositories::event_repo::EventRepository;
 
 pub struct BalanceService {
     event_repo: EventRepository,
@@ -25,7 +25,10 @@ pub struct BalanceService {
 
 impl BalanceService {
     pub fn new(event_repo: EventRepository, balance_repo: BalanceRepository) -> Self {
-        Self { event_repo, balance_repo }
+        Self {
+            event_repo,
+            balance_repo,
+        }
     }
 
     /// Compute the net balance for a user balance row.
@@ -60,7 +63,11 @@ impl BalanceService {
     }
 
     /// Get balance for a single user.
-    pub fn user_balance(&self, event_id: Uuid, user_id: Uuid) -> Result<UserBalanceResponse, ServiceError> {
+    pub fn user_balance(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<UserBalanceResponse, ServiceError> {
         self.event_repo
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
@@ -68,7 +75,9 @@ impl BalanceService {
         let row = self
             .balance_repo
             .user_balance(event_id, user_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("No balance data for user {}", user_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("No balance data for user {}", user_id))
+            })?;
 
         Ok(UserBalanceResponse {
             user_id: row.user_id,
@@ -79,7 +88,10 @@ impl BalanceService {
     }
 
     /// Compute the minimal set of debt transfers using a greedy algorithm.
-    pub fn simplified_debts(&self, event_id: Uuid) -> Result<SimplifiedDebtsResponse, ServiceError> {
+    pub fn simplified_debts(
+        &self,
+        event_id: Uuid,
+    ) -> Result<SimplifiedDebtsResponse, ServiceError> {
         self.event_repo
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
@@ -107,7 +119,9 @@ impl BalanceService {
             })
             .collect();
 
-        Ok(SimplifiedDebtsResponse { transfers: debt_transfers })
+        Ok(SimplifiedDebtsResponse {
+            transfers: debt_transfers,
+        })
     }
 
     /// Explain a single user's balance in detail.
@@ -123,7 +137,9 @@ impl BalanceService {
         let balance = self
             .balance_repo
             .user_balance(event_id, user_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("No balance data for user {}", user_id)))?;
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("No balance data for user {}", user_id))
+            })?;
 
         let expense_rows = self.balance_repo.expense_breakdown(event_id, user_id)?;
         let expenses: Vec<ExpenseBreakdown> = expense_rows

@@ -18,7 +18,7 @@ use axum::routing::{delete, get, patch, post};
 use axum::Router;
 use sentinel_client::AuthMiddleware;
 use tower_http::catch_panic::CatchPanicLayer;
-use tower_http::cors::{CorsLayer, AllowOrigin, AllowMethods, AllowHeaders};
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -43,8 +43,7 @@ use crate::infrastructure::http::api::routes::admin_router;
 use crate::infrastructure::http::AppState;
 
 fn build_cors_layer() -> CorsLayer {
-    let allowed_origins = std::env::var("CORS_ALLOWED_ORIGINS")
-        .unwrap_or_else(|_| "*".to_string());
+    let allowed_origins = std::env::var("CORS_ALLOWED_ORIGINS").unwrap_or_else(|_| "*".to_string());
 
     let cors = CorsLayer::new()
         .allow_methods(AllowMethods::any())
@@ -83,15 +82,27 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let public_routes = Router::new()
         .route("/health", get(system_handlers::health_check))
         .route("/livez", get(system_handlers::livez))
-        .merge(SwaggerUi::new("/docs/internal").url("/api-docs/internal/openapi.json", ApiDoc::openapi()))
-        .merge(SwaggerUi::new("/docs/external").url("/api-docs/external/openapi.json", ExternalApiDoc::openapi()));
+        .merge(
+            SwaggerUi::new("/docs/internal")
+                .url("/api-docs/internal/openapi.json", ApiDoc::openapi()),
+        )
+        .merge(
+            SwaggerUi::new("/docs/external")
+                .url("/api-docs/external/openapi.json", ExternalApiDoc::openapi()),
+        );
 
     // ── Public auth routes (no auth required, but under /v1/) ─────────
     // These endpoints exchange tokens, so they cannot require a Bearer token
     let public_auth_routes = Router::new()
-        .route("/v1/auth/external-login", post(auth_handlers::external_login))
+        .route(
+            "/v1/auth/external-login",
+            post(auth_handlers::external_login),
+        )
         .route("/v1/auth/refresh", post(auth_handlers::refresh_token))
-        .route("/v1/balances/external-summary", post(balance_handlers::external_summary));
+        .route(
+            "/v1/balances/external-summary",
+            post(balance_handlers::external_summary),
+        );
 
     // ── Protected API routes (require Sentinel auth) ──────────────────
 
@@ -105,7 +116,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     // ── Members ────────────────────────────────────────────────────────
     let member_routes = Router::new()
-        .route("/v1/events/{id}/members", get(member_handlers::list_members))
+        .route(
+            "/v1/events/{id}/members",
+            get(member_handlers::list_members),
+        )
         .route("/v1/events/{id}/members", post(member_handlers::add_member))
         .route(
             "/v1/events/{id}/members/{user_id}",
@@ -114,8 +128,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     // ── Expenses ───────────────────────────────────────────────────────
     let expense_routes = Router::new()
-        .route("/v1/events/{id}/expenses", get(expense_handlers::list_expenses))
-        .route("/v1/events/{id}/expenses", post(expense_handlers::create_expense))
+        .route(
+            "/v1/events/{id}/expenses",
+            get(expense_handlers::list_expenses),
+        )
+        .route(
+            "/v1/events/{id}/expenses",
+            post(expense_handlers::create_expense),
+        )
         .route(
             "/v1/events/{id}/expenses/{expense_id}",
             get(expense_handlers::get_expense),
@@ -135,8 +155,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     // ── Payments ───────────────────────────────────────────────────────
     let payment_routes = Router::new()
-        .route("/v1/events/{id}/payments", get(payment_handlers::list_payments))
-        .route("/v1/events/{id}/payments", post(payment_handlers::create_payment))
+        .route(
+            "/v1/events/{id}/payments",
+            get(payment_handlers::list_payments),
+        )
+        .route(
+            "/v1/events/{id}/payments",
+            post(payment_handlers::create_payment),
+        )
         .route(
             "/v1/events/{id}/payments/{payment_id}",
             get(payment_handlers::get_payment),
@@ -144,8 +170,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     // ── Settlements ────────────────────────────────────────────────────
     let settlement_routes = Router::new()
-        .route("/v1/events/{id}/settlements", get(settlement_handlers::list_settlements))
-        .route("/v1/events/{id}/settlements", post(settlement_handlers::propose_settlement))
+        .route(
+            "/v1/events/{id}/settlements",
+            get(settlement_handlers::list_settlements),
+        )
+        .route(
+            "/v1/events/{id}/settlements",
+            post(settlement_handlers::propose_settlement),
+        )
         .route(
             "/v1/events/{id}/settlements/{settlement_id}",
             patch(settlement_handlers::update_settlement_status),
@@ -185,7 +217,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     // ── Balances ───────────────────────────────────────────────────────
     let balance_routes = Router::new()
-        .route("/v1/events/{id}/balances", get(balance_handlers::all_balances))
+        .route(
+            "/v1/events/{id}/balances",
+            get(balance_handlers::all_balances),
+        )
         .route(
             "/v1/events/{id}/balances/simplified",
             get(balance_handlers::simplified_debts),
@@ -208,16 +243,19 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         );
 
     // ── Activity (Battle Log) ──────────────────────────────────────────
-    let activity_routes = Router::new()
-        .route("/v1/events/{id}/activity", get(activity_handlers::list_activity));
+    let activity_routes = Router::new().route(
+        "/v1/events/{id}/activity",
+        get(activity_handlers::list_activity),
+    );
 
     // ── Stats ──────────────────────────────────────────────────────────
-    let stats_routes = Router::new()
-        .route("/v1/events/{id}/stats", get(stats_handlers::get_event_stats));
+    let stats_routes = Router::new().route(
+        "/v1/events/{id}/stats",
+        get(stats_handlers::get_event_stats),
+    );
 
     // ── Users ──────────────────────────────────────────────────────────
-    let user_routes = Router::new()
-        .route("/v1/users", get(user_handlers::list_users));
+    let user_routes = Router::new().route("/v1/users", get(user_handlers::list_users));
 
     // ── Event Images ───────────────────────────────────────────────────
     let event_image_routes = Router::new()
@@ -285,9 +323,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         ))
         .layer(build_cors_layer());
 
-    let api_routes = Router::new()
-        .merge(public_api)
-        .merge(protected_api);
+    let api_routes = Router::new().merge(public_api).merge(protected_api);
 
     // Attach shared application state.
     api_routes.with_state(state)

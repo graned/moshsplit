@@ -30,7 +30,9 @@ async fn test_list_users_returns_valid_structure() {
             .unwrap_or("");
 
         let params = common::parse_query_params(location.split('?').nth(1).unwrap_or(""));
-        let access_token = params.get("access_token").expect("access_token in redirect");
+        let access_token = params
+            .get("access_token")
+            .expect("access_token in redirect");
 
         let (status, body) = get_json_with_auth("/v1/users", access_token).await;
         assert_eq!(status, StatusCode::OK, "GET /v1/users should return 200");

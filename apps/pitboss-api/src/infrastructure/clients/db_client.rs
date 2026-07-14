@@ -135,9 +135,12 @@ impl SentinelAuthClient {
     /// of the `sentinel_auth` database. The `users` table holds user metadata
     /// (user_id, display_name, etc.) and `user_identities` maps emails to users.
     /// We join both to resolve email → user_id.
-    pub fn find_user_id_by_email(&self, email: &str) -> Result<Option<Uuid>, crate::errors::RepositoryError> {
-        use diesel::OptionalExtension;
+    pub fn find_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> Result<Option<Uuid>, crate::errors::RepositoryError> {
         use diesel::deserialize::QueryableByName;
+        use diesel::OptionalExtension;
         let mut conn = self.get_conn().map_err(|e| {
             crate::errors::RepositoryError::Database(format!("Connection pool error: {}", e))
         })?;
@@ -166,7 +169,10 @@ impl SentinelAuthClient {
     /// Fetch active users from the Sentinel auth database, filtered by the
     /// given set of user IDs (must be members of at least one MoshSplit event).
     /// Joins `public.users` and `public.user_identities` on `user_id`.
-    pub fn list_users(&self, user_ids: &[Uuid]) -> Result<Vec<UserRow>, crate::errors::RepositoryError> {
+    pub fn list_users(
+        &self,
+        user_ids: &[Uuid],
+    ) -> Result<Vec<UserRow>, crate::errors::RepositoryError> {
         use diesel::sql_types::{Array, Uuid as SqlUuid};
 
         if user_ids.is_empty() {

@@ -3,10 +3,10 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, MemberListItem};
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, MemberListItem};
 use crate::schema_enums::EventMemberRole;
 use crate::schema_models::EventMember;
 
@@ -17,7 +17,10 @@ pub struct MemberService {
 
 impl MemberService {
     pub fn new(event_repo: EventRepository, member_repo: EventMemberRepository) -> Self {
-        Self { event_repo, member_repo }
+        Self {
+            event_repo,
+            member_repo,
+        }
     }
 
     /// List active members of an event.
@@ -56,7 +59,11 @@ impl MemberService {
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
         // Check if already a member
-        if self.member_repo.find_active_by_event_id_and_user_id(event_id, req.user_id)?.is_some() {
+        if self
+            .member_repo
+            .find_active_by_event_id_and_user_id(event_id, req.user_id)?
+            .is_some()
+        {
             return Err(ServiceError::BusinessRule(format!(
                 "User {} is already a member of event {}",
                 req.user_id, event_id
@@ -133,7 +140,9 @@ impl MemberService {
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
-        let affected = self.member_repo.soft_remove(event_id, user_id, Utc::now())?;
+        let affected = self
+            .member_repo
+            .soft_remove(event_id, user_id, Utc::now())?;
 
         if affected == 0 {
             return Err(ServiceError::NotFound(format!(

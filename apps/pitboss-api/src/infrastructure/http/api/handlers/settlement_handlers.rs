@@ -7,17 +7,20 @@ use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::common::{CursorParams, ListSettlementsParams, PaginatedResponse, PaginationMeta};
-use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    ApproveSettlementRequest, CreateSettlementRequest, IncomingBalancesResponse, OutgoingBalancesResponse,
-    RejectSettlementRequest, SettlementHistoryItem, SettlementListItem, SettlementResponse, UpdateSettlementStatusRequest,
-};
-use crate::infrastructure::http::api::extractors::CurrentUser;
-use crate::infrastructure::http::AppState;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::common::{
+    CursorParams, ListSettlementsParams, PaginatedResponse, PaginationMeta,
+};
+use crate::infrastructure::http::api::dtos::settlement_dtos::{
+    ApproveSettlementRequest, CreateSettlementRequest, IncomingBalancesResponse,
+    OutgoingBalancesResponse, RejectSettlementRequest, SettlementHistoryItem, SettlementListItem,
+    SettlementResponse, UpdateSettlementStatusRequest,
+};
+use crate::infrastructure::http::api::extractors::CurrentUser;
+use crate::infrastructure::http::AppState;
 use crate::services::balance_service::BalanceService;
 use crate::services::settlement_service::SettlementService;
 
@@ -129,7 +132,8 @@ pub async fn approve_settlement(
     let _ = BalanceService::new(
         EventRepository::new(state.db_client.clone()),
         crate::domain::repositories::balance_repo::BalanceRepository::new(state.db_client.clone()),
-    ).recalculate_event_balances(event_id);
+    )
+    .recalculate_event_balances(event_id);
 
     Ok(Json(settlement))
 }
@@ -169,7 +173,8 @@ pub async fn reject_settlement(
     let _ = BalanceService::new(
         EventRepository::new(state.db_client.clone()),
         crate::domain::repositories::balance_repo::BalanceRepository::new(state.db_client.clone()),
-    ).recalculate_event_balances(event_id);
+    )
+    .recalculate_event_balances(event_id);
 
     Ok(Json(settlement))
 }
@@ -389,12 +394,8 @@ pub async fn list_settlement_history(
         EventMemberRepository::new(state.db_client.clone()),
     );
 
-    let (items, has_more, next_cursor) = svc.list_history_for_user(
-        event_id,
-        user_id,
-        params.cursor.as_deref(),
-        params.limit(),
-    )?;
+    let (items, has_more, next_cursor) =
+        svc.list_history_for_user(event_id, user_id, params.cursor.as_deref(), params.limit())?;
 
     Ok(Json(PaginatedResponse {
         items,

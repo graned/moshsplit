@@ -1,8 +1,6 @@
 mod common;
 
-use common::{
-    assert_valid_envelope, delete_json, get_json, patch_json, post_json,
-};
+use common::{assert_valid_envelope, delete_json, get_json, patch_json, post_json};
 use reqwest::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
@@ -18,11 +16,7 @@ struct TestFixture {
 
 impl TestFixture {
     async fn new(name: &str) -> Self {
-        let (_, body) = post_json(
-            "/v1/events",
-            &json!({"name": name, "currency": "EUR"}),
-        )
-        .await;
+        let (_, body) = post_json("/v1/events", &json!({"name": name, "currency": "EUR"})).await;
         let event_id = body["data"]["id"].as_str().unwrap().to_string();
 
         let mut members = Vec::new();
@@ -87,8 +81,11 @@ async fn test_get_expense_returns_200() {
     .await;
     let expense_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/expenses/{}", fix.event_id, expense_id)).await;
+    let (status, body) = get_json(&format!(
+        "/v1/events/{}/expenses/{}",
+        fix.event_id, expense_id
+    ))
+    .await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -114,8 +111,7 @@ async fn test_list_expenses_returns_200() {
     )
     .await;
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/expenses", fix.event_id)).await;
+    let (status, body) = get_json(&format!("/v1/events/{}/expenses", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -200,7 +196,10 @@ async fn test_list_expense_versions_returns_all() {
     assert_valid_envelope(&body, true);
     let versions = body["data"].as_array().unwrap();
     assert_eq!(versions.len(), 2);
-    let nums: Vec<i32> = versions.iter().map(|v| v["version_number"].as_i64().unwrap() as i32).collect();
+    let nums: Vec<i32> = versions
+        .iter()
+        .map(|v| v["version_number"].as_i64().unwrap() as i32)
+        .collect();
     assert!(nums.contains(&1), "should have version 1");
     assert!(nums.contains(&2), "should have version 2");
 }
@@ -223,14 +222,20 @@ async fn test_delete_expense_soft_deletes() {
     .await;
     let expense_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
-    let (status, _body) =
-        delete_json(&format!("/v1/events/{}/expenses/{}", fix.event_id, expense_id)).await;
+    let (status, _body) = delete_json(&format!(
+        "/v1/events/{}/expenses/{}",
+        fix.event_id, expense_id
+    ))
+    .await;
 
     // DELETE returns 204 No Content
     assert_eq!(status, StatusCode::NO_CONTENT);
 
-    let (get_status, get_body) =
-        get_json(&format!("/v1/events/{}/expenses/{}", fix.event_id, expense_id)).await;
+    let (get_status, get_body) = get_json(&format!(
+        "/v1/events/{}/expenses/{}",
+        fix.event_id, expense_id
+    ))
+    .await;
     assert_eq!(get_status, StatusCode::OK);
     assert!(get_body["data"]["deleted_at"].is_string());
 }
@@ -392,16 +397,14 @@ async fn test_list_expenses_pagination() {
     }
 
     // Test default limit
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/expenses", fix.event_id)).await;
+    let (status, body) = get_json(&format!("/v1/events/{}/expenses", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
     assert!(body["data"]["items"].is_array());
 
     // Test with limit param
-    let (status2, body2) =
-        get_json(&format!("/v1/events/{}/expenses?limit=2", fix.event_id)).await;
+    let (status2, body2) = get_json(&format!("/v1/events/{}/expenses?limit=2", fix.event_id)).await;
 
     assert_eq!(status2, StatusCode::OK);
     let items = body2["data"]["items"].as_array().unwrap();
@@ -456,7 +459,10 @@ async fn test_list_expenses_filters_by_user_id_payer_only() {
     // Verify all returned expenses have paid_by = user_id
     for item in items {
         let paid_by = item["paid_by"].as_str().unwrap();
-        assert_eq!(paid_by, payer, "returned expense should be paid by the filtered user");
+        assert_eq!(
+            paid_by, payer,
+            "returned expense should be paid by the filtered user"
+        );
     }
 
     // Filter by non-payer member - should return 0 expenses
@@ -468,5 +474,9 @@ async fn test_list_expenses_filters_by_user_id_payer_only() {
 
     assert_eq!(status2, StatusCode::OK);
     let items2 = body2["data"]["items"].as_array().unwrap();
-    assert_eq!(items2.len(), 0, "should not return expenses where user is only a participant");
+    assert_eq!(
+        items2.len(),
+        0,
+        "should not return expenses where user is only a participant"
+    );
 }

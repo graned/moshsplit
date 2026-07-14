@@ -7,12 +7,12 @@ use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
+use crate::domain::repositories::event_image_repo::EventImageRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::event_image_dtos::{
     CreateEventImageRequest, EventImageResponse, EventImagesResponse, UpdateEventImageRequest,
 };
 use crate::infrastructure::http::AppState;
-use crate::domain::repositories::event_image_repo::EventImageRepository;
 use crate::services::event_image_service::EventImageService;
 
 /// POST /v1/events/{id}/images — create an event image.

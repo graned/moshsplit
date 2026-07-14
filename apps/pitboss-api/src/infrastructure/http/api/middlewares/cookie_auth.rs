@@ -126,7 +126,10 @@ mod tests {
     fn make_request_with_auth(auth: Option<&str>) -> Request<Body> {
         let builder = Request::builder();
         if let Some(v) = auth {
-            builder.header("authorization", v).body(Body::empty()).unwrap()
+            builder
+                .header("authorization", v)
+                .body(Body::empty())
+                .unwrap()
         } else {
             builder.body(Body::empty()).unwrap()
         }

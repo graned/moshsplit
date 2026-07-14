@@ -1,8 +1,6 @@
 mod common;
 
-use common::{
-    assert_valid_envelope, get_json, patch_json, post_json,
-};
+use common::{assert_valid_envelope, get_json, patch_json, post_json};
 use reqwest::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
@@ -14,11 +12,7 @@ struct TestFixture {
 
 impl TestFixture {
     async fn new(name: &str) -> Self {
-        let (_, body) = post_json(
-            "/v1/events",
-            &json!({"name": name, "currency": "EUR"}),
-        )
-        .await;
+        let (_, body) = post_json("/v1/events", &json!({"name": name, "currency": "EUR"})).await;
         let event_id = body["data"]["id"].as_str().unwrap().to_string();
 
         let mut members = Vec::new();
@@ -74,8 +68,11 @@ async fn test_get_settlement_returns_200() {
     .await;
     let settlement_id = create_body["data"]["id"].as_str().unwrap().to_string();
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/settlements/{}", fix.event_id, settlement_id)).await;
+    let (status, body) = get_json(&format!(
+        "/v1/events/{}/settlements/{}",
+        fix.event_id, settlement_id
+    ))
+    .await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -97,8 +94,7 @@ async fn test_list_settlements_returns_200() {
     )
     .await;
 
-    let (status, body) =
-        get_json(&format!("/v1/events/{}/settlements", fix.event_id)).await;
+    let (status, body) = get_json(&format!("/v1/events/{}/settlements", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -346,11 +342,8 @@ async fn settle_test_fixture(event_name: &str) -> TestFixture {
 async fn test_incoming_balances_returns_200() {
     let fix = settle_test_fixture(&format!("inc-bal {}", Uuid::new_v4())).await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/incoming",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/incoming", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -363,11 +356,8 @@ async fn test_incoming_balances_returns_200() {
 async fn test_outgoing_balances_returns_200() {
     let fix = settle_test_fixture(&format!("out-bal {}", Uuid::new_v4())).await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/outgoing",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/outgoing", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -390,11 +380,8 @@ async fn test_settlement_requests_returns_200() {
     )
     .await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/requests",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/requests", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -407,18 +394,19 @@ async fn test_settlement_requests_returns_200() {
 async fn test_settlement_history_empty_for_new_event() {
     let fix = TestFixture::new(&format!("hist-empty {}", Uuid::new_v4())).await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/history",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/history", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
     let data = &body["data"];
     assert!(data["items"].is_array());
     let items = data["items"].as_array().unwrap();
-    assert_eq!(items.len(), 0, "new event should have no settlement history");
+    assert_eq!(
+        items.len(),
+        0,
+        "new event should have no settlement history"
+    );
 }
 
 #[tokio::test]
@@ -473,16 +461,17 @@ async fn test_settlement_history_with_confirmed_settlement() {
     )
     .await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/history",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/history", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
     let items = body["data"]["items"].as_array().unwrap();
-    assert_eq!(items.len(), 1, "confirmed settlement should appear in history");
+    assert_eq!(
+        items.len(),
+        1,
+        "confirmed settlement should appear in history"
+    );
     let item = &items[0];
     assert!(item["id"].is_string());
     assert!(item["is_outgoing"].is_boolean());
@@ -496,11 +485,8 @@ async fn test_settlement_history_with_confirmed_settlement() {
 async fn test_incoming_balances_with_expense() {
     let fix = settle_test_fixture(&format!("inc-exp {}", Uuid::new_v4())).await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/incoming",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/incoming", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);
@@ -521,11 +507,8 @@ async fn test_incoming_balances_with_expense() {
 async fn test_outgoing_balances_with_expense() {
     let fix = settle_test_fixture(&format!("out-exp {}", Uuid::new_v4())).await;
 
-    let (status, body) = get_json(&format!(
-        "/v1/events/{}/settlements/outgoing",
-        fix.event_id
-    ))
-    .await;
+    let (status, body) =
+        get_json(&format!("/v1/events/{}/settlements/outgoing", fix.event_id)).await;
 
     assert_eq!(status, StatusCode::OK);
     assert_valid_envelope(&body, true);

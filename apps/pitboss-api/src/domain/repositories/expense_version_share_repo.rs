@@ -29,10 +29,7 @@ impl ExpenseVersionShareRepository {
     }
 
     /// Insert multiple shares in a single batch.
-    pub fn bulk_insert(
-        &self,
-        rows: &[ExpenseVersionShare],
-    ) -> Result<usize, RepositoryError> {
+    pub fn bulk_insert(&self, rows: &[ExpenseVersionShare]) -> Result<usize, RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
         let affected = diesel::insert_into(expense_version_share::table)
             .values(rows)

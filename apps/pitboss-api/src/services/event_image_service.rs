@@ -2,7 +2,9 @@
 
 use uuid::Uuid;
 
-use crate::domain::repositories::event_image_repo::{EventImageRepository, EventImageUpdateChangeset};
+use crate::domain::repositories::event_image_repo::{
+    EventImageRepository, EventImageUpdateChangeset,
+};
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::event_image_dtos::{
     CreateEventImageRequest, EventImageResponse, EventImagesResponse, UpdateEventImageRequest,
@@ -27,9 +29,7 @@ impl EventImageService {
     ) -> Result<EventImageResponse, ServiceError> {
         // Validate URL is not empty
         if req.url.trim().is_empty() {
-            return Err(ServiceError::Validation(
-                "Image URL cannot be empty".into(),
-            ));
+            return Err(ServiceError::Validation("Image URL cannot be empty".into()));
         }
 
         // Parse and validate image type
@@ -65,11 +65,7 @@ impl EventImageService {
     }
 
     /// Delete an image with ownership check (must belong to event).
-    pub fn delete_image(
-        &self,
-        event_id: Uuid,
-        image_id: Uuid,
-    ) -> Result<(), ServiceError> {
+    pub fn delete_image(&self, event_id: Uuid, image_id: Uuid) -> Result<(), ServiceError> {
         let affected = self.repo.delete_for_event(event_id, image_id)?;
         if affected == 0 {
             return Err(ServiceError::NotFound(format!(
@@ -109,9 +105,7 @@ impl EventImageService {
         let updated = self
             .repo
             .find_by_event_and_image_id(event_id, image_id)?
-            .ok_or_else(|| {
-                ServiceError::Internal("Image disappeared after update".into())
-            })?;
+            .ok_or_else(|| ServiceError::Internal("Image disappeared after update".into()))?;
 
         // Preserve original uploaded_at from existing record
         let mut response = event_image_to_response(&updated);
@@ -152,9 +146,7 @@ fn group_images(images: &[EventImage]) -> EventImagesResponse {
     }
 
     // Sort gallery by sort_order
-    response
-        .gallery
-        .sort_by_key(|g| (g.sort_order, g.id));
+    response.gallery.sort_by_key(|g| (g.sort_order, g.id));
 
     response
 }

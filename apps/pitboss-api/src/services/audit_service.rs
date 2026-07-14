@@ -125,7 +125,9 @@ impl AuditService {
             .collect();
 
         let next_cursor = if has_more {
-            entries.last().map(|entry| encode_cursor(entry.created_at, entry.id))
+            entries
+                .last()
+                .map(|entry| encode_cursor(entry.created_at, entry.id))
         } else {
             None
         };

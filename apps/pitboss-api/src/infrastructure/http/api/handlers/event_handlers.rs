@@ -8,18 +8,20 @@ use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
+use crate::domain::repositories::event_image_repo::EventImageRepository;
+use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::common::{ListEventsParams, PaginatedResponse, PaginationMeta};
+use crate::infrastructure::http::api::dtos::common::{
+    ListEventsParams, PaginatedResponse, PaginationMeta,
+};
 use crate::infrastructure::http::api::dtos::event_dtos::{
     CreateEventRequest, EventListItem, EventResponse, UpdateEventRequest,
 };
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
-use crate::domain::repositories::event_repo::EventRepository;
-use crate::domain::repositories::event_image_repo::EventImageRepository;
-use crate::domain::repositories::member_repo::EventMemberRepository;
-use crate::services::event_service::EventService;
 use crate::services::event_image_service::EventImageService;
+use crate::services::event_service::EventService;
 
 /// GET /v1/events — list events with optional status filter.
 #[utoipa::path(
@@ -44,8 +46,11 @@ pub async fn list_events(
         EventMemberRepository::new(state.db_client.clone()),
     );
 
-    let (items, has_more, next_cursor) =
-        svc.list_events(params.status.as_deref(), params.cursor.as_deref(), params.limit())?;
+    let (items, has_more, next_cursor) = svc.list_events(
+        params.status.as_deref(),
+        params.cursor.as_deref(),
+        params.limit(),
+    )?;
 
     Ok(Json(PaginatedResponse {
         items,
