@@ -28,7 +28,7 @@ function MobileAppLayout() {
   const hasEvent = !!eventId;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Box
         component="main"
         sx={{
