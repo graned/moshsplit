@@ -34,6 +34,10 @@
   "settlementRejectedCard": {
     "rejected": "Liquidación rechazada"
   },
+  "expenseDeletedCard": {
+    "deleted": "Gasto eliminado",
+    "expense": "gasto"
+  },
   "expenseDetail": {
     "title": "Detalles del gasto",
     "edit": "Editar gasto",

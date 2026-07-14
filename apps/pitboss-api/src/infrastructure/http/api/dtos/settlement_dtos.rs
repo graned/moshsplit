@@ -55,6 +55,9 @@ pub struct CreateSettlementRequest {
     /// Optional proof URL (receipt screenshot, etc.).
     #[serde(default)]
     pub proof_url: Option<String>,
+    /// Optional expense ID this settlement is linked to.
+    #[serde(default)]
+    pub expense_id: Option<Uuid>,
 }
 
 /// Payload to approve a settlement request.
@@ -100,6 +103,8 @@ pub struct SettlementResponse {
     pub reviewed_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rejection_note: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expense_id: Option<Uuid>,
 }
 
 /// Full history entry for the settle page.
@@ -138,4 +143,6 @@ pub struct SettlementListItem {
     pub reviewed_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rejection_note: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expense_id: Option<Uuid>,
 }

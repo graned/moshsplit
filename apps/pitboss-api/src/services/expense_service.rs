@@ -4,16 +4,17 @@ use chrono::Utc;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::errors::ServiceError;
-use crate::infrastructure::http::api::dtos::expense_dtos::{
-    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
-    ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
-};
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::errors::ServiceError;
+use crate::infrastructure::http::api::dtos::expense_dtos::{
+    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
+    ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
+};
 use crate::schema_enums::{ExpenseType, SplitType};
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 use moshsplit_balance_engine::redistribute_shares;
@@ -24,6 +25,7 @@ pub struct ExpenseService {
     version_repo: ExpenseVersionRepository,
     share_repo: ExpenseVersionShareRepository,
     payment_repo: PaymentRepository,
+    settlement_repo: SettlementRepository,
 }
 
 impl ExpenseService {
@@ -33,8 +35,16 @@ impl ExpenseService {
         version_repo: ExpenseVersionRepository,
         share_repo: ExpenseVersionShareRepository,
         payment_repo: PaymentRepository,
+        settlement_repo: SettlementRepository,
     ) -> Self {
-        Self { event_repo, expense_repo, version_repo, share_repo, payment_repo }
+        Self {
+            event_repo,
+            expense_repo,
+            version_repo,
+            share_repo,
+            payment_repo,
+            settlement_repo,
+        }
     }
 
     /// Parse a split_type string into a SplitType enum.
@@ -44,7 +54,10 @@ impl ExpenseService {
             "custom" => Ok(SplitType::Custom),
             "percentage" => Ok(SplitType::Percentage),
             "shares" => Ok(SplitType::Shares),
-            _ => Err(ServiceError::Validation(format!("Unknown split_type: {}", s))),
+            _ => Err(ServiceError::Validation(format!(
+                "Unknown split_type: {}",
+                s
+            ))),
         }
     }
 
@@ -59,7 +72,10 @@ impl ExpenseService {
             "camping" => Ok(ExpenseType::Camping),
             "other" => Ok(ExpenseType::Other),
             "reimburse" => Ok(ExpenseType::Reimburse),
-            _ => Err(ServiceError::Validation(format!("Unknown expense_type: {}", s))),
+            _ => Err(ServiceError::Validation(format!(
+                "Unknown expense_type: {}",
+                s
+            ))),
         }
     }
 
@@ -98,10 +114,7 @@ impl ExpenseService {
                             "split requires 'shares' object with member UUID keys".into(),
                         )
                     })?;
-                Ok(obj
-                    .keys()
-                    .filter_map(|k| Uuid::parse_str(k).ok())
-                    .collect())
+                Ok(obj.keys().filter_map(|k| Uuid::parse_str(k).ok()).collect())
             }
             SplitType::Percentage => {
                 let obj = split_data
@@ -112,10 +125,7 @@ impl ExpenseService {
                             "percentage split requires 'percentages' object".into(),
                         )
                     })?;
-                Ok(obj
-                    .keys()
-                    .filter_map(|k| Uuid::parse_str(k).ok())
-                    .collect())
+                Ok(obj.keys().filter_map(|k| Uuid::parse_str(k).ok()).collect())
             }
         }
     }
@@ -155,9 +165,15 @@ impl ExpenseService {
                 let shares = split_data
                     .get("shares")
                     .and_then(|s| s.as_object())
-                    .ok_or_else(|| ServiceError::Validation("custom split requires 'shares' object".into()))?;
+                    .ok_or_else(|| {
+                        ServiceError::Validation("custom split requires 'shares' object".into())
+                    })?;
 
-                let total_custom: i32 = shares.values().filter_map(|v| v.as_i64()).map(|v| v as i32).sum();
+                let total_custom: i32 = shares
+                    .values()
+                    .filter_map(|v| v.as_i64())
+                    .map(|v| v as i32)
+                    .sum();
                 if total_custom != amount_cents {
                     return Err(ServiceError::Validation(format!(
                         "Custom shares sum {} does not match amount_cents {}",
@@ -181,7 +197,9 @@ impl ExpenseService {
                     .get("percentages")
                     .and_then(|s| s.as_object())
                     .ok_or_else(|| {
-                        ServiceError::Validation("percentage split requires 'percentages' object".into())
+                        ServiceError::Validation(
+                            "percentage split requires 'percentages' object".into(),
+                        )
                     })?;
 
                 let mut allocated: i32 = 0;
@@ -210,11 +228,15 @@ impl ExpenseService {
                 let shrs = split_data
                     .get("shares")
                     .and_then(|s| s.as_object())
-                    .ok_or_else(|| ServiceError::Validation("shares split requires 'shares' object".into()))?;
+                    .ok_or_else(|| {
+                        ServiceError::Validation("shares split requires 'shares' object".into())
+                    })?;
 
                 let total_shares: f64 = shrs.values().filter_map(|v| v.as_f64()).sum();
                 if total_shares <= 0.0 {
-                    return Err(ServiceError::Validation("Total shares must be positive".into()));
+                    return Err(ServiceError::Validation(
+                        "Total shares must be positive".into(),
+                    ));
                 }
 
                 let mut allocated: i32 = 0;
@@ -222,7 +244,10 @@ impl ExpenseService {
                     .iter()
                     .enumerate()
                     .map(|(i, uid)| {
-                        let s = shrs.get(&uid.to_string()).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                        let s = shrs
+                            .get(&uid.to_string())
+                            .and_then(|v| v.as_f64())
+                            .unwrap_or(0.0);
                         let share = if i == n - 1 {
                             amount_cents - allocated
                         } else {
@@ -263,7 +288,11 @@ impl ExpenseService {
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
         let split_type = Self::parse_split_type(&req.split_type)?;
-        let expense_type = req.expense_type.as_deref().map(Self::parse_expense_type).transpose()?;
+        let expense_type = req
+            .expense_type
+            .as_deref()
+            .map(Self::parse_expense_type)
+            .transpose()?;
 
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
@@ -272,7 +301,8 @@ impl ExpenseService {
         // The paid_by user does not need to be in the split member list.
 
         // Compute shares
-        let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
+        let shares =
+            Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
 
         let now = Utc::now();
         let expense_id = Uuid::new_v4();
@@ -321,7 +351,8 @@ impl ExpenseService {
         if affected != share_rows.len() {
             return Err(ServiceError::Internal(format!(
                 "Failed to insert all shares: expected {}, got {}",
-                share_rows.len(), affected
+                share_rows.len(),
+                affected
             )));
         }
 
@@ -343,21 +374,30 @@ impl ExpenseService {
             .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
 
         if expense.event_id != event_id {
-            return Err(ServiceError::NotFound("Expense not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Expense not found in this event".into(),
+            ));
         }
         if expense.deleted_at.is_some() {
-            return Err(ServiceError::BusinessRule("Cannot update a deleted expense".into()));
+            return Err(ServiceError::BusinessRule(
+                "Cannot update a deleted expense".into(),
+            ));
         }
 
         let split_type = Self::parse_split_type(&req.split_type)?;
-        let expense_type = req.expense_type.as_deref().map(Self::parse_expense_type).transpose()?;
+        let expense_type = req
+            .expense_type
+            .as_deref()
+            .map(Self::parse_expense_type)
+            .transpose()?;
 
         // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
         // F4: Allow payer not in split
         // Compute shares
-        let shares = Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
+        let shares =
+            Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
 
         let now = Utc::now();
         let version_id = Uuid::new_v4();
@@ -395,12 +435,14 @@ impl ExpenseService {
         if affected != share_rows.len() {
             return Err(ServiceError::Internal(format!(
                 "Failed to insert all shares: expected {}, got {}",
-                share_rows.len(), affected
+                share_rows.len(),
+                affected
             )));
         }
 
         // Update current_version_id on expense
-        self.expense_repo.set_current_version(expense_id, version_id)?;
+        self.expense_repo
+            .set_current_version(expense_id, version_id)?;
 
         Ok(self.get_expense(expense_id)?)
     }
@@ -419,9 +461,14 @@ impl ExpenseService {
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
 
-        let (rows, has_more) = self
-            .expense_repo
-            .list_by_event_id_paginated(event_id, cursor, limit, include_deleted, expense_type, user_id)?;
+        let (rows, has_more) = self.expense_repo.list_by_event_id_paginated(
+            event_id,
+            cursor,
+            limit,
+            include_deleted,
+            expense_type,
+            user_id,
+        )?;
 
         let items: Vec<ExpenseListItem> = rows
             .into_iter()
@@ -504,7 +551,10 @@ impl ExpenseService {
     }
 
     /// Get expense with full version details.
-    pub fn get_expense_with_versions(&self, expense_id: Uuid) -> Result<Vec<ExpenseVersionDetail>, ServiceError> {
+    pub fn get_expense_with_versions(
+        &self,
+        expense_id: Uuid,
+    ) -> Result<Vec<ExpenseVersionDetail>, ServiceError> {
         // Validate expense exists
         self.expense_repo
             .find_by_id(expense_id)?
@@ -559,10 +609,14 @@ impl ExpenseService {
             .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
 
         if expense_row.event_id != event_id {
-            return Err(ServiceError::NotFound("Expense not found in this event".into()));
+            return Err(ServiceError::NotFound(
+                "Expense not found in this event".into(),
+            ));
         }
         if expense_row.deleted_at.is_some() {
-            return Err(ServiceError::BusinessRule("Expense is already deleted".into()));
+            return Err(ServiceError::BusinessRule(
+                "Expense is already deleted".into(),
+            ));
         }
 
         if expense_row.created_by != user_id {
@@ -572,7 +626,9 @@ impl ExpenseService {
         }
 
         let expense_owner = expense_row.created_by;
-        let original_title = expense_row.title.unwrap_or_else(|| "Deleted Expense".to_string());
+        let original_title = expense_row
+            .title
+            .unwrap_or_else(|| "Deleted Expense".to_string());
         let now = Utc::now();
 
         let payments = self
@@ -646,6 +702,8 @@ impl ExpenseService {
             }
         }
 
+        self.settlement_repo.soft_delete_for_expense(expense_id)?;
+
         self.expense_repo.soft_delete(expense_id, now)?;
         Ok(())
     }
@@ -674,9 +732,7 @@ impl ExpenseService {
 
         for expense_id in &expense_ids {
             // Get current version info
-            let current = self
-                .version_repo
-                .find_by_expense_id(*expense_id)?;
+            let current = self.version_repo.find_by_expense_id(*expense_id)?;
 
             // Get the latest version (highest version_number)
             let latest_version = current.into_iter().max_by_key(|v| v.version_number);
@@ -744,7 +800,8 @@ impl ExpenseService {
             }
 
             // Update expense's current version
-            self.expense_repo.set_current_version(*expense_id, version_id)?;
+            self.expense_repo
+                .set_current_version(*expense_id, version_id)?;
             redistributed += 1;
         }
 
