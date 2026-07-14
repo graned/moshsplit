@@ -60,6 +60,9 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, onBack, c
         },
       }}
       sx={{
+        '&.MuiDrawer-root': {
+          overscrollBehavior: 'none',
+        },
         '& .MuiDrawer-paper': {
           bgcolor: '#1A1A1A',
           borderTopLeftRadius: fullScreen ? 0 : 20,
@@ -67,8 +70,10 @@ export function MobileDrawer({ open, onClose, title, children, onOpen, onBack, c
           height: fullScreen ? '100dvh' : undefined,
           maxHeight: fullScreen ? undefined : '92dvh',
           overflow: 'hidden',
+          overscrollBehavior: 'none',
           display: 'flex',
           flexDirection: 'column',
+          pt: fullScreen ? 'env(safe-area-inset-top)' : 0,
         },
       }}
     >

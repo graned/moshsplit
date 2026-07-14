@@ -106,7 +106,8 @@ function MobileBottomNav() {
           backgroundColor: '#1A1A1A',
           borderTop: '1px solid',
           borderColor: 'divider',
-          pb: 'env(safe-area-inset-bottom, 0px)',
+          height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+          boxSizing: 'border-box',
         }}
       >
         <BottomNavigation
