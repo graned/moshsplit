@@ -100,7 +100,7 @@ export function ExpenseDetailDrawer({
     ? EXPENSE_TYPE_LABELS[displayExpense.expense_type] || displayExpense.expense_type
     : null;
   const categoryColor = displayExpense?.expense_type
-    ? EXPENSE_TYPE_COLORS[displayExpense.expense_type]
+    ? (EXPENSE_TYPE_COLORS[displayExpense.expense_type] ?? theme.palette.primary.main)
     : theme.palette.primary.main;
 
   const notes = fullExpense?.current_version?.notes;
