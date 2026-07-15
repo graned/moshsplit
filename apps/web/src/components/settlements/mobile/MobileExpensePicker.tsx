@@ -297,7 +297,7 @@ export function MobileExpensePicker({
                 <Box sx={{ mt: 1.5, pl: 5.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: amountColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Enter amount
+                      Enter € amount
                     </Typography>
                     <TextField
                       type="number"
