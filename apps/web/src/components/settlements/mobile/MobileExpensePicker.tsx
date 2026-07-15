@@ -61,17 +61,15 @@ export function MobileExpensePicker({
 
   const handleSelectAll = () => {
     const allIds = new Set(items.map((item) => item.expense_id));
-    setSelectedIds(allIds);
-    // Clear any partial amounts since we're selecting all
     setPartialAmounts({});
-    onSelectionChange(
-      items.map((item) => ({
-        expense_id: item.expense_id,
-        label: item.label,
-        original_amount_cents: item.amount_cents,
-        settle_amount_cents: item.amount_cents,
-      })),
-    );
+    setSelectedIds(allIds);
+    const newSelection: SelectedExpense[] = items.map((item) => ({
+      expense_id: item.expense_id,
+      label: item.label,
+      original_amount_cents: item.amount_cents,
+      settle_amount_cents: item.amount_cents,
+    }));
+    onSelectionChange(newSelection);
   };
 
   const handleClearAll = () => {
@@ -295,12 +293,11 @@ export function MobileExpensePicker({
                 </Box>
               </Box>
 
-              {/* Partial amount input - only shown when not fully selected */}
               {!isFullSelected && (
                 <Box sx={{ mt: 1.5, pl: 5.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.4), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Settle
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: amountColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Enter amount
                     </Typography>
                     <TextField
                       type="number"
