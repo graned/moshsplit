@@ -60,6 +60,11 @@ export function MobileExpenseCard({
 }: MobileExpenseCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+
+  if (!activity) {
+    return null;
+  }
+
   const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
 
   const payerName = paidBy?.email || activity.paid_by;
