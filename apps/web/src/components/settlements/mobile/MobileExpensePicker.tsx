@@ -297,7 +297,7 @@ export function MobileExpensePicker({
                 <Box sx={{ mt: 1.5, pl: 5.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: amountColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Enter € amount
+                      Enter amount
                     </Typography>
                     <TextField
                       type="text"
@@ -307,8 +307,14 @@ export function MobileExpensePicker({
                       value={partialAmount > 0 ? (partialAmount / 100).toFixed(2) : ''}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/[^0-9.]/g, '');
+                        if (raw === '') {
+                          handlePartialChange(item.expense_id, 0);
+                          return;
+                        }
                         const val = parseFloat(raw);
-                        handlePartialChange(item.expense_id, isNaN(val) ? 0 : Math.round(val * 100));
+                        if (!isNaN(val)) {
+                          handlePartialChange(item.expense_id, Math.round(val * 100));
+                        }
                       }}
                       sx={{
                         width: 80,
