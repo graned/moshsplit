@@ -297,12 +297,27 @@ impl BalanceService {
                     }
                 }
             } else {
-                // Non-payer owes the payer their share — negative balance
                 *balances.entry(expense.paid_by).or_insert(0) -= share_cents;
                 latest_timestamps
                     .entry(expense.paid_by)
                     .and_modify(|t| *t = (*t).max(expense.created_at))
                     .or_insert(expense.created_at);
+            }
+        }
+
+        for reimb in &explanation.reimbursements {
+            if reimb.from_user == user_id {
+                *balances.entry(reimb.to_user).or_insert(0) += reimb.amount_cents;
+                latest_timestamps
+                    .entry(reimb.to_user)
+                    .and_modify(|t| *t = (*t).max(reimb.created_at))
+                    .or_insert(reimb.created_at);
+            } else if reimb.to_user == user_id {
+                *balances.entry(reimb.from_user).or_insert(0) -= reimb.amount_cents;
+                latest_timestamps
+                    .entry(reimb.from_user)
+                    .and_modify(|t| *t = (*t).max(reimb.created_at))
+                    .or_insert(reimb.created_at);
             }
         }
 

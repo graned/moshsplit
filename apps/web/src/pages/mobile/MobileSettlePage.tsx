@@ -344,6 +344,13 @@ export default function MobileSettlePage() {
         map[settlement.to_user] = (map[settlement.to_user] ?? 0) + settlement.amount_cents;
       }
     }
+    for (const reimb of explainBalance.reimbursements) {
+      if (reimb.from_user === userId) {
+        map[reimb.to_user] = (map[reimb.to_user] ?? 0) - reimb.amount_cents;
+      } else if (reimb.to_user === userId) {
+        map[reimb.from_user] = (map[reimb.from_user] ?? 0) + reimb.amount_cents;
+      }
+    }
     return map;
   }, [explainBalance, userId]);
 
