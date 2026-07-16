@@ -357,6 +357,7 @@ impl BalanceService {
 
         let mut balances: HashMap<Uuid, i32> = HashMap::new();
         let mut latest_timestamps: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
+        let mut reimb_reasons: HashMap<Uuid, String> = HashMap::new();
 
         for expense in &explanation.expenses {
             let is_payer = expense.paid_by == user_id;
@@ -388,6 +389,7 @@ impl BalanceService {
                     .entry(reimb.to_user)
                     .and_modify(|t| *t = (*t).max(reimb.created_at))
                     .or_insert(reimb.created_at);
+                reimb_reasons.insert(reimb.to_user, format!("Reimbursement for {}", reimb.original_expense_title));
             } else if reimb.to_user == user_id {
                 *balances.entry(reimb.from_user).or_insert(0) += reimb.amount_cents;
                 latest_timestamps
@@ -410,6 +412,7 @@ impl BalanceService {
             .map(|(user_id, amount_cents)| OutgoingBalanceItem {
                 user_id,
                 amount_cents,
+                reason: reimb_reasons.get(&user_id).cloned(),
                 created_at: latest_timestamps
                     .remove(&user_id)
                     .unwrap_or_else(chrono::Utc::now),

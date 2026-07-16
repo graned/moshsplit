@@ -613,6 +613,7 @@ export default function MobileSettlePage() {
                   amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
                   isIncoming={false}
                   currency={currency}
+                  reason={item.reason}
                   onClick={() => handleOpenOutgoingDrawer(item)}
                   key={item.user_id}
                 />

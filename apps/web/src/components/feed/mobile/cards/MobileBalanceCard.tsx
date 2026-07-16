@@ -18,6 +18,7 @@ interface MobileBalanceCardProps {
   amountCents: number;
   isIncoming: boolean;
   currency?: string;
+  reason?: string;
   onClick?: () => void;
 }
 
@@ -27,6 +28,7 @@ export function MobileBalanceCard({
   amountCents,
   isIncoming,
   currency = 'EUR',
+  reason,
   onClick,
 }: MobileBalanceCardProps) {
   const userMap = useUsers([userId]);
@@ -120,6 +122,11 @@ export function MobileBalanceCard({
       <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
         {isIncoming ? 'owes you' : 'you owe'}
       </Typography>
+      {reason && (
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', mt: 0.25 }}>
+          {reason}
+        </Typography>
+      )}
     </MobileFeedCard>
     </Box>
   );

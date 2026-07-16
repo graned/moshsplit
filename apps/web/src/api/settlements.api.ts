@@ -50,6 +50,7 @@ export interface IncomingBalancesResponse {
 export interface OutgoingBalanceItem {
   user_id: string;
   amount_cents: number; // always positive
+  reason?: string;
   created_at: string;
 }
 
