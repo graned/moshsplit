@@ -241,11 +241,11 @@ export default function MobileSettlePage() {
       }
     }
     for (const reimb of explainBalance?.reimbursements ?? []) {
-      if (reimb.from_user === cpId && reimb.to_user === userId) {
+      if (reimb.to_user === cpId && reimb.from_user === userId) {
         items.push({
           expense_id: reimb.id,
           label: reimb.original_expense_title,
-          amount: reimb.amount_cents,
+          amount: reimb.amount_cents * -1,
           type: 'reimbursement' as const,
           direction: 'incoming' as const,
           created_at: reimb.created_at,
@@ -301,17 +301,18 @@ export default function MobileSettlePage() {
       }
     }
     for (const reimb of explainBalance?.reimbursements ?? []) {
-      if (reimb.from_user === userId && reimb.to_user === cpId) {
+      if (reimb.to_user === userId && reimb.from_user === cpId) {
         items.push({
           expense_id: reimb.id,
           label: reimb.original_expense_title,
-          amount: reimb.amount_cents,
+          amount: reimb.amount_cents * -1,
           type: 'reimbursement' as const,
           direction: 'outgoing' as const,
           created_at: reimb.created_at,
         });
       }
     }
+
     return items;
   }, [explainBalance, outgoingDrawerItem, userId]);
 

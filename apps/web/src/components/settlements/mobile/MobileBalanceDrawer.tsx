@@ -184,7 +184,6 @@ export function MobileBalanceDrawer({
                 const theyPaid: typeof resolvedBreakdownItems = [];
                 const settlements: typeof resolvedBreakdownItems = [];
                 const reimbursements: typeof resolvedBreakdownItems = [];
-
                 for (const item of resolvedBreakdownItems) {
                   if (item.type === 'reimbursement') {
                     reimbursements.push(item);
