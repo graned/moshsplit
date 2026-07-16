@@ -295,52 +295,41 @@ export function MobileExpensePicker({
 
               {!isFullSelected && (
                 <Box sx={{ mt: 1.5, pl: 5.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: amountColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Enter amount
-                    </Typography>
-                    <TextField
-                      type="text"
-                      inputMode="decimal"
-                      size="small"
-                      placeholder="0"
-                      value={partialAmount > 0 ? (partialAmount / 100).toFixed(2) : ''}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9.]/g, '');
-                        if (raw === '') {
-                          handlePartialChange(item.expense_id, 0);
-                          return;
-                        }
-                        const val = parseFloat(raw);
-                        if (!isNaN(val)) {
-                          handlePartialChange(item.expense_id, Math.round(val * 100));
-                        }
-                      }}
-                      sx={{
-                        width: 80,
-                        '& .MuiInputBase-root': {
-                          bgcolor: alpha('#fff', 0.04),
-                          borderRadius: 1,
-                          '&::before, &::after': { display: 'none' },
-                        },
-                        '& .MuiInputBase-input': {
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          color: amountColor,
-                          textAlign: 'center',
-                          padding: '6px 8px',
-                        },
-                      }}
-                    />
-                    <Typography sx={{ fontSize: '0.65rem', color: alpha('#fff', 0.3) }}>
-                      of {formatAmount(item.amount_cents, currency)}
-                    </Typography>
-                  </Box>
-                  {partialAmount > item.amount_cents && (
-                    <Typography sx={{ fontSize: '0.65rem', color: 'error.main', mt: 0.5 }}>
-                      Cannot exceed expense amount
-                    </Typography>
-                  )}
+                  <Typography
+                    component="span"
+                    sx={{ fontSize: '0.7rem', fontWeight: 700, color: amountColor, mr: 1 }}
+                  >
+                    €
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    inputProps={{ min: 0, max: item.amount_cents / 100, step: 0.01 }}
+                    sx={{
+                      width: 80,
+                      '& .MuiInputBase-root': {
+                        bgcolor: alpha('#fff', 0.04),
+                        borderRadius: 1,
+                      },
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        color: amountColor,
+                        textAlign: 'center',
+                        py: 0.75,
+                      },
+                    }}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      handlePartialChange(item.expense_id, val * 100);
+                    }}
+                  />
+                  <Typography
+                    component="span"
+                    sx={{ fontSize: '0.7rem', color: alpha('#fff', 0.4), ml: 1 }}
+                  >
+                    of {formatAmount(item.amount_cents, currency)}
+                  </Typography>
                 </Box>
               )}
             </Box>
