@@ -673,7 +673,7 @@ impl ExpenseService {
                 version_number: 1,
                 title: format!("Reimbursement for {}", original_title),
                 description: Some("Original expense deleted by owner".to_string()),
-                amount_cents: reimbursement_amount,
+                amount_cents: reimbursement_amount as i32,
                 paid_by: expense_owner,
                 split_type: SplitType::Equal,
                 split_data,

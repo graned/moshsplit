@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{Integer, Timestamptz, Uuid as DUuid};
+use diesel::sql_types::{BigInt, Integer, Nullable, Timestamptz, Uuid as DUuid};
 use uuid::Uuid;
 
 use crate::errors::RepositoryError;
@@ -21,8 +21,8 @@ crate::impl_repository!(
 /// A simple row for sum queries.
 #[derive(Debug, Clone, diesel::QueryableByName)]
 pub struct SettlementSumRow {
-    #[diesel(sql_type = Integer)]
-    pub amount: i32,
+    #[diesel(sql_type = BigInt)]
+    pub amount: i64,
 }
 
 /// A confirmed settlement row for the history endpoint.
@@ -356,7 +356,7 @@ impl SettlementRepository {
         &self,
         expense_id: Uuid,
         expense_owner: Uuid,
-    ) -> Result<i32, RepositoryError> {
+    ) -> Result<i64, RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
 
         let sql = r#"
