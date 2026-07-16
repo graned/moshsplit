@@ -177,6 +177,7 @@ export default function MobileFeedPage() {
       member_join: 0,
       expense_updated: 0,
       settlement_rejected: 0,
+      reimbursement: 0,
     };
     for (const item of activityItems) {
       if (item.type === 'expense') counts.expense = (counts.expense || 0) + 1;
@@ -184,6 +185,7 @@ export default function MobileFeedPage() {
       else if (item.type === 'member_join') counts.member_join = (counts.member_join || 0) + 1;
       else if (item.type === 'expense_updated') counts.expense_updated = (counts.expense_updated || 0) + 1;
       else if (item.type === 'settlement_rejected') counts.settlement_rejected = (counts.settlement_rejected || 0) + 1;
+      else if (item.type === 'reimbursement') counts.reimbursement = (counts.reimbursement || 0) + 1;
     }
     return counts;
   }, [activityItems]);
@@ -223,6 +225,7 @@ export default function MobileFeedPage() {
     { value: 'honor_restored', label: t('mobile.battleLog.filters.honor'), count: activityTypeCounts['honor_restored'] || 0 },
     { value: 'settlement_rejected', label: t('mobile.battleLog.filters.rejected'), count: activityTypeCounts['settlement_rejected'] || 0 },
     { value: 'member_join', label: t('mobile.battleLog.filters.joins'), count: activityTypeCounts['member_join'] || 0 },
+    { value: 'reimbursement', label: t('mobile.battleLog.filters.reimbursements'), count: activityTypeCounts['reimbursement'] || 0 },
   ];
 
   const handleFilterToggle = (value: string) => {

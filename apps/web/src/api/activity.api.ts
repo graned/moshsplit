@@ -74,8 +74,19 @@ export interface ExpenseDeletedActivity extends ActivityItemBase {
   paid_by: string;
 }
 
+/** Reimbursement activity – created when an expense is deleted, showing debt transfer */
+export interface ReimbursementActivity extends ActivityItemBase {
+  type: 'reimbursement';
+  ref_expense_id: string;
+  settlement_id: string;
+  from_user: string;
+  to_user: string;
+  amount_cents: number;
+  original_expense_title: string;
+}
+
 /** Discriminated union of all activity item types */
-export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity | ExpenseUpdatedActivity | SettlementRejectedActivity | ExpenseDeletedActivity;
+export type ActivityItem = ExpenseActivity | SettlementActivity | HonorRestoredActivity | MemberJoinActivity | ExpenseUpdatedActivity | SettlementRejectedActivity | ExpenseDeletedActivity | ReimbursementActivity;
 
 /** Helper type-guards */
 export function isExpenseActivity(item: ActivityItem): item is ExpenseActivity {
@@ -104,6 +115,10 @@ export function isSettlementRejectedActivity(item: ActivityItem): item is Settle
 
 export function isExpenseDeletedActivity(item: ActivityItem): item is ExpenseDeletedActivity {
   return item.type === 'expense_deleted';
+}
+
+export function isReimbursementActivity(item: ActivityItem): item is ReimbursementActivity {
+  return item.type === 'reimbursement';
 }
 
 // ─── API Calls ─────────────────────────────────────────────────────────────

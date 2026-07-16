@@ -4,9 +4,6 @@
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
-use crate::schema_enums::{
-    EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType,
-};
 use diesel::prelude::*;
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -130,5 +127,19 @@ pub struct Settlement {
     pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
     pub rejection_note: Option<String>,
     pub expense_id: Option<uuid::Uuid>,
+    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Queryable, Insertable)]
+#[diesel(table_name = app::reimbursement)]
+pub struct Reimbursement {
+    pub id: uuid::Uuid,
+    pub ref_expense_id: uuid::Uuid,
+    pub settlement_id: Option<uuid::Uuid>,
+    pub event_id: uuid::Uuid,
+    pub from_user: uuid::Uuid,
+    pub to_user: uuid::Uuid,
+    pub amount_cents: i32,
+    pub created_at: chrono::DateTime<chrono::Utc>,
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 }

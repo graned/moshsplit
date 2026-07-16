@@ -67,7 +67,6 @@ impl StatsRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
-                AND ev.expense_type IS DISTINCT FROM 'reimburse'
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             total_spent AS (

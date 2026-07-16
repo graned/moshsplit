@@ -9,14 +9,15 @@ use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::reimbursement_repo::ReimbursementRepository;
 use crate::domain::repositories::settlement_repo::SettlementRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::expense_dtos::{
     CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
     ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
 };
-use crate::schema_enums::{ExpenseType, SplitType};
-use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
+use crate::schema_enums::{ExpenseType, SettlementStatus, SplitType};
+use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare, Reimbursement};
 use moshsplit_balance_engine::redistribute_shares;
 
 pub struct ExpenseService {
@@ -26,6 +27,7 @@ pub struct ExpenseService {
     share_repo: ExpenseVersionShareRepository,
     payment_repo: PaymentRepository,
     settlement_repo: SettlementRepository,
+    reimbursement_repo: ReimbursementRepository,
 }
 
 impl ExpenseService {
@@ -36,6 +38,7 @@ impl ExpenseService {
         share_repo: ExpenseVersionShareRepository,
         payment_repo: PaymentRepository,
         settlement_repo: SettlementRepository,
+        reimbursement_repo: ReimbursementRepository,
     ) -> Self {
         Self {
             event_repo,
@@ -44,6 +47,7 @@ impl ExpenseService {
             share_repo,
             payment_repo,
             settlement_repo,
+            reimbursement_repo,
         }
     }
 
@@ -626,81 +630,23 @@ impl ExpenseService {
         }
 
         let expense_owner = expense_row.created_by;
-        let original_title = expense_row
-            .title
-            .unwrap_or_else(|| "Deleted Expense".to_string());
         let now = Utc::now();
 
-        let participant_ids = expense_row.participant_ids.unwrap_or_default();
+        let settlements = self.settlement_repo.find_by_expense_id(expense_id)?;
 
-        let reimbursement_amount = self
-            .settlement_repo
-            .sum_confirmed_settlements_for_expense_owner(expense_id, expense_owner)?;
-
-        if reimbursement_amount > 0 {
-            let mut shares: Vec<(Uuid, i32)> = Vec::new();
-            shares.push((expense_owner, reimbursement_amount as i32));
-
-            for participant_id in &participant_ids {
-                if *participant_id != expense_owner {
-                    shares.push((*participant_id, 0));
-                }
-            }
-
-            let reimbursement_expense_id = Uuid::new_v4();
-            let version_id = Uuid::new_v4();
-
-            let expense = Expense {
-                id: reimbursement_expense_id,
-                event_id,
-                created_by: expense_owner,
-                created_at: now,
-                current_version_id: Some(version_id),
-                deleted_at: None,
-            };
-            self.expense_repo.create(&expense)?;
-
-            let split_data = serde_json::json!({
-                "shares": shares
-                    .iter()
-                    .map(|(uid, _)| uid.to_string())
-                    .collect::<Vec<_>>()
-            });
-
-            let version = ExpenseVersion {
-                id: version_id,
-                expense_id: reimbursement_expense_id,
-                version_number: 1,
-                title: format!("Reimbursement for {}", original_title),
-                description: Some("Original expense deleted by owner".to_string()),
-                amount_cents: 0,
-                paid_by: expense_owner,
-                split_type: SplitType::Equal,
-                split_data,
-                notes: None,
-                created_by: expense_owner,
-                created_at: now,
-                expense_type: Some(ExpenseType::Reimburse),
-            };
-            self.version_repo.create(&version)?;
-
-            let share_rows: Vec<ExpenseVersionShare> = shares
-                .into_iter()
-                .map(|(user_id, share_cents)| ExpenseVersionShare {
+        for settlement in settlements {
+            if settlement.status == SettlementStatus::Confirmed {
+                self.reimbursement_repo.create(&Reimbursement {
                     id: Uuid::new_v4(),
-                    expense_version_id: version_id,
-                    user_id,
-                    share_cents,
-                })
-                .collect();
-
-            let affected = self.share_repo.bulk_insert(&share_rows)?;
-            if affected != share_rows.len() {
-                return Err(ServiceError::Internal(format!(
-                    "Failed to insert reimbursement shares: expected {}, got {}",
-                    share_rows.len(),
-                    affected
-                )));
+                    ref_expense_id: expense_id,
+                    settlement_id: Some(settlement.id),
+                    event_id,
+                    from_user: expense_owner,
+                    to_user: settlement.from_user,
+                    amount_cents: settlement.amount_cents,
+                    created_at: now,
+                    deleted_at: None,
+                })?;
             }
         }
 

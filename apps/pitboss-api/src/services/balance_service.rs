@@ -11,8 +11,8 @@ use crate::domain::repositories::event_repo::EventRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
     BalancesResponse, DebtTransfer, ExpenseBreakdown, ExplainBalanceBetweenResponse,
-    ExplainBalanceResponse, PaymentBreakdown, SettlementBreakdown, SimplifiedDebtsResponse,
-    UserBalanceItem, UserBalanceResponse,
+    ExplainBalanceResponse, PaymentBreakdown, ReimbursementBreakdown, SettlementBreakdown,
+    SimplifiedDebtsResponse, UserBalanceItem, UserBalanceResponse,
 };
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
     IncomingBalanceItem, IncomingBalancesResponse, OutgoingBalanceItem, OutgoingBalancesResponse,
@@ -36,8 +36,8 @@ impl BalanceService {
         compute_balance(
             row.paid_cents,
             row.owes_cents,
-            row.payments_out_cents + row.settlements_out_cents,
-            row.payments_in_cents + row.settlements_in_cents,
+            row.payments_out_cents + row.settlements_out_cents + row.reimbursements_out_cents,
+            row.payments_in_cents + row.settlements_in_cents + row.reimbursements_in_cents,
         )
     }
 
@@ -186,6 +186,21 @@ impl BalanceService {
             })
             .collect();
 
+        let reimbursement_rows = self.balance_repo.reimbursement_breakdown(event_id, user_id)?;
+        let reimbursements: Vec<ReimbursementBreakdown> = reimbursement_rows
+            .into_iter()
+            .map(|r| ReimbursementBreakdown {
+                id: r.id,
+                ref_expense_id: r.ref_expense_id,
+                settlement_id: r.settlement_id,
+                from_user: r.from_user,
+                to_user: r.to_user,
+                amount_cents: r.amount_cents,
+                original_expense_title: r.original_expense_title,
+                created_at: r.created_at,
+            })
+            .collect();
+
         Ok(ExplainBalanceResponse {
             user_id: balance.user_id,
             paid_cents: balance.paid_cents,
@@ -194,6 +209,7 @@ impl BalanceService {
             expenses,
             payments,
             settlements,
+            reimbursements,
         })
     }
 

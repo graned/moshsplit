@@ -36,6 +36,10 @@ pub struct UserBalanceRow {
     pub settlements_out_cents: i32,
     #[diesel(sql_type = Integer)]
     pub settlements_in_cents: i32,
+    #[diesel(sql_type = Integer)]
+    pub reimbursements_out_cents: i32,
+    #[diesel(sql_type = Integer)]
+    pub reimbursements_in_cents: i32,
 }
 
 /// An individual expense breakdown entry for the "explain" endpoint.
@@ -99,6 +103,27 @@ pub struct SettlementBreakdownRow {
     pub settled_at: Option<DateTime<Utc>>,
     #[diesel(sql_type = Nullable<Text>)]
     pub note: Option<String>,
+}
+
+/// A reimbursement breakdown entry.
+#[derive(Debug, Clone, QueryableByName)]
+pub struct ReimbursementBreakdownRow {
+    #[diesel(sql_type = DUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = DUuid)]
+    pub ref_expense_id: Uuid,
+    #[diesel(sql_type = Nullable<DUuid>)]
+    pub settlement_id: Option<Uuid>,
+    #[diesel(sql_type = DUuid)]
+    pub from_user: Uuid,
+    #[diesel(sql_type = DUuid)]
+    pub to_user: Uuid,
+    #[diesel(sql_type = Integer)]
+    pub amount_cents: i32,
+    #[diesel(sql_type = Text)]
+    pub original_expense_title: String,
+    #[diesel(sql_type = Timestamptz)]
+    pub created_at: DateTime<Utc>,
 }
 
 /// A per-expense balance row for the external-summary endpoint.
@@ -178,6 +203,16 @@ impl BalanceRepository {
                 SELECT to_user AS user_id, SUM(amount_cents) AS amount
                 FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
                 GROUP BY to_user
+            ),
+            reimbursements_out AS (
+                SELECT from_user AS user_id, SUM(amount_cents) AS amount
+                FROM app.reimbursement WHERE event_id = $1 AND deleted_at IS NULL
+                GROUP BY from_user
+            ),
+            reimbursements_in AS (
+                SELECT to_user AS user_id, SUM(amount_cents) AS amount
+                FROM app.reimbursement WHERE event_id = $1 AND deleted_at IS NULL
+                GROUP BY to_user
             )
             SELECT
                 m.user_id,
@@ -186,7 +221,9 @@ impl BalanceRepository {
                 COALESCE(po.amount, 0)::INTEGER AS payments_out_cents,
                 COALESCE(pi.amount, 0)::INTEGER AS payments_in_cents,
                 COALESCE(so.amount, 0)::INTEGER AS settlements_out_cents,
-                COALESCE(si.amount, 0)::INTEGER AS settlements_in_cents
+                COALESCE(si.amount, 0)::INTEGER AS settlements_in_cents,
+                COALESCE(ro.amount, 0)::INTEGER AS reimbursements_out_cents,
+                COALESCE(ri.amount, 0)::INTEGER AS reimbursements_in_cents
             FROM active_members m
             LEFT JOIN expense_paid ep ON ep.user_id = m.user_id
             LEFT JOIN expense_shares es ON es.user_id = m.user_id
@@ -194,6 +231,8 @@ impl BalanceRepository {
             LEFT JOIN payments_in pi ON pi.user_id = m.user_id
             LEFT JOIN settlements_out so ON so.user_id = m.user_id
             LEFT JOIN settlements_in si ON si.user_id = m.user_id
+            LEFT JOIN reimbursements_out ro ON ro.user_id = m.user_id
+            LEFT JOIN reimbursements_in ri ON ri.user_id = m.user_id
             ORDER BY m.user_id
         "#;
 
@@ -229,7 +268,9 @@ impl BalanceRepository {
                 COALESCE(pmts_out.amount, 0)::INTEGER AS payments_out_cents,
                 COALESCE(pmts_in.amount, 0)::INTEGER AS payments_in_cents,
                 COALESCE(stlmts_out.amount, 0)::INTEGER AS settlements_out_cents,
-                COALESCE(stlmts_in.amount, 0)::INTEGER AS settlements_in_cents
+                COALESCE(stlmts_in.amount, 0)::INTEGER AS settlements_in_cents,
+                COALESCE(reimb_out.amount, 0)::INTEGER AS reimbursements_out_cents,
+                COALESCE(reimb_in.amount, 0)::INTEGER AS reimbursements_in_cents
             FROM (SELECT $2::uuid AS user_id) m
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
@@ -257,6 +298,14 @@ impl BalanceRepository {
                 SELECT SUM(amount_cents) AS amount
                 FROM app.settlement WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
             ) stlmts_in ON 1=1
+            LEFT JOIN (
+                SELECT SUM(amount_cents) AS amount
+                FROM app.reimbursement WHERE event_id = $1 AND from_user = $2 AND deleted_at IS NULL
+            ) reimb_out ON 1=1
+            LEFT JOIN (
+                SELECT SUM(amount_cents) AS amount
+                FROM app.reimbursement WHERE event_id = $1 AND to_user = $2 AND deleted_at IS NULL
+            ) reimb_in ON 1=1
         "#;
 
         let result = sql_query(sql)
@@ -478,6 +527,41 @@ impl BalanceRepository {
             .bind::<DUuid, _>(event_id)
             .bind::<DUuid, _>(user_id)
             .load::<SettlementBreakdownRow>(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
+    }
+
+    /// Get reimbursement breakdown for a user.
+    pub fn reimbursement_breakdown(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<ReimbursementBreakdownRow>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            SELECT
+                r.id,
+                r.ref_expense_id,
+                r.settlement_id,
+                r.from_user,
+                r.to_user,
+                r.amount_cents,
+                COALESCE(ev.title, 'Deleted Expense') AS original_expense_title,
+                r.created_at
+            FROM app.reimbursement r
+            LEFT JOIN app.expense_version ev ON ev.expense_id = r.ref_expense_id
+            WHERE r.event_id = $1
+              AND (r.from_user = $2 OR r.to_user = $2)
+              AND r.deleted_at IS NULL
+            ORDER BY r.created_at
+        "#;
+
+        let results = sql_query(sql)
+            .bind::<DUuid, _>(event_id)
+            .bind::<DUuid, _>(user_id)
+            .load::<ReimbursementBreakdownRow>(&mut conn)
             .map_err(RepositoryError::from)?;
 
         Ok(results)

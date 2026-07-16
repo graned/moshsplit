@@ -18,7 +18,7 @@ export interface BreakdownItem {
   expense_id?: string;
   label: string;
   amount: number;
-  type: 'expense' | 'settlement';
+  type: 'expense' | 'settlement' | 'reimbursement';
   counterparty?: string;
   direction?: 'incoming' | 'outgoing';
   created_at?: string;

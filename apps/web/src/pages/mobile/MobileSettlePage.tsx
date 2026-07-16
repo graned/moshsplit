@@ -151,6 +151,29 @@ export default function MobileSettlePage() {
       }
     }
 
+    // Handle reimbursements
+    for (const reimb of explainBalance.reimbursements) {
+      if (reimb.from_user === userId) {
+        items.push({
+          expense_id: reimb.id,
+          label: `${reimb.original_expense_title}`,
+          amount: reimb.amount_cents,
+          type: 'reimbursement' as const,
+          direction: 'outgoing' as const,
+          created_at: reimb.created_at,
+        });
+      } else if (reimb.to_user === userId) {
+        items.push({
+          expense_id: reimb.id,
+          label: `${reimb.original_expense_title}`,
+          amount: reimb.amount_cents,
+          type: 'reimbursement' as const,
+          direction: 'incoming' as const,
+          created_at: reimb.created_at,
+        });
+      }
+    }
+
     for (const settlement of explainBalance.settlements) {
       if (settlement.status !== 'confirmed') continue;
       if (settlement.to_user === userId) {
@@ -217,6 +240,18 @@ export default function MobileSettlePage() {
         items.push({ label: 'Requested', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
       }
     }
+    for (const reimb of explainBalance?.reimbursements ?? []) {
+      if (reimb.from_user === cpId && reimb.to_user === userId) {
+        items.push({
+          expense_id: reimb.id,
+          label: reimb.original_expense_title,
+          amount: reimb.amount_cents,
+          type: 'reimbursement' as const,
+          direction: 'incoming' as const,
+          created_at: reimb.created_at,
+        });
+      }
+    }
     return items;
   }, [explainBalance, incomingDrawerItem, userId]);
 
@@ -263,6 +298,18 @@ export default function MobileSettlePage() {
       }
       if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'pending') {
         items.push({ label: 'Requested', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
+      }
+    }
+    for (const reimb of explainBalance?.reimbursements ?? []) {
+      if (reimb.from_user === userId && reimb.to_user === cpId) {
+        items.push({
+          expense_id: reimb.id,
+          label: reimb.original_expense_title,
+          amount: reimb.amount_cents,
+          type: 'reimbursement' as const,
+          direction: 'outgoing' as const,
+          created_at: reimb.created_at,
+        });
       }
     }
     return items;

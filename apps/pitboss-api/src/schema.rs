@@ -167,6 +167,20 @@ pub mod app {
         }
     }
 
+    diesel::table! {
+        app.reimbursement (id) {
+            id -> Uuid,
+            ref_expense_id -> Uuid,
+            settlement_id -> Nullable<Uuid>,
+            event_id -> Uuid,
+            from_user -> Uuid,
+            to_user -> Uuid,
+            amount_cents -> Int4,
+            created_at -> Timestamptz,
+            deleted_at -> Nullable<Timestamptz>,
+        }
+    }
+
     diesel::joinable!(event_image -> event (event_id));
     diesel::joinable!(event_member -> event (event_id));
     diesel::joinable!(expense -> event (event_id));
@@ -185,5 +199,6 @@ pub mod app {
         expense_version_share,
         payment,
         settlement,
+        reimbursement,
     );
 }

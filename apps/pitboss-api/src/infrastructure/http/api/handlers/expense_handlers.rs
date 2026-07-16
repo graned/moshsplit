@@ -12,6 +12,7 @@ use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::reimbursement_repo::ReimbursementRepository;
 use crate::domain::repositories::settlement_repo::SettlementRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::common::{PaginatedResponse, PaginationMeta};
@@ -52,6 +53,7 @@ pub async fn list_expenses(
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
         SettlementRepository::new(state.db_client.clone()),
+        ReimbursementRepository::new(state.db_client.clone()),
     );
 
     let (items, has_more, next_cursor) = svc.list_expenses(
@@ -100,6 +102,7 @@ pub async fn create_expense(
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
         SettlementRepository::new(state.db_client.clone()),
+        ReimbursementRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.create_expense(event_id, req, user_id)?;
@@ -131,6 +134,7 @@ pub async fn get_expense(
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
         SettlementRepository::new(state.db_client.clone()),
+        ReimbursementRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.get_expense(expense_id)?;
@@ -165,6 +169,7 @@ pub async fn update_expense(
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
         SettlementRepository::new(state.db_client.clone()),
+        ReimbursementRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.update_expense(event_id, expense_id, req, user_id)?;
@@ -198,6 +203,7 @@ pub async fn delete_expense(
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
         SettlementRepository::new(state.db_client.clone()),
+        ReimbursementRepository::new(state.db_client.clone()),
     );
 
     svc.delete_expense(event_id, expense_id, user_id)?;
@@ -229,6 +235,7 @@ pub async fn list_expense_versions(
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
         SettlementRepository::new(state.db_client.clone()),
+        ReimbursementRepository::new(state.db_client.clone()),
     );
 
     let versions = svc.get_expense_with_versions(expense_id)?;

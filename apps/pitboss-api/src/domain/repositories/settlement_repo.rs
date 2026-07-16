@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{BigInt, Integer, Nullable, Timestamptz, Uuid as DUuid};
+use diesel::sql_types::{Integer, Timestamptz, Uuid as DUuid};
 use uuid::Uuid;
 
 use crate::errors::RepositoryError;
@@ -17,13 +17,6 @@ crate::impl_repository!(
     pk_column: settlement::id,
     pk_type: Uuid,
 );
-
-/// A simple row for sum queries.
-#[derive(Debug, Clone, diesel::QueryableByName)]
-pub struct SettlementSumRow {
-    #[diesel(sql_type = BigInt)]
-    pub amount: i64,
-}
 
 /// A confirmed settlement row for the history endpoint.
 #[derive(Debug, Clone, diesel::QueryableByName)]
@@ -350,30 +343,19 @@ impl SettlementRepository {
         Ok(affected)
     }
 
-    /// Sum of confirmed settlements for a specific expense where the expense owner was the recipient.
-    /// Returns the total amount that the expense owner collected from settlements.
-    pub fn sum_confirmed_settlements_for_expense_owner(
+    /// Find all settlements for a specific expense.
+    pub fn find_by_expense_id(
         &self,
         expense_id: Uuid,
-        expense_owner: Uuid,
-    ) -> Result<i64, RepositoryError> {
+    ) -> Result<Vec<Settlement>, RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
 
-        let sql = r#"
-            SELECT COALESCE(SUM(amount_cents), 0) AS amount
-            FROM app.settlement
-            WHERE expense_id = $1
-              AND to_user = $2
-              AND status = 'confirmed'
-              AND deleted_at IS NULL
-        "#;
-
-        let results: Vec<SettlementSumRow> = sql_query(sql)
-            .bind::<DUuid, _>(expense_id)
-            .bind::<DUuid, _>(expense_owner)
+        let results = settlement::table
+            .filter(settlement::expense_id.eq(expense_id))
+            .filter(settlement::deleted_at.is_null())
             .load(&mut conn)
             .map_err(RepositoryError::from)?;
 
-        Ok(results.into_iter().next().map(|r| r.amount).unwrap_or(0))
+        Ok(results)
     }
 }

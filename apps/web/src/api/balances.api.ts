@@ -62,6 +62,17 @@ export interface SettlementBreakdown {
   note?: string;
 }
 
+export interface ReimbursementBreakdown {
+  id: string;
+  ref_expense_id: string;
+  settlement_id: string;
+  from_user: string;
+  to_user: string;
+  amount_cents: number;
+  original_expense_title: string;
+  created_at: string;
+}
+
 export interface SettlementProgress {
   total_cents: number;
   settled_cents: number;
@@ -92,6 +103,7 @@ export interface ExplainBalanceResponse {
   expenses: ExpenseBreakdown[];
   payments: PaymentBreakdown[];
   settlements: SettlementBreakdown[];
+  reimbursements: ReimbursementBreakdown[];
 }
 
 export interface ExplainBalanceBetweenResponse {

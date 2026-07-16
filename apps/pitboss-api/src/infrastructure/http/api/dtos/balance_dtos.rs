@@ -82,6 +82,19 @@ pub struct SettlementBreakdown {
     pub note: Option<String>,
 }
 
+/// Breakdown of a single reimbursement for the "explain" endpoint.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct ReimbursementBreakdown {
+    pub id: Uuid,
+    pub ref_expense_id: Uuid,
+    pub settlement_id: Option<Uuid>,
+    pub from_user: Uuid,
+    pub to_user: Uuid,
+    pub amount_cents: i32,
+    pub original_expense_title: String,
+    pub created_at: DateTime<Utc>,
+}
+
 /// Full breakdown explaining a user's balance.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ExplainBalanceResponse {
@@ -92,6 +105,7 @@ pub struct ExplainBalanceResponse {
     pub expenses: Vec<ExpenseBreakdown>,
     pub payments: Vec<PaymentBreakdown>,
     pub settlements: Vec<SettlementBreakdown>,
+    pub reimbursements: Vec<ReimbursementBreakdown>,
 }
 
 // ── External Balance Summary ──────────────────────────────────────────────────

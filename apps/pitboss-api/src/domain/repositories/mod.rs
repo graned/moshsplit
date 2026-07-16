@@ -10,5 +10,6 @@ pub mod expense_version_repo;
 pub mod expense_version_share_repo;
 pub mod member_repo;
 pub mod payment_repo;
+pub mod reimbursement_repo;
 pub mod settlement_repo;
 pub mod stats_repo;

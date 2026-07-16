@@ -8,7 +8,7 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel::sql_query;
 use diesel::RunQueryDsl;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 /// The embedded Diesel migrations (discovered at compile time from
