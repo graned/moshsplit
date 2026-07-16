@@ -363,7 +363,7 @@ impl SettlementRepository {
             SELECT COALESCE(SUM(amount_cents), 0) AS amount
             FROM app.settlement
             WHERE expense_id = $1
-              AND from_user = $2
+              AND to_user = $2
               AND status = 'confirmed'
               AND deleted_at IS NULL
         "#;
