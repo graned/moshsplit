@@ -300,21 +300,18 @@ export function MobileExpensePicker({
                       Enter € amount
                     </Typography>
                     <TextField
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       size="small"
+                      placeholder="0"
                       value={partialAmount > 0 ? (partialAmount / 100).toFixed(2) : ''}
                       onChange={(e) => {
-                        const val = parseFloat(e.target.value);
+                        const raw = e.target.value.replace(/[^0-9.]/g, '');
+                        const val = parseFloat(raw);
                         handlePartialChange(item.expense_id, isNaN(val) ? 0 : Math.round(val * 100));
                       }}
-                      inputProps={{
-                        step: '0.01',
-                        min: '0',
-                        max: (item.amount_cents / 100).toFixed(2),
-                        style: { textAlign: 'center', padding: '6px 8px' },
-                      }}
                       sx={{
-                        width: 100,
+                        width: 80,
                         '& .MuiInputBase-root': {
                           bgcolor: alpha('#fff', 0.04),
                           borderRadius: 1,
@@ -324,6 +321,8 @@ export function MobileExpensePicker({
                           fontSize: '0.85rem',
                           fontWeight: 700,
                           color: amountColor,
+                          textAlign: 'center',
+                          padding: '6px 8px',
                         },
                       }}
                     />

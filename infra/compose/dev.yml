@@ -125,7 +125,7 @@ services:
       - ../../apps/pitboss-api:/app/apps/pitboss-api
       - ../../packages:/app/packages
     environment:
-      DATABASE_URL: postgres://pitboss:password@postgres:5432/moshsplit
+      DATABASE_URL: postgres://postgres:password@postgres:5432/moshsplit
       AUTH_DATABASE_URL: postgres://postgres:password@postgres:5432/sentinel_auth
       PGOPTIONS: "-c search_path=app"
       RUST_LOG: debug
