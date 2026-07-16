@@ -136,17 +136,18 @@ export default function MobileExpensePage() {
     return allActivityItems.filter((item) => {
       if (item.type !== 'expense') return false;
       if (item.paid_by !== userId) return false;
+      if (item.expense_type === 'reimburse') return false;
       if (selectedTypes.length > 0 && item.expense_type && !selectedTypes.includes(item.expense_type)) return false;
       return true;
     });
   }, [allActivityItems, userId, selectedTypes]);
 
-  const totalExpenses = useMemo(() => allActivityItems.filter((item) => item.type === 'expense' && item.paid_by === userId).length, [allActivityItems, userId]);
+  const totalExpenses = useMemo(() => allActivityItems.filter((item) => item.type === 'expense' && item.paid_by === userId && item.expense_type !== 'reimburse').length, [allActivityItems, userId]);
 
   const expenseTypeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const item of allActivityItems) {
-      if (item.type === 'expense' && item.paid_by === userId && item.expense_type) {
+      if (item.type === 'expense' && item.paid_by === userId && item.expense_type && item.expense_type !== 'reimburse') {
         counts[item.expense_type] = (counts[item.expense_type] || 0) + 1;
       }
     }

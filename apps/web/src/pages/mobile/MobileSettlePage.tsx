@@ -107,6 +107,28 @@ export default function MobileSettlePage() {
     const items: BreakdownItem[] = [];
 
     for (const expense of explainBalance.expenses) {
+      if (expense.expense_type === 'reimburse') {
+        if (expense.paid_by === userId) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense' as const,
+            direction: 'outgoing' as const,
+            created_at: expense.created_at,
+          });
+        } else {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense' as const,
+            direction: 'incoming' as const,
+            created_at: expense.created_at,
+          });
+        }
+        continue;
+      }
       if (expense.paid_by === userId && (expense.participants?.length ?? 0) > 1) {
         const amount = expense.amount_cents - expense.share_cents;
         if (amount > 0) {
@@ -159,6 +181,30 @@ export default function MobileSettlePage() {
       if (expense.paid_by === cpId && expense.share_cents > 0) {
         items.push({ expense_id: expense.expense_id, label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
       }
+      // Handle reimburse expenses
+      if (expense.expense_type === 'reimburse') {
+        if (expense.paid_by === userId) {
+          // Current user is the reimbursement payer - show as outgoing
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense' as const,
+            direction: 'outgoing' as const,
+            created_at: expense.created_at,
+          });
+        } else if (expense.paid_by === cpId) {
+          // Counterparty is the reimbursement payer - show as incoming
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense' as const,
+            direction: 'incoming' as const,
+            created_at: expense.created_at,
+          });
+        }
+      }
     }
     for (const settlement of explainBalance.settlements) {
       if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
@@ -184,6 +230,28 @@ export default function MobileSettlePage() {
       }
       if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
         items.push({ expense_id: expense.expense_id, label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+      }
+      // Handle reimburse expenses
+      if (expense.expense_type === 'reimburse') {
+        if (expense.paid_by === userId) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense' as const,
+            direction: 'outgoing' as const,
+            created_at: expense.created_at,
+          });
+        } else if (expense.paid_by === cpId) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense' as const,
+            direction: 'incoming' as const,
+            created_at: expense.created_at,
+          });
+        }
       }
     }
     for (const settlement of explainBalance.settlements) {

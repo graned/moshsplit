@@ -631,83 +631,76 @@ impl ExpenseService {
             .unwrap_or_else(|| "Deleted Expense".to_string());
         let now = Utc::now();
 
-        let amount_cents = expense_row.amount_cents.unwrap_or(0);
         let participant_ids = expense_row.participant_ids.unwrap_or_default();
-        let participant_count = participant_ids.len() as i32;
 
-        if participant_count > 0 && amount_cents > 0 {
-            let owner_share = amount_cents / participant_count;
-            let net_overpayment = amount_cents - owner_share;
+        let reimbursement_amount = self
+            .settlement_repo
+            .sum_confirmed_settlements_for_expense_owner(expense_id, expense_owner)?;
 
-            if net_overpayment > 0 {
-                let mut shares: Vec<(Uuid, i32)> = Vec::new();
-                shares.push((expense_owner, owner_share));
+        if reimbursement_amount > 0 {
+            let mut shares: Vec<(Uuid, i32)> = Vec::new();
+            shares.push((expense_owner, 0));
 
-                for participant_id in &participant_ids {
-                    if *participant_id != expense_owner {
-                        let participant_share = amount_cents / participant_count;
-                        shares.push((*participant_id, participant_share));
-                    }
+            for participant_id in &participant_ids {
+                if *participant_id != expense_owner {
+                    shares.push((*participant_id, 0));
                 }
+            }
 
-                let total_shares: i32 = shares.iter().map(|(_, s)| s).sum();
-                if total_shares == amount_cents {
-                    let reimbursement_expense_id = Uuid::new_v4();
-                    let version_id = Uuid::new_v4();
+            let reimbursement_expense_id = Uuid::new_v4();
+            let version_id = Uuid::new_v4();
 
-                    let expense = Expense {
-                        id: reimbursement_expense_id,
-                        event_id,
-                        created_by: expense_owner,
-                        created_at: now,
-                        current_version_id: Some(version_id),
-                        deleted_at: None,
-                    };
-                    self.expense_repo.create(&expense)?;
+            let expense = Expense {
+                id: reimbursement_expense_id,
+                event_id,
+                created_by: expense_owner,
+                created_at: now,
+                current_version_id: Some(version_id),
+                deleted_at: None,
+            };
+            self.expense_repo.create(&expense)?;
 
-                    let split_data = serde_json::json!({
-                        "shares": shares
-                            .iter()
-                            .map(|(uid, _)| uid.to_string())
-                            .collect::<Vec<_>>()
-                    });
+            let split_data = serde_json::json!({
+                "shares": shares
+                    .iter()
+                    .map(|(uid, _)| uid.to_string())
+                    .collect::<Vec<_>>()
+            });
 
-                    let version = ExpenseVersion {
-                        id: version_id,
-                        expense_id: reimbursement_expense_id,
-                        version_number: 1,
-                        title: format!("Reimbursement for {}", original_title),
-                        description: Some("Original expense deleted by owner".to_string()),
-                        amount_cents: net_overpayment,
-                        paid_by: expense_owner,
-                        split_type: SplitType::Equal,
-                        split_data,
-                        notes: None,
-                        created_by: expense_owner,
-                        created_at: now,
-                        expense_type: Some(ExpenseType::Reimburse),
-                    };
-                    self.version_repo.create(&version)?;
+            let version = ExpenseVersion {
+                id: version_id,
+                expense_id: reimbursement_expense_id,
+                version_number: 1,
+                title: format!("Reimbursement for {}", original_title),
+                description: Some("Original expense deleted by owner".to_string()),
+                amount_cents: reimbursement_amount,
+                paid_by: expense_owner,
+                split_type: SplitType::Equal,
+                split_data,
+                notes: None,
+                created_by: expense_owner,
+                created_at: now,
+                expense_type: Some(ExpenseType::Reimburse),
+            };
+            self.version_repo.create(&version)?;
 
-                    let share_rows: Vec<ExpenseVersionShare> = shares
-                        .into_iter()
-                        .map(|(user_id, share_cents)| ExpenseVersionShare {
-                            id: Uuid::new_v4(),
-                            expense_version_id: version_id,
-                            user_id,
-                            share_cents,
-                        })
-                        .collect();
+            let share_rows: Vec<ExpenseVersionShare> = shares
+                .into_iter()
+                .map(|(user_id, share_cents)| ExpenseVersionShare {
+                    id: Uuid::new_v4(),
+                    expense_version_id: version_id,
+                    user_id,
+                    share_cents,
+                })
+                .collect();
 
-                    let affected = self.share_repo.bulk_insert(&share_rows)?;
-                    if affected != share_rows.len() {
-                        return Err(ServiceError::Internal(format!(
-                            "Failed to insert reimbursement shares: expected {}, got {}",
-                            share_rows.len(),
-                            affected
-                        )));
-                    }
-                }
+            let affected = self.share_repo.bulk_insert(&share_rows)?;
+            if affected != share_rows.len() {
+                return Err(ServiceError::Internal(format!(
+                    "Failed to insert reimbursement shares: expected {}, got {}",
+                    share_rows.len(),
+                    affected
+                )));
             }
         }
 

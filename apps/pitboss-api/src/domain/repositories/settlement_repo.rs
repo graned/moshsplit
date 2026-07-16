@@ -18,6 +18,13 @@ crate::impl_repository!(
     pk_type: Uuid,
 );
 
+/// A simple row for sum queries.
+#[derive(Debug, Clone, diesel::QueryableByName)]
+pub struct SettlementSumRow {
+    #[diesel(sql_type = Integer)]
+    pub amount: i32,
+}
+
 /// A confirmed settlement row for the history endpoint.
 #[derive(Debug, Clone, diesel::QueryableByName)]
 pub struct SettlementHistoryRow {
@@ -323,8 +330,8 @@ impl SettlementRepository {
         Ok((rows, has_more))
     }
 
-    /// Soft-delete rejected settlements linked to a specific expense.
-    /// Sets deleted_at to now() for all rejected settlements with the given expense_id.
+    /// Soft-delete all settlements linked to a specific expense.
+    /// Sets deleted_at to now() for all settlements (confirmed + pending) with the given expense_id.
     pub fn soft_delete_for_expense(&self, expense_id: Uuid) -> Result<usize, RepositoryError> {
         use diesel::ExpressionMethods;
 
@@ -334,7 +341,6 @@ impl SettlementRepository {
         let affected = diesel::update(
             settlement::table
                 .filter(settlement::expense_id.eq(expense_id))
-                .filter(settlement::status.eq(SettlementStatus::Rejected))
                 .filter(settlement::deleted_at.is_null()),
         )
         .set(settlement::deleted_at.eq(now))
@@ -342,5 +348,32 @@ impl SettlementRepository {
         .map_err(RepositoryError::from)?;
 
         Ok(affected)
+    }
+
+    /// Sum of confirmed settlements for a specific expense where the expense owner was the recipient.
+    /// Returns the total amount that the expense owner collected from settlements.
+    pub fn sum_confirmed_settlements_for_expense_owner(
+        &self,
+        expense_id: Uuid,
+        expense_owner: Uuid,
+    ) -> Result<i32, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            SELECT COALESCE(SUM(amount_cents), 0) AS amount
+            FROM app.settlement
+            WHERE expense_id = $1
+              AND from_user = $2
+              AND status = 'confirmed'
+              AND deleted_at IS NULL
+        "#;
+
+        let results: Vec<SettlementSumRow> = sql_query(sql)
+            .bind::<DUuid, _>(expense_id)
+            .bind::<DUuid, _>(expense_owner)
+            .load(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results.into_iter().next().map(|r| r.amount).unwrap_or(0))
     }
 }
