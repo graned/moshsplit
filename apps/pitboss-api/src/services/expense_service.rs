@@ -643,7 +643,7 @@ impl ExpenseService {
 
             for participant_id in &participant_ids {
                 if *participant_id != expense_owner {
-                    shares.push((*participant_id, 0));
+                    shares.push((*participant_id, reimbursement_amount as i32));
                 }
             }
 
