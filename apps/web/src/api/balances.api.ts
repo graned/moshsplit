@@ -110,6 +110,7 @@ export interface ExplainBalanceBetweenResponse {
   user_id: string;
   counterparty_id: string;
   expenses: ExpenseBreakdown[];
+  reimbursements: ReimbursementBreakdown[];
 }
 
 // API calls

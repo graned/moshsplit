@@ -137,4 +137,5 @@ pub struct ExplainBalanceBetweenResponse {
     pub user_id: Uuid,
     pub counterparty_id: Uuid,
     pub expenses: Vec<ExpenseBreakdown>,
+    pub reimbursements: Vec<ReimbursementBreakdown>,
 }

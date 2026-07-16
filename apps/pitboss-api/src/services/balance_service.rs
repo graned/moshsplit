@@ -243,10 +243,29 @@ impl BalanceService {
             })
             .collect();
 
+        let reimbursement_rows = self
+            .balance_repo
+            .reimbursement_breakdown_between(event_id, user_id, counterparty_id)?;
+
+        let reimbursements: Vec<ReimbursementBreakdown> = reimbursement_rows
+            .into_iter()
+            .map(|r| ReimbursementBreakdown {
+                id: r.id,
+                ref_expense_id: r.ref_expense_id,
+                settlement_id: r.settlement_id,
+                from_user: r.from_user,
+                to_user: r.to_user,
+                amount_cents: r.amount_cents,
+                original_expense_title: r.original_expense_title,
+                created_at: r.created_at,
+            })
+            .collect();
+
         Ok(ExplainBalanceBetweenResponse {
             user_id,
             counterparty_id,
             expenses,
+            reimbursements,
         })
     }
 

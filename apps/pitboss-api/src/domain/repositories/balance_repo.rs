@@ -425,6 +425,46 @@ impl BalanceRepository {
         Ok(results)
     }
 
+    /// Get reimbursement breakdown between two users in an event.
+    pub fn reimbursement_breakdown_between(
+        &self,
+        event_id: Uuid,
+        user_id: Uuid,
+        counterparty_id: Uuid,
+    ) -> Result<Vec<ReimbursementBreakdownRow>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            SELECT
+                r.id,
+                r.ref_expense_id,
+                r.settlement_id,
+                r.from_user,
+                r.to_user,
+                r.amount_cents,
+                COALESCE(ev.title, 'Deleted Expense') AS original_expense_title,
+                r.created_at
+            FROM app.reimbursement r
+            LEFT JOIN app.expense_version ev ON ev.expense_id = r.ref_expense_id
+            WHERE r.event_id = $1
+              AND r.deleted_at IS NULL
+              AND (
+                (r.from_user = $2 AND r.to_user = $3)
+                OR (r.from_user = $3 AND r.to_user = $2)
+              )
+            ORDER BY r.created_at
+        "#;
+
+        let results = sql_query(sql)
+            .bind::<DUuid, _>(event_id)
+            .bind::<DUuid, _>(user_id)
+            .bind::<DUuid, _>(counterparty_id)
+            .load::<ReimbursementBreakdownRow>(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
+    }
+
     /// Get payment breakdown for a user.
     pub fn payment_breakdown(
         &self,
