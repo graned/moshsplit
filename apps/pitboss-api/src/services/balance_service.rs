@@ -36,9 +36,9 @@ impl BalanceService {
         compute_balance(
             row.paid_cents,
             row.owes_cents,
-            row.payments_out_cents + row.settlements_out_cents - row.reimbursements_out_cents,
-            row.payments_in_cents + row.settlements_in_cents + row.reimbursements_in_cents,
-        )
+            row.payments_out_cents + row.settlements_out_cents,
+            row.payments_in_cents + row.settlements_in_cents,
+        ) + row.reimbursements_in_cents - row.reimbursements_out_cents
     }
 
     /// Get all user balances for an event.
