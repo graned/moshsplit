@@ -76,7 +76,7 @@ impl StatsRepository {
             total_settled AS (
                 SELECT COALESCE(SUM(amount_cents), 0) AS amount
                 FROM app.settlement
-                WHERE event_id = $1 AND status = 'confirmed'
+                WHERE event_id = $1 AND status = 'confirmed' AND deleted_at IS NULL
             ),
             user_share AS (
                 SELECT COALESCE(SUM(sh.share_cents), 0) AS amount
@@ -92,7 +92,7 @@ impl StatsRepository {
             user_settled_out AS (
                 SELECT COALESCE(SUM(amount_cents), 0) AS amount
                 FROM app.settlement
-                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed'
+                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
             ),
             user_outstanding AS (
                 SELECT GREATEST(
@@ -113,12 +113,12 @@ impl StatsRepository {
             user_incoming_settled AS (
                 SELECT COALESCE(SUM(amount_cents), 0) AS amount
                 FROM app.settlement
-                WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
+                WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
             ),
             user_outgoing_settled AS (
                 SELECT COALESCE(SUM(amount_cents), 0) AS amount
                 FROM app.settlement
-                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed'
+                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
             ),
             top_spender AS (
                 SELECT paid_by AS user_id, SUM(amount_cents) AS total_paid

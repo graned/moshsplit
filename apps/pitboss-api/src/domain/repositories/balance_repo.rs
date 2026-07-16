@@ -196,12 +196,12 @@ impl BalanceRepository {
             ),
             settlements_out AS (
                 SELECT from_user AS user_id, SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
+                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed' AND deleted_at IS NULL
                 GROUP BY from_user
             ),
             settlements_in AS (
                 SELECT to_user AS user_id, SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
+                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed' AND deleted_at IS NULL
                 GROUP BY to_user
             ),
             reimbursements_out AS (
@@ -292,11 +292,11 @@ impl BalanceRepository {
             ) pmts_in ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed'
+                FROM app.settlement WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
             ) stlmts_out ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
+                FROM app.settlement WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
             ) stlmts_in ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
@@ -519,7 +519,7 @@ impl BalanceRepository {
         let sql = r#"
             SELECT id, from_user, to_user, amount_cents, status, created_at, settled_at, note
             FROM app.settlement
-            WHERE event_id = $1 AND (from_user = $2 OR to_user = $2)
+            WHERE event_id = $1 AND (from_user = $2 OR to_user = $2) AND deleted_at IS NULL
             ORDER BY created_at
         "#;
 

@@ -389,7 +389,7 @@ impl BalanceService {
                     .entry(reimb.to_user)
                     .and_modify(|t| *t = (*t).max(reimb.created_at))
                     .or_insert(reimb.created_at);
-                reimb_reasons.insert(reimb.to_user, format!("Reimbursement for {}", reimb.original_expense_title));
+                reimb_reasons.insert(reimb.to_user, "You owe for deleted expense".to_string());
             } else if reimb.to_user == user_id {
                 *balances.entry(reimb.from_user).or_insert(0) += reimb.amount_cents;
                 latest_timestamps
