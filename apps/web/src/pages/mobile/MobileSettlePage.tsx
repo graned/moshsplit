@@ -167,6 +167,9 @@ export default function MobileSettlePage() {
       if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
         items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
       }
+      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'pending') {
+        items.push({ label: 'Requested', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
+      }
     }
     return items;
   }, [explainBalance, incomingDrawerItem, userId]);
@@ -189,6 +192,9 @@ export default function MobileSettlePage() {
       }
       if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
         items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
+      }
+      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'pending') {
+        items.push({ label: 'Requested', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
       }
     }
     return items;
