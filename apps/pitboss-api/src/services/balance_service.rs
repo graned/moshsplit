@@ -186,7 +186,9 @@ impl BalanceService {
             })
             .collect();
 
-        let reimbursement_rows = self.balance_repo.reimbursement_breakdown(event_id, user_id)?;
+        let reimbursement_rows = self
+            .balance_repo
+            .reimbursement_breakdown(event_id, user_id)?;
         let reimbursements: Vec<ReimbursementBreakdown> = reimbursement_rows
             .into_iter()
             .map(|r| ReimbursementBreakdown {

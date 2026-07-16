@@ -2,14 +2,8 @@
 //!
 //! These tests verify the middleware behavior without making real HTTP calls.
 
-use axum::{
-    body::Body,
-    extract::Request,
-    http::header::AUTHORIZATION,
-};
-use sentinel_client::{
-    AuthMiddleware, AuthenticatedUser, SentinelClient, SentinelConfig,
-};
+use axum::{body::Body, extract::Request, http::header::AUTHORIZATION};
+use sentinel_client::{AuthMiddleware, AuthenticatedUser, SentinelClient, SentinelConfig};
 
 /// Create a test request with a Bearer token.
 fn create_request_with_token(token: &str) -> Request<Body> {
@@ -42,9 +36,9 @@ fn create_request_invalid_auth_format() -> Request<Body> {
 async fn test_middleware_rejects_missing_token() {
     let sentinel = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
     let _middleware = AuthMiddleware::new(sentinel);
-    
+
     let request = create_request_without_token();
-    
+
     // The middleware should return 401 for missing token
     // Note: We can't actually run the middleware without a running Sentinel,
     // but we can test the token extraction logic
@@ -56,9 +50,9 @@ async fn test_middleware_rejects_missing_token() {
 async fn test_middleware_rejects_invalid_auth_format() {
     let sentinel = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
     let _middleware = AuthMiddleware::new(sentinel);
-    
+
     let request = create_request_invalid_auth_format();
-    
+
     // Verify the header is present but not Bearer
     let auth_header = request.headers().get(AUTHORIZATION).unwrap();
     assert_eq!(auth_header.to_str().unwrap(), "Basic dXNlcjpwYXNz");
@@ -68,9 +62,9 @@ async fn test_middleware_rejects_invalid_auth_format() {
 async fn test_middleware_accepts_bearer_token() {
     let sentinel = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
     let _middleware = AuthMiddleware::new(sentinel);
-    
+
     let request = create_request_with_token("valid-test-token");
-    
+
     // Verify Bearer token is in header
     let auth_header = request.headers().get(AUTHORIZATION).unwrap();
     assert!(auth_header.to_str().unwrap().starts_with("Bearer "));
@@ -81,9 +75,9 @@ async fn test_middleware_accepts_bearer_token() {
 async fn test_middleware_is_cloneable() {
     let sentinel = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
     let middleware = AuthMiddleware::new(sentinel);
-    
+
     let _cloned = middleware.clone();
-    
+
     // Just verify clone works without panicking
 }
 
@@ -91,7 +85,7 @@ async fn test_middleware_is_cloneable() {
 #[tokio::test]
 async fn test_authenticated_user_creation() {
     let user = AuthenticatedUser::new("test-user-id".to_string());
-    
+
     assert_eq!(user.user_id, "test-user-id");
     assert!(user.email.is_none());
     assert!(user.first_name.is_none());
@@ -112,7 +106,7 @@ async fn test_authenticated_user_full() {
         roles: vec!["admin".to_string()],
         permissions: vec!["read".to_string(), "write".to_string()],
     };
-    
+
     assert_eq!(user.user_id, "user-123");
     assert_eq!(user.email, Some("test@example.com".to_string()));
     assert_eq!(user.roles, vec!["admin"]);

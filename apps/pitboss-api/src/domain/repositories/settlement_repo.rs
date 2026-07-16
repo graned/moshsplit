@@ -344,10 +344,7 @@ impl SettlementRepository {
     }
 
     /// Find all settlements for a specific expense.
-    pub fn find_by_expense_id(
-        &self,
-        expense_id: Uuid,
-    ) -> Result<Vec<Settlement>, RepositoryError> {
+    pub fn find_by_expense_id(&self, expense_id: Uuid) -> Result<Vec<Settlement>, RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
 
         let results = settlement::table

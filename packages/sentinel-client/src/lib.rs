@@ -56,11 +56,11 @@ pub mod types;
 
 // Re-export main types
 pub use client::{SentinelClient, SentinelClientBuilder};
-pub use errors::{SentinelError, SentinelErrorCode, Result};
+pub use errors::{Result, SentinelError, SentinelErrorCode};
 pub use middleware::AuthMiddleware;
 pub use types::{
-    ApiEnvelope, ApiError, AuthenticatedUser, AuthenticateAndAuthorizeRequest,
-    AuthenticateAndAuthorizeResponse, RefreshTokenRequest, RefreshTokenResponse, SentinelConfig,
+    ApiEnvelope, ApiError, AuthenticateAndAuthorizeRequest, AuthenticateAndAuthorizeResponse,
+    AuthenticatedUser, RefreshTokenRequest, RefreshTokenResponse, SentinelConfig,
     TokenExchangeRequest, TokenExchangeResponse, UserRole,
 };
 

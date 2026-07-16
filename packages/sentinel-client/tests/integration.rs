@@ -30,7 +30,7 @@ use sentinel_client::{SentinelClient, SentinelClientBuilder, SentinelConfig, Sen
 #[tokio::test]
 async fn test_client_connection() {
     let client = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
-    
+
     // Just verify the client is configured correctly
     assert_eq!(client.base_url(), "http://localhost:9000");
 }
@@ -40,7 +40,9 @@ async fn test_client_connection() {
 async fn test_authenticate_invalid_token() {
     let client = SentinelClient::new(SentinelConfig::new("http://localhost:9000")).unwrap();
 
-    let result = client.authenticate("invalid-token", "GET", "/api/test").await;
+    let result = client
+        .authenticate("invalid-token", "GET", "/api/test")
+        .await;
 
     // Should fail with an error
     assert!(result.is_err());
@@ -82,7 +84,7 @@ async fn test_config_builder() {
         .timeout(5000)
         .build()
         .unwrap();
-    
+
     assert_eq!(client.base_url(), "http://custom:9000");
 }
 

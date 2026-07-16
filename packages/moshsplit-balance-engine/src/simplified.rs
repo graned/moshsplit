@@ -94,8 +94,18 @@ mod tests {
         let b = Uuid::new_v4();
 
         let balances = vec![
-            UserBalance { user_id: a, paid_cents: 2000, owes_cents: 1000, balance_cents: 1000 },
-            UserBalance { user_id: b, paid_cents: 0, owes_cents: 1000, balance_cents: -1000 },
+            UserBalance {
+                user_id: a,
+                paid_cents: 2000,
+                owes_cents: 1000,
+                balance_cents: 1000,
+            },
+            UserBalance {
+                user_id: b,
+                paid_cents: 0,
+                owes_cents: 1000,
+                balance_cents: -1000,
+            },
         ];
 
         let transfers = simplified_debts(&balances);
@@ -108,9 +118,12 @@ mod tests {
     #[test]
     fn test_simplified_no_transfers() {
         let a = Uuid::new_v4();
-        let balances = vec![
-            UserBalance { user_id: a, paid_cents: 0, owes_cents: 0, balance_cents: 0 },
-        ];
+        let balances = vec![UserBalance {
+            user_id: a,
+            paid_cents: 0,
+            owes_cents: 0,
+            balance_cents: 0,
+        }];
         let transfers = simplified_debts(&balances);
         assert!(transfers.is_empty());
     }

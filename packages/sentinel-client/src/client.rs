@@ -3,10 +3,11 @@
 use reqwest::Client;
 use std::sync::Arc;
 
-pub use crate::errors::{SentinelError, SentinelErrorCode, Result};
+pub use crate::errors::{Result, SentinelError, SentinelErrorCode};
 pub use crate::types::{
     AuthenticatedUser, LoginRequest, LoginResponse, PaginatedUsersResponse, RefreshTokenRequest,
-    RefreshTokenResponse, SentinelConfig, SentinelUser, TokenExchangeRequest, TokenExchangeResponse,
+    RefreshTokenResponse, SentinelConfig, SentinelUser, TokenExchangeRequest,
+    TokenExchangeResponse,
 };
 
 /// Sentinel client for communicating with Sentinel Auth service.
@@ -46,7 +47,12 @@ impl SentinelClient {
     /// Sends the token as a Bearer token in the Authorization header.
     /// The method and path parameters are kept for backwards compatibility but
     /// the Sentinel API doesn't use them for the basic authenticate endpoint.
-    pub async fn authenticate(&self, token: &str, _method: &str, _path: &str) -> Result<AuthenticatedUser> {
+    pub async fn authenticate(
+        &self,
+        token: &str,
+        _method: &str,
+        _path: &str,
+    ) -> Result<AuthenticatedUser> {
         let url = format!("{}/v1/api/auth/authenticate", self.inner.base_url);
 
         let response = self
@@ -70,13 +76,11 @@ impl SentinelClient {
             let request_id = envelope.request_id.clone();
 
             if !envelope.success {
-                let error = envelope.error.ok_or_else(|| {
-                    SentinelError::Api {
-                        message: "Unknown error".to_string(),
-                        code: crate::errors::SentinelErrorCode::Unknown,
-                        status: status.as_u16(),
-                        request_id: Some(request_id.clone()),
-                    }
+                let error = envelope.error.ok_or_else(|| SentinelError::Api {
+                    message: "Unknown error".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(request_id.clone()),
                 })?;
                 return Err(SentinelError::Api {
                     message: error.message,
@@ -86,13 +90,11 @@ impl SentinelClient {
                 });
             }
 
-            let auth_response = envelope.data.ok_or_else(|| {
-                SentinelError::Api {
-                    message: "No data in response".to_string(),
-                    code: crate::errors::SentinelErrorCode::Unknown,
-                    status: status.as_u16(),
-                    request_id: Some(request_id.clone()),
-                }
+            let auth_response = envelope.data.ok_or_else(|| SentinelError::Api {
+                message: "No data in response".to_string(),
+                code: crate::errors::SentinelErrorCode::Unknown,
+                status: status.as_u16(),
+                request_id: Some(request_id.clone()),
             })?;
 
             // Return authenticated user with data from the response
@@ -106,15 +108,16 @@ impl SentinelClient {
                 permissions: Vec::new(), // Permissions not returned by this endpoint
             })
         } else {
-            Err(SentinelError::from_response(
-                status.as_u16(),
-                &body,
-                None,
-            ))
+            Err(SentinelError::from_response(status.as_u16(), &body, None))
         }
     }
 
-    pub async fn list_users(&self, api_token: &str, page: Option<usize>, page_size: Option<usize>) -> Result<PaginatedUsersResponse> {
+    pub async fn list_users(
+        &self,
+        api_token: &str,
+        page: Option<usize>,
+        page_size: Option<usize>,
+    ) -> Result<PaginatedUsersResponse> {
         let mut url = format!("{}/v1/api/admin/users", self.inner.base_url);
         let params: Vec<(&str, String)> = [
             page.map(|p| ("page", p.to_string())),
@@ -153,13 +156,11 @@ impl SentinelClient {
                 serde_json::from_str(&body).map_err(SentinelError::Parse)?;
 
             if !envelope.success {
-                let error = envelope.error.ok_or_else(|| {
-                    SentinelError::Api {
-                        message: "Unknown error".to_string(),
-                        code: crate::errors::SentinelErrorCode::Unknown,
-                        status: status.as_u16(),
-                        request_id: Some(envelope.request_id.clone()),
-                    }
+                let error = envelope.error.ok_or_else(|| SentinelError::Api {
+                    message: "Unknown error".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id.clone()),
                 })?;
                 return Err(SentinelError::Api {
                     message: error.message,
@@ -169,20 +170,14 @@ impl SentinelClient {
                 });
             }
 
-            envelope.data.ok_or_else(|| {
-                SentinelError::Api {
-                    message: "No data in response".to_string(),
-                    code: crate::errors::SentinelErrorCode::Unknown,
-                    status: status.as_u16(),
-                    request_id: Some(envelope.request_id),
-                }
+            envelope.data.ok_or_else(|| SentinelError::Api {
+                message: "No data in response".to_string(),
+                code: crate::errors::SentinelErrorCode::Unknown,
+                status: status.as_u16(),
+                request_id: Some(envelope.request_id),
             })
         } else {
-            Err(SentinelError::from_response(
-                status.as_u16(),
-                &body,
-                None,
-            ))
+            Err(SentinelError::from_response(status.as_u16(), &body, None))
         }
     }
 
@@ -219,11 +214,7 @@ impl SentinelClient {
                 serde_json::from_str(&body).map_err(SentinelError::Parse)?;
             Ok(login_response)
         } else {
-            Err(SentinelError::from_response(
-                status.as_u16(),
-                &body,
-                None,
-            ))
+            Err(SentinelError::from_response(status.as_u16(), &body, None))
         }
     }
 
@@ -231,7 +222,7 @@ impl SentinelClient {
     ///
     /// The API token must belong to an admin user.
     /// The target user's email is used to generate the session.
-    /// 
+    ///
     /// Sentinel v1.3.0+: Requires display_name and optionally avatar_url for federated user creation.
     pub async fn exchange_token(
         &self,
@@ -267,13 +258,11 @@ impl SentinelClient {
                 serde_json::from_str(&body).map_err(SentinelError::Parse)?;
 
             if !envelope.success {
-                let error = envelope.error.ok_or_else(|| {
-                    SentinelError::Api {
-                        message: "Unknown error".to_string(),
-                        code: crate::errors::SentinelErrorCode::Unknown,
-                        status: status.as_u16(),
-                        request_id: Some(envelope.request_id.clone()),
-                    }
+                let error = envelope.error.ok_or_else(|| SentinelError::Api {
+                    message: "Unknown error".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id.clone()),
                 })?;
                 return Err(SentinelError::Api {
                     message: error.message,
@@ -283,27 +272,25 @@ impl SentinelClient {
                 });
             }
 
-            envelope.data.ok_or_else(|| {
-                SentinelError::Api {
-                    message: "No data in response".to_string(),
-                    code: crate::errors::SentinelErrorCode::Unknown,
-                    status: status.as_u16(),
-                    request_id: Some(envelope.request_id),
-                }
+            envelope.data.ok_or_else(|| SentinelError::Api {
+                message: "No data in response".to_string(),
+                code: crate::errors::SentinelErrorCode::Unknown,
+                status: status.as_u16(),
+                request_id: Some(envelope.request_id),
             })
         } else {
-            Err(SentinelError::from_response(
-                status.as_u16(),
-                &body,
-                None,
-            ))
+            Err(SentinelError::from_response(status.as_u16(), &body, None))
         }
     }
 
     /// Refresh an access token using a refresh token.
     ///
     /// POST /v1/api/auth/token/refresh
-    pub async fn refresh_token(&self, _user_id: &str, refresh_token: &str) -> Result<RefreshTokenResponse> {
+    pub async fn refresh_token(
+        &self,
+        _user_id: &str,
+        refresh_token: &str,
+    ) -> Result<RefreshTokenResponse> {
         let url = format!("{}/v1/api/auth/token/refresh", self.inner.base_url);
 
         let request = RefreshTokenRequest {
@@ -328,13 +315,11 @@ impl SentinelClient {
                 serde_json::from_str(&body).map_err(SentinelError::Parse)?;
 
             if !envelope.success {
-                let error = envelope.error.ok_or_else(|| {
-                    SentinelError::Api {
-                        message: "Unknown error".to_string(),
-                        code: crate::errors::SentinelErrorCode::Unknown,
-                        status: status.as_u16(),
-                        request_id: Some(envelope.request_id.clone()),
-                    }
+                let error = envelope.error.ok_or_else(|| SentinelError::Api {
+                    message: "Unknown error".to_string(),
+                    code: crate::errors::SentinelErrorCode::Unknown,
+                    status: status.as_u16(),
+                    request_id: Some(envelope.request_id.clone()),
                 })?;
                 return Err(SentinelError::Api {
                     message: error.message,
@@ -344,20 +329,14 @@ impl SentinelClient {
                 });
             }
 
-            envelope.data.ok_or_else(|| {
-                SentinelError::Api {
-                    message: "No data in response".to_string(),
-                    code: crate::errors::SentinelErrorCode::Unknown,
-                    status: status.as_u16(),
-                    request_id: Some(envelope.request_id),
-                }
+            envelope.data.ok_or_else(|| SentinelError::Api {
+                message: "No data in response".to_string(),
+                code: crate::errors::SentinelErrorCode::Unknown,
+                status: status.as_u16(),
+                request_id: Some(envelope.request_id),
             })
         } else {
-            Err(SentinelError::from_response(
-                status.as_u16(),
-                &body,
-                None,
-            ))
+            Err(SentinelError::from_response(status.as_u16(), &body, None))
         }
     }
 }

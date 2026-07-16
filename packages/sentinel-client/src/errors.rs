@@ -93,7 +93,7 @@ impl SentinelError {
     pub fn from_response(status: u16, body: &str, request_id: Option<String>) -> Self {
         // Try to parse the error response
         let parsed: Option<ApiErrorResponse> = serde_json::from_str(body).ok();
-        
+
         if let Some(api_error) = parsed {
             let code = SentinelErrorCode::from_status(status);
             return Self::Api {
@@ -117,7 +117,13 @@ impl SentinelError {
     pub fn is_auth_error(&self) -> bool {
         matches!(
             self,
-            Self::Api { code: SentinelErrorCode::AuthError | SentinelErrorCode::InvalidToken | SentinelErrorCode::ExpiredToken | SentinelErrorCode::MissingToken, .. }
+            Self::Api {
+                code: SentinelErrorCode::AuthError
+                    | SentinelErrorCode::InvalidToken
+                    | SentinelErrorCode::ExpiredToken
+                    | SentinelErrorCode::MissingToken,
+                ..
+            }
         )
     }
 
