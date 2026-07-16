@@ -306,14 +306,8 @@ impl BalanceService {
         }
 
         for reimb in &explanation.reimbursements {
-            if reimb.from_user == user_id {
-                *balances.entry(reimb.to_user).or_insert(0) += reimb.amount_cents;
-                latest_timestamps
-                    .entry(reimb.to_user)
-                    .and_modify(|t| *t = (*t).max(reimb.created_at))
-                    .or_insert(reimb.created_at);
-            } else if reimb.to_user == user_id {
-                *balances.entry(reimb.from_user).or_insert(0) -= reimb.amount_cents;
+            if reimb.to_user == user_id {
+                *balances.entry(reimb.from_user).or_insert(0) += reimb.amount_cents;
                 latest_timestamps
                     .entry(reimb.from_user)
                     .and_modify(|t| *t = (*t).max(reimb.created_at))
