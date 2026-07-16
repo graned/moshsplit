@@ -639,11 +639,11 @@ impl ExpenseService {
 
         if reimbursement_amount > 0 {
             let mut shares: Vec<(Uuid, i32)> = Vec::new();
-            shares.push((expense_owner, 0));
+            shares.push((expense_owner, reimbursement_amount as i32));
 
             for participant_id in &participant_ids {
                 if *participant_id != expense_owner {
-                    shares.push((*participant_id, reimbursement_amount as i32));
+                    shares.push((*participant_id, 0));
                 }
             }
 
