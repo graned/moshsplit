@@ -9,8 +9,7 @@ use std::io::Write;
 
 use crate::schema::app::sql_types::{
     EventImageType as EventImageTypeType, EventMemberRole as EventMemberRoleType,
-    EventStatus as EventStatusType, ExpenseType as ExpenseTypeType,
-    SettlementStatus as SettlementStatusType, SplitType as SplitTypeType,
+    EventStatus as EventStatusType, ExpenseType as ExpenseTypeType, SplitType as SplitTypeType,
 };
 
 // ── Rust enum types with Diesel mappings ───────────────────────────────────────
@@ -213,73 +212,6 @@ impl FromSql<Text, Pg> for SplitType {
     diesel::FromSqlRow,
     diesel::AsExpression,
 )]
-#[diesel(sql_type = SettlementStatusType)]
-pub enum SettlementStatus {
-    Pending,
-    Confirmed,
-    Disputed,
-    Rejected,
-}
-
-impl ToSql<SettlementStatusType, Pg> for SettlementStatus {
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
-        match self {
-            Self::Pending => out.write_all(b"pending")?,
-            Self::Confirmed => out.write_all(b"confirmed")?,
-            Self::Disputed => out.write_all(b"disputed")?,
-            Self::Rejected => out.write_all(b"rejected")?,
-        }
-        Ok(IsNull::No)
-    }
-}
-
-impl FromSql<SettlementStatusType, Pg> for SettlementStatus {
-    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
-        match value.as_bytes() {
-            b"pending" => Ok(Self::Pending),
-            b"confirmed" => Ok(Self::Confirmed),
-            b"disputed" => Ok(Self::Disputed),
-            b"rejected" => Ok(Self::Rejected),
-            _ => Err("Unrecognized SettlementStatus variant".into()),
-        }
-    }
-}
-
-impl ToSql<Text, Pg> for SettlementStatus {
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
-        match self {
-            Self::Pending => out.write_all(b"pending")?,
-            Self::Confirmed => out.write_all(b"confirmed")?,
-            Self::Disputed => out.write_all(b"disputed")?,
-            Self::Rejected => out.write_all(b"rejected")?,
-        }
-        Ok(IsNull::No)
-    }
-}
-
-impl FromSql<Text, Pg> for SettlementStatus {
-    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
-        match value.as_bytes() {
-            b"pending" => Ok(Self::Pending),
-            b"confirmed" => Ok(Self::Confirmed),
-            b"disputed" => Ok(Self::Disputed),
-            b"rejected" => Ok(Self::Rejected),
-            _ => Err("Unrecognized SettlementStatus variant".into()),
-        }
-    }
-}
-
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Serialize,
-    Deserialize,
-    diesel::FromSqlRow,
-    diesel::AsExpression,
-)]
 #[diesel(sql_type = ExpenseTypeType)]
 pub enum ExpenseType {
     Food,
@@ -409,6 +341,129 @@ impl FromSql<Text, Pg> for EventImageType {
             b"banner" => Ok(Self::Banner),
             b"gallery" => Ok(Self::Gallery),
             _ => Err("Unrecognized EventImageType variant".into()),
+        }
+    }
+}
+
+// ── PaymentStatus (VARCHAR-based, not a PG enum) ─────────────────────────────
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
+#[diesel(sql_type = Text)]
+pub enum PaymentStatus {
+    Open,
+    Ongoing,
+    Completed,
+}
+
+impl ToSql<Text, Pg> for PaymentStatus {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Open => out.write_all(b"open")?,
+            Self::Ongoing => out.write_all(b"ongoing")?,
+            Self::Completed => out.write_all(b"completed")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for PaymentStatus {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"open" => Ok(Self::Open),
+            b"ongoing" => Ok(Self::Ongoing),
+            b"completed" => Ok(Self::Completed),
+            _ => Err("Unrecognized PaymentStatus variant".into()),
+        }
+    }
+}
+
+// ── PaymentTransactionStatus (VARCHAR-based, not a PG enum) ──────────────────
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
+#[diesel(sql_type = Text)]
+pub enum PaymentTransactionStatus {
+    Pending,
+    Confirmed,
+    Rejected,
+}
+
+impl ToSql<Text, Pg> for PaymentTransactionStatus {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Pending => out.write_all(b"pending")?,
+            Self::Confirmed => out.write_all(b"confirmed")?,
+            Self::Rejected => out.write_all(b"rejected")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for PaymentTransactionStatus {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"pending" => Ok(Self::Pending),
+            b"confirmed" => Ok(Self::Confirmed),
+            b"rejected" => Ok(Self::Rejected),
+            _ => Err("Unrecognized PaymentTransactionStatus variant".into()),
+        }
+    }
+}
+
+// ── DeletionStatus (VARCHAR-based, not a PG enum) ────────────────────────────
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
+#[diesel(sql_type = Text)]
+pub enum DeletionStatus {
+    None,
+    PendingDeletion,
+}
+
+impl ToSql<Text, Pg> for DeletionStatus {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::None => out.write_all(b"none")?,
+            Self::PendingDeletion => out.write_all(b"pending_deletion")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for DeletionStatus {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"none" => Ok(Self::None),
+            b"pending_deletion" => Ok(Self::PendingDeletion),
+            _ => Err("Unrecognized DeletionStatus variant".into()),
         }
     }
 }

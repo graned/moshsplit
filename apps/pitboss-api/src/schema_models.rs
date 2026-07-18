@@ -64,6 +64,7 @@ pub struct Expense {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub current_version_id: Option<uuid::Uuid>,
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub deletion_status: Option<String>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -98,48 +99,26 @@ pub struct ExpenseVersionShare {
 pub struct Payment {
     pub id: uuid::Uuid,
     pub event_id: uuid::Uuid,
-    pub from_user: uuid::Uuid,
-    pub to_user: uuid::Uuid,
-    pub amount_cents: i32,
-    pub currency: String,
-    pub description: Option<String>,
-    pub payment_method: Option<String>,
-    pub external_ref: Option<String>,
-    pub recorded_by: uuid::Uuid,
-    pub recorded_at: chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Debug, Clone, Queryable, Insertable)]
-#[diesel(table_name = app::settlement)]
-pub struct Settlement {
-    pub id: uuid::Uuid,
-    pub event_id: uuid::Uuid,
-    pub from_user: uuid::Uuid,
-    pub to_user: uuid::Uuid,
-    pub amount_cents: i32,
-    pub status: crate::schema_enums::SettlementStatus,
-    pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub created_by: uuid::Uuid,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub note: Option<String>,
-    pub proof_url: Option<String>,
-    pub reviewed_by: Option<uuid::Uuid>,
-    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub rejection_note: Option<String>,
+    pub creditor_id: uuid::Uuid,
+    pub debtor_id: uuid::Uuid,
     pub expense_id: Option<uuid::Uuid>,
-    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub amount_cents: i32,
+    pub amount_paid_cents: i32,
+    pub reason: String,
+    pub status: crate::schema_enums::PaymentStatus,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]
-#[diesel(table_name = app::reimbursement)]
-pub struct Reimbursement {
+#[diesel(table_name = app::payment_transaction)]
+pub struct PaymentTransaction {
     pub id: uuid::Uuid,
-    pub ref_expense_id: uuid::Uuid,
-    pub settlement_id: Option<uuid::Uuid>,
-    pub event_id: uuid::Uuid,
-    pub from_user: uuid::Uuid,
-    pub to_user: uuid::Uuid,
+    pub payment_id: uuid::Uuid,
     pub amount_cents: i32,
+    pub status: crate::schema_enums::PaymentTransactionStatus,
+    pub proposed_by: uuid::Uuid,
+    pub confirmed_by: Option<uuid::Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub confirmed_at: Option<chrono::DateTime<chrono::Utc>>,
 }

@@ -19,10 +19,6 @@ pub mod app {
         pub struct ExpenseType;
 
         #[derive(diesel::sql_types::SqlType)]
-        #[diesel(postgres_type(name = "settlement_status", schema = "app"))]
-        pub struct SettlementStatus;
-
-        #[derive(diesel::sql_types::SqlType)]
         #[diesel(postgres_type(name = "split_type", schema = "app"))]
         pub struct SplitType;
     }
@@ -93,6 +89,7 @@ pub mod app {
             created_at -> Timestamptz,
             current_version_id -> Nullable<Uuid>,
             deleted_at -> Nullable<Timestamptz>,
+            deletion_status -> Nullable<Text>,
         }
     }
 
@@ -131,53 +128,28 @@ pub mod app {
         app.payment (id) {
             id -> Uuid,
             event_id -> Uuid,
-            from_user -> Uuid,
-            to_user -> Uuid,
-            amount_cents -> Int4,
-            currency -> Text,
-            description -> Nullable<Text>,
-            payment_method -> Nullable<Text>,
-            external_ref -> Nullable<Text>,
-            recorded_by -> Uuid,
-            recorded_at -> Timestamptz,
-        }
-    }
-
-    diesel::table! {
-        use diesel::sql_types::*;
-        use super::sql_types::SettlementStatus;
-
-        app.settlement (id) {
-            id -> Uuid,
-            event_id -> Uuid,
-            from_user -> Uuid,
-            to_user -> Uuid,
-            amount_cents -> Int4,
-            status -> SettlementStatus,
-            settled_at -> Nullable<Timestamptz>,
-            created_by -> Uuid,
-            created_at -> Timestamptz,
-            note -> Nullable<Text>,
-            proof_url -> Nullable<Text>,
-            reviewed_by -> Nullable<Uuid>,
-            reviewed_at -> Nullable<Timestamptz>,
-            rejection_note -> Nullable<Text>,
+            creditor_id -> Uuid,
+            debtor_id -> Uuid,
             expense_id -> Nullable<Uuid>,
-            deleted_at -> Nullable<Timestamptz>,
+            amount_cents -> Int4,
+            amount_paid_cents -> Int4,
+            reason -> Text,
+            status -> Text,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
         }
     }
 
     diesel::table! {
-        app.reimbursement (id) {
+        app.payment_transaction (id) {
             id -> Uuid,
-            ref_expense_id -> Uuid,
-            settlement_id -> Nullable<Uuid>,
-            event_id -> Uuid,
-            from_user -> Uuid,
-            to_user -> Uuid,
+            payment_id -> Uuid,
             amount_cents -> Int4,
+            status -> Text,
+            proposed_by -> Uuid,
+            confirmed_by -> Nullable<Uuid>,
             created_at -> Timestamptz,
-            deleted_at -> Nullable<Timestamptz>,
+            confirmed_at -> Nullable<Timestamptz>,
         }
     }
 
@@ -187,7 +159,7 @@ pub mod app {
     diesel::joinable!(expense_version -> expense (expense_id));
     diesel::joinable!(expense_version_share -> expense_version (expense_version_id));
     diesel::joinable!(payment -> event (event_id));
-    diesel::joinable!(settlement -> event (event_id));
+    diesel::joinable!(payment_transaction -> payment (payment_id));
 
     diesel::allow_tables_to_appear_in_same_query!(
         audit_log,
@@ -198,7 +170,6 @@ pub mod app {
         expense_version,
         expense_version_share,
         payment,
-        settlement,
-        reimbursement,
+        payment_transaction,
     );
 }
