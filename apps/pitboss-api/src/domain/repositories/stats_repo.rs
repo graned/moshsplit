@@ -1,6 +1,4 @@
 //! StatsRepository — aggregation queries for event statistics.
-//!
-//! Uses raw SQL for efficient single-query aggregation.
 
 use diesel::deserialize::QueryableByName;
 use diesel::sql_query;
@@ -12,7 +10,6 @@ use uuid::Uuid;
 use crate::errors::RepositoryError;
 use crate::infrastructure::clients::DbClient;
 
-/// Aggregated stats row for an event.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct EventStatsRow {
     #[diesel(sql_type = BigInt)]
@@ -47,13 +44,6 @@ impl StatsRepository {
         Self { db_client }
     }
 
-    /// Compute event-level statistics in a single efficient query.
-    ///
-    /// Aggregates:
-    /// - Total spent (sum of latest expense versions, non-deleted)
-    /// - Total settled (sum of confirmed settlements)
-    /// - User's share (sum of user's shares in latest expense versions)
-    /// - Top spender (user who paid the most via expenses)
     pub fn get_event_stats(
         &self,
         event_id: Uuid,
@@ -74,9 +64,9 @@ impl StatsRepository {
                 FROM latest_versions
             ),
             total_settled AS (
-                SELECT COALESCE(SUM(amount_cents), 0) AS amount
-                FROM app.settlement
-                WHERE event_id = $1 AND status = 'confirmed' AND deleted_at IS NULL
+                SELECT COALESCE(SUM(amount_paid_cents), 0) AS amount
+                FROM app.payment
+                WHERE event_id = $1
             ),
             user_share AS (
                 SELECT COALESCE(SUM(sh.share_cents), 0) AS amount
@@ -90,9 +80,9 @@ impl StatsRepository {
                 WHERE paid_by = $2
             ),
             user_settled_out AS (
-                SELECT COALESCE(SUM(amount_cents), 0) AS amount
-                FROM app.settlement
-                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
+                SELECT COALESCE(SUM(amount_paid_cents), 0) AS amount
+                FROM app.payment
+                WHERE event_id = $1 AND debtor_id = $2
             ),
             user_outstanding AS (
                 SELECT GREATEST(
@@ -111,14 +101,14 @@ impl StatsRepository {
                   AND sh.user_id != $2
             ),
             user_incoming_settled AS (
-                SELECT COALESCE(SUM(amount_cents), 0) AS amount
-                FROM app.settlement
-                WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
+                SELECT COALESCE(SUM(amount_paid_cents), 0) AS amount
+                FROM app.payment
+                WHERE event_id = $1 AND creditor_id = $2
             ),
             user_outgoing_settled AS (
-                SELECT COALESCE(SUM(amount_cents), 0) AS amount
-                FROM app.settlement
-                WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed' AND deleted_at IS NULL
+                SELECT COALESCE(SUM(amount_paid_cents), 0) AS amount
+                FROM app.payment
+                WHERE event_id = $1 AND debtor_id = $2
             ),
             top_spender AS (
                 SELECT paid_by AS user_id, SUM(amount_cents) AS total_paid
