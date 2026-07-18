@@ -1,8 +1,4 @@
 //! ActivityService — builds a unified activity feed (Battle Log) for an event.
-//!
-//! Queries `expense`, `settlement`, and `event_member` tables, unions the
-//! results, and returns them ordered by `created_at DESC` with cursor-based
-//! pagination.
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{DateTime, Utc};
@@ -16,7 +12,6 @@ use crate::errors::{RepositoryError, ServiceError};
 use crate::infrastructure::clients::DbClient;
 use crate::infrastructure::http::api::dtos::activity_dtos::{ActivityItem, ActivityResponse};
 
-/// Raw row returned by the union query.
 #[derive(Debug, Clone, diesel::QueryableByName)]
 struct ActivityRawRow {
     #[diesel(sql_type = Text)]
@@ -25,7 +20,6 @@ struct ActivityRawRow {
     id: Uuid,
     #[diesel(sql_type = Timestamptz)]
     created_at: DateTime<Utc>,
-    // Expense fields
     #[diesel(sql_type = Nullable<Text>)]
     title: Option<String>,
     #[diesel(sql_type = Nullable<Integer>)]
@@ -36,31 +30,27 @@ struct ActivityRawRow {
     participant_count: Option<i32>,
     #[diesel(sql_type = Nullable<Text>)]
     expense_type: Option<String>,
-    // Settlement fields
     #[diesel(sql_type = Nullable<DUuid>)]
-    from_user: Option<Uuid>,
+    creditor_id: Option<Uuid>,
     #[diesel(sql_type = Nullable<DUuid>)]
-    to_user: Option<Uuid>,
-    // MemberJoin fields
+    debtor_id: Option<Uuid>,
     #[diesel(sql_type = Nullable<DUuid>)]
     user_id: Option<Uuid>,
-    // HonorRestored fields
     #[diesel(sql_type = Nullable<DUuid>)]
     approved_by: Option<Uuid>,
     #[diesel(sql_type = Nullable<Timestamptz>)]
     reviewed_at: Option<DateTime<Utc>>,
-    // ExpenseUpdated fields
     #[diesel(sql_type = Nullable<DUuid>)]
     expense_id: Option<Uuid>,
+    #[diesel(sql_type = Nullable<Text>)]
+    deletion_status: Option<String>,
 }
 
-/// Encodes `(created_at, id)` into a URL-safe base64 cursor string.
 fn encode_cursor(created_at: DateTime<Utc>, id: Uuid) -> String {
     let raw = format!("{}|{}", created_at.to_rfc3339(), id);
     STANDARD.encode(raw.as_bytes())
 }
 
-/// Decodes a cursor string back into `(created_at, id)`.
 fn decode_cursor(cursor: &str) -> Option<(DateTime<Utc>, Uuid)> {
     let decoded = STANDARD.decode(cursor).ok()?;
     let s = String::from_utf8(decoded).ok()?;
@@ -86,17 +76,12 @@ impl ActivityService {
         }
     }
 
-    /// List activity items for an event with cursor-based pagination.
-    ///
-    /// The cursor encodes `(created_at, id)` for stable pagination across
-    /// heterogeneous item types.
     pub fn list_activity(
         &self,
         event_id: Uuid,
         cursor: Option<&str>,
         limit: i64,
     ) -> Result<ActivityResponse, ServiceError> {
-        // Verify event exists
         self.event_repo
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
@@ -112,8 +97,6 @@ impl ActivityService {
             None => (None, None),
         };
 
-        // Union query across expense, settlement, event_member, and confirmed settlements (honor restored).
-        // Each branch projects to a common shape.
         let sql = r#"
             SELECT
                 'expense'       AS item_type,
@@ -128,12 +111,13 @@ impl ActivityService {
                     WHERE sh.expense_version_id = e.current_version_id
                 ) AS participant_count,
                 ev.expense_type::TEXT,
-                NULL::UUID      AS from_user,
-                NULL::UUID      AS to_user,
+                NULL::UUID      AS creditor_id,
+                NULL::UUID      AS debtor_id,
                 NULL::UUID      AS user_id,
                 NULL::UUID      AS approved_by,
                 NULL::timestamptz AS reviewed_at,
-                NULL::UUID      AS expense_id
+                NULL::UUID      AS expense_id,
+                e.deletion_status
             FROM app.expense e
             LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
             WHERE e.event_id = $1
@@ -145,50 +129,52 @@ impl ActivityService {
             UNION ALL
 
             SELECT
-                'settlement'    AS item_type,
-                s.id,
-                s.created_at,
-                NULL::TEXT      AS title,
-                s.amount_cents,
+                'payment'       AS item_type,
+                p.id,
+                p.created_at,
+                p.reason        AS title,
+                p.amount_cents,
                 NULL::UUID      AS paid_by,
                 NULL::INTEGER   AS participant_count,
                 NULL::TEXT      AS expense_type,
-                s.from_user,
-                s.to_user,
+                p.creditor_id,
+                p.debtor_id,
                 NULL::UUID      AS user_id,
                 NULL::UUID      AS approved_by,
                 NULL::timestamptz AS reviewed_at,
-                NULL::UUID      AS expense_id
-            FROM app.settlement s
-            WHERE s.event_id = $1
-              AND s.status = 'pending'
+                p.expense_id,
+                NULL::TEXT      AS deletion_status
+            FROM app.payment p
+            WHERE p.event_id = $1
               AND ($2::timestamptz IS NULL
-                   OR s.created_at < $2
-                   OR (s.created_at = $2 AND s.id < $5::uuid))
+                   OR p.created_at < $2
+                   OR (p.created_at = $2 AND p.id < $5::uuid))
 
             UNION ALL
 
             SELECT
-                'honor_restored' AS item_type,
-                s.id,
-                s.settled_at    AS created_at,
-                NULL::TEXT      AS title,
-                s.amount_cents,
-                NULL::UUID      AS paid_by,
-                NULL::INTEGER   AS participant_count,
-                NULL::TEXT      AS expense_type,
-                s.from_user,
-                s.to_user,
-                NULL::UUID      AS user_id,
-                s.reviewed_by   AS approved_by,
-                s.reviewed_at,
-                NULL::UUID      AS expense_id
-            FROM app.settlement s
-            WHERE s.event_id = $1
-              AND s.status = 'confirmed'
+                'payment_confirmed' AS item_type,
+                pt.id,
+                pt.confirmed_at   AS created_at,
+                NULL::TEXT        AS title,
+                pt.amount_cents,
+                NULL::UUID        AS paid_by,
+                NULL::INTEGER     AS participant_count,
+                NULL::TEXT        AS expense_type,
+                p.creditor_id,
+                p.debtor_id,
+                NULL::UUID        AS user_id,
+                pt.confirmed_by   AS approved_by,
+                pt.confirmed_at   AS reviewed_at,
+                p.expense_id,
+                NULL::TEXT        AS deletion_status
+            FROM app.payment_transaction pt
+            JOIN app.payment p ON p.id = pt.payment_id
+            WHERE p.event_id = $1
+              AND pt.status = 'confirmed'
               AND ($2::timestamptz IS NULL
-                   OR s.settled_at < $2
-                   OR (s.settled_at = $2 AND s.id < $5::uuid))
+                   OR pt.confirmed_at < $2
+                   OR (pt.confirmed_at = $2 AND pt.id < $5::uuid))
 
             UNION ALL
 
@@ -201,12 +187,13 @@ impl ActivityService {
                 NULL::UUID      AS paid_by,
                 NULL::INTEGER   AS participant_count,
                 NULL::TEXT      AS expense_type,
-                NULL::UUID      AS from_user,
-                NULL::UUID      AS to_user,
+                NULL::UUID      AS creditor_id,
+                NULL::UUID      AS debtor_id,
                 em.user_id,
                 NULL::UUID      AS approved_by,
                 NULL::timestamptz AS reviewed_at,
-                NULL::UUID      AS expense_id
+                NULL::UUID      AS expense_id,
+                NULL::TEXT      AS deletion_status
             FROM app.event_member em
             WHERE em.event_id = $1
               AND ($2::timestamptz IS NULL
@@ -228,12 +215,13 @@ impl ActivityService {
                     WHERE sh.expense_version_id = ev.id
                 ) AS participant_count,
                 ev.expense_type::TEXT,
-                NULL::UUID      AS from_user,
-                NULL::UUID      AS to_user,
+                NULL::UUID      AS creditor_id,
+                NULL::UUID      AS debtor_id,
                 NULL::UUID      AS user_id,
                 NULL::UUID      AS approved_by,
                 NULL::timestamptz AS reviewed_at,
-                e.id            AS expense_id
+                e.id            AS expense_id,
+                e.deletion_status
             FROM app.expense_version ev
             JOIN app.expense e ON e.id = ev.expense_id
             WHERE e.event_id = $1
@@ -258,12 +246,13 @@ impl ActivityService {
                     WHERE sh.expense_version_id = e.current_version_id
                 ) AS participant_count,
                 ev.expense_type::TEXT,
-                NULL::UUID      AS from_user,
-                NULL::UUID      AS to_user,
+                NULL::UUID      AS creditor_id,
+                NULL::UUID      AS debtor_id,
                 NULL::UUID      AS user_id,
                 NULL::UUID      AS approved_by,
                 NULL::timestamptz AS reviewed_at,
-                e.id            AS expense_id
+                e.id            AS expense_id,
+                NULL::TEXT      AS deletion_status
             FROM app.expense e
             LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
             WHERE e.event_id = $1
@@ -271,32 +260,6 @@ impl ActivityService {
               AND ($2::timestamptz IS NULL
                    OR e.deleted_at < $2
                    OR (e.deleted_at = $2 AND e.id < $5::uuid))
-
-            UNION ALL
-
-            SELECT
-                'settlement_rejected' AS item_type,
-                s.id,
-                s.reviewed_at   AS created_at,
-                NULL::TEXT      AS title,
-                s.amount_cents,
-                NULL::UUID      AS paid_by,
-                NULL::INTEGER   AS participant_count,
-                NULL::TEXT      AS expense_type,
-                s.from_user,
-                s.to_user,
-                NULL::UUID      AS user_id,
-                s.reviewed_by   AS approved_by,
-                s.reviewed_at,
-                s.expense_id
-            FROM app.settlement s
-            LEFT JOIN app.expense e ON e.id = s.expense_id
-            WHERE s.event_id = $1
-              AND s.status = 'rejected'
-              AND (s.expense_id IS NOT NULL AND e.deleted_at IS NOT NULL)
-              AND ($2::timestamptz IS NULL
-                   OR s.reviewed_at < $2
-                   OR (s.reviewed_at = $2 AND s.id < $5::uuid))
 
             ORDER BY created_at DESC, id DESC
             LIMIT $3
@@ -329,18 +292,19 @@ impl ActivityService {
                     participant_count: row.participant_count.unwrap_or(0),
                     created_at: row.created_at,
                     expense_type: row.expense_type,
+                    deletion_status: row.deletion_status,
                 },
-                "settlement" => ActivityItem::Settlement {
+                "payment" => ActivityItem::Payment {
                     id: row.id,
-                    from_user: row.from_user.unwrap_or_default(),
-                    to_user: row.to_user.unwrap_or_default(),
+                    creditor_id: row.creditor_id.unwrap_or_default(),
+                    debtor_id: row.debtor_id.unwrap_or_default(),
                     amount_cents: row.amount_cents.unwrap_or(0),
                     created_at: row.created_at,
                 },
-                "honor_restored" => ActivityItem::HonorRestored {
+                "payment_confirmed" => ActivityItem::PaymentConfirmed {
                     id: row.id,
-                    from_user: row.from_user.unwrap_or_default(),
-                    to_user: row.to_user.unwrap_or_default(),
+                    creditor_id: row.creditor_id.unwrap_or_default(),
+                    debtor_id: row.debtor_id.unwrap_or_default(),
                     amount_cents: row.amount_cents.unwrap_or(0),
                     approved_by: row.approved_by.unwrap_or_default(),
                     created_at: row.created_at,
@@ -362,15 +326,6 @@ impl ActivityService {
                     created_at: row.created_at,
                     expense_type: row.expense_type,
                 },
-                "settlement_rejected" => ActivityItem::SettlementRejected {
-                    id: row.id,
-                    from_user: row.from_user.unwrap_or_default(),
-                    to_user: row.to_user.unwrap_or_default(),
-                    amount_cents: row.amount_cents.unwrap_or(0),
-                    approved_by: row.approved_by.unwrap_or_default(),
-                    created_at: row.created_at,
-                    reviewed_at: row.reviewed_at.unwrap_or(row.created_at),
-                },
                 "expense_deleted" => ActivityItem::ExpenseDeleted {
                     id: row.id,
                     expense_id: row.expense_id.unwrap_or_default(),
@@ -391,11 +346,10 @@ impl ActivityService {
         let next_cursor = if has_more {
             items.last().map(|item| match item {
                 ActivityItem::Expense { id, created_at, .. }
-                | ActivityItem::Settlement { id, created_at, .. }
-                | ActivityItem::HonorRestored { id, created_at, .. }
+                | ActivityItem::Payment { id, created_at, .. }
+                | ActivityItem::PaymentConfirmed { id, created_at, .. }
                 | ActivityItem::MemberJoin { id, created_at, .. }
                 | ActivityItem::ExpenseUpdated { id, created_at, .. }
-                | ActivityItem::SettlementRejected { id, created_at, .. }
                 | ActivityItem::ExpenseDeleted { id, created_at, .. } => {
                     encode_cursor(*created_at, *id)
                 }
