@@ -10,9 +10,10 @@ use crate::domain::repositories::balance_repo::{BalanceRepository, UserBalanceRo
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
-    BalancesResponse, DebtTransfer, ExpenseBreakdown, ExplainBalanceBetweenResponse,
-    ExplainBalanceResponse, PaymentBreakdown, ReimbursementBreakdown, SettlementBreakdown,
-    SimplifiedDebtsResponse, UserBalanceItem, UserBalanceResponse,
+    BalancesResponse, BalancesSection, CategoryGrossTotals, CategoryTotals, CounterpartyBalance,
+    DebtTransfer, ExpenseBreakdown, ExplainBalanceBetweenResponse, ExplainBalanceResponse,
+    PaymentBreakdown, ReimbursementBreakdown, SettlementBreakdown, SimplifiedDebtsResponse,
+    TotalsSection, UserBalanceItem, UserBalanceResponse,
 };
 use crate::infrastructure::http::api::dtos::settlement_dtos::{
     IncomingBalanceItem, IncomingBalancesResponse, OutgoingBalanceItem, OutgoingBalancesResponse,
@@ -144,16 +145,24 @@ impl BalanceService {
         let expense_rows = self.balance_repo.expense_breakdown(event_id, user_id)?;
         let expenses: Vec<ExpenseBreakdown> = expense_rows
             .into_iter()
-            .map(|r| ExpenseBreakdown {
-                expense_id: r.expense_id,
-                title: r.title,
-                amount_cents: r.amount_cents,
-                paid_cents: r.paid_cents,
-                share_cents: r.share_cents,
-                paid_by: r.paid_by,
-                expense_type: r.expense_type,
-                participants: r.participants,
-                created_at: r.created_at,
+            .map(|r| {
+                let direction = if r.paid_by == user_id {
+                    "incoming"
+                } else {
+                    "outgoing"
+                };
+                ExpenseBreakdown {
+                    expense_id: r.expense_id,
+                    title: r.title,
+                    amount_cents: r.amount_cents,
+                    paid_cents: r.paid_cents,
+                    share_cents: r.share_cents,
+                    paid_by: r.paid_by,
+                    expense_type: r.expense_type,
+                    participants: r.participants,
+                    created_at: r.created_at,
+                    direction: direction.to_string(),
+                }
             })
             .collect();
 
@@ -203,6 +212,10 @@ impl BalanceService {
             })
             .collect();
 
+        let totals = calculate_totals(&expenses, &payments, &settlements, &reimbursements, user_id);
+        let balances =
+            calculate_balances(&expenses, &payments, &settlements, &reimbursements, user_id);
+
         Ok(ExplainBalanceResponse {
             user_id: balance.user_id,
             paid_cents: balance.paid_cents,
@@ -212,6 +225,8 @@ impl BalanceService {
             payments,
             settlements,
             reimbursements,
+            totals,
+            balances,
         })
     }
 
@@ -230,16 +245,24 @@ impl BalanceService {
             .balance_repo
             .expense_breakdown_between(event_id, user_id, counterparty_id)?
             .into_iter()
-            .map(|r| ExpenseBreakdown {
-                expense_id: r.expense_id,
-                title: r.title,
-                amount_cents: r.amount_cents,
-                paid_cents: r.paid_cents,
-                share_cents: r.share_cents,
-                paid_by: r.paid_by,
-                expense_type: r.expense_type,
-                participants: r.participants,
-                created_at: r.created_at,
+            .map(|r| {
+                let direction = if r.paid_by == user_id {
+                    "incoming"
+                } else {
+                    "outgoing"
+                };
+                ExpenseBreakdown {
+                    expense_id: r.expense_id,
+                    title: r.title,
+                    amount_cents: r.amount_cents,
+                    paid_cents: r.paid_cents,
+                    share_cents: r.share_cents,
+                    paid_by: r.paid_by,
+                    expense_type: r.expense_type,
+                    participants: r.participants,
+                    created_at: r.created_at,
+                    direction: direction.to_string(),
+                }
             })
             .collect();
 
@@ -334,6 +357,25 @@ impl BalanceService {
             }
         }
 
+        for settlement in &explanation.settlements {
+            if settlement.status != "confirmed" {
+                continue;
+            }
+            if settlement.to_user == user_id {
+                *balances.entry(settlement.from_user).or_insert(0) -= settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.from_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
+            } else if settlement.from_user == user_id {
+                *balances.entry(settlement.to_user).or_insert(0) += settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.to_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
+            }
+        }
+
         let incoming: Vec<(Uuid, i32)> = balances
             .into_iter()
             .filter(|(_, balance)| *balance > 0)
@@ -412,6 +454,25 @@ impl BalanceService {
             }
         }
 
+        for settlement in &explanation.settlements {
+            if settlement.status != "confirmed" {
+                continue;
+            }
+            if settlement.to_user == user_id {
+                *balances.entry(settlement.from_user).or_insert(0) += settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.from_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
+            } else if settlement.from_user == user_id {
+                *balances.entry(settlement.to_user).or_insert(0) -= settlement.amount_cents;
+                latest_timestamps
+                    .entry(settlement.to_user)
+                    .and_modify(|t| *t = (*t).max(settlement.created_at))
+                    .or_insert(settlement.created_at);
+            }
+        }
+
         let outgoing: Vec<(Uuid, i32)> = balances
             .into_iter()
             .filter(|(_, balance)| *balance < 0)
@@ -433,5 +494,192 @@ impl BalanceService {
             .collect();
 
         Ok(OutgoingBalancesResponse { items, total_cents })
+    }
+}
+
+fn calculate_totals(
+    expenses: &[ExpenseBreakdown],
+    payments: &[PaymentBreakdown],
+    settlements: &[SettlementBreakdown],
+    reimbursements: &[ReimbursementBreakdown],
+    user_id: Uuid,
+) -> TotalsSection {
+    let exp_incoming: i32 = expenses
+        .iter()
+        .filter(|e| e.paid_by == user_id && e.direction == "incoming")
+        .map(|e| e.amount_cents - e.share_cents)
+        .sum();
+
+    let exp_outgoing: i32 = expenses
+        .iter()
+        .filter(|e| e.paid_by != user_id && e.direction == "outgoing")
+        .map(|e| e.share_cents)
+        .sum();
+
+    let pay_incoming: i32 = payments
+        .iter()
+        .filter(|p| p.to_user == user_id)
+        .map(|p| p.amount_cents)
+        .sum();
+
+    let pay_outgoing: i32 = payments
+        .iter()
+        .filter(|p| p.from_user == user_id)
+        .map(|p| p.amount_cents)
+        .sum();
+
+    let stl_incoming: i32 = settlements
+        .iter()
+        .filter(|s| s.to_user == user_id && s.status == "confirmed")
+        .map(|s| s.amount_cents)
+        .sum();
+
+    let stl_outgoing: i32 = settlements
+        .iter()
+        .filter(|s| s.from_user == user_id && s.status == "confirmed")
+        .map(|s| s.amount_cents)
+        .sum();
+
+    let reimb_incoming: i32 = reimbursements
+        .iter()
+        .filter(|r| r.to_user == user_id)
+        .map(|r| r.amount_cents)
+        .sum();
+
+    let reimb_outgoing: i32 = reimbursements
+        .iter()
+        .filter(|r| r.from_user == user_id)
+        .map(|r| r.amount_cents)
+        .sum();
+
+    TotalsSection {
+        expenses: CategoryTotals {
+            gross: CategoryGrossTotals {
+                incoming: exp_incoming,
+                outgoing: exp_outgoing,
+            },
+            net: exp_incoming - exp_outgoing,
+        },
+        payments: CategoryTotals {
+            gross: CategoryGrossTotals {
+                incoming: pay_incoming,
+                outgoing: pay_outgoing,
+            },
+            net: pay_incoming - pay_outgoing,
+        },
+        settlements: CategoryTotals {
+            gross: CategoryGrossTotals {
+                incoming: stl_incoming,
+                outgoing: stl_outgoing,
+            },
+            net: stl_incoming - stl_outgoing,
+        },
+        reimbursements: CategoryTotals {
+            gross: CategoryGrossTotals {
+                incoming: reimb_incoming,
+                outgoing: reimb_outgoing,
+            },
+            net: reimb_incoming - reimb_outgoing,
+        },
+    }
+}
+
+fn calculate_balances(
+    expenses: &[ExpenseBreakdown],
+    payments: &[PaymentBreakdown],
+    settlements: &[SettlementBreakdown],
+    reimbursements: &[ReimbursementBreakdown],
+    user_id: Uuid,
+) -> BalancesSection {
+    let mut by_counterparty: HashMap<Uuid, CounterpartyBalance> = HashMap::new();
+
+    for expense in expenses {
+        if expense.paid_by == user_id {
+            for participant in &expense.participants {
+                if *participant != user_id {
+                    let cp = by_counterparty
+                        .entry(*participant)
+                        .or_insert_with(CounterpartyBalance::default);
+                    cp.expenses.incoming += expense.share_cents;
+                    cp.incoming += expense.share_cents;
+                }
+            }
+        } else {
+            let cp = by_counterparty
+                .entry(expense.paid_by)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.expenses.outgoing += expense.share_cents;
+            cp.outgoing += expense.share_cents;
+        }
+    }
+
+    for payment in payments {
+        if payment.to_user == user_id {
+            let cp = by_counterparty
+                .entry(payment.from_user)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.payments.incoming += payment.amount_cents;
+            cp.incoming += payment.amount_cents;
+        } else if payment.from_user == user_id {
+            let cp = by_counterparty
+                .entry(payment.to_user)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.payments.outgoing += payment.amount_cents;
+            cp.outgoing += payment.amount_cents;
+        }
+    }
+
+    for settlement in settlements {
+        if settlement.status != "confirmed" {
+            continue;
+        }
+        if settlement.to_user == user_id {
+            let cp = by_counterparty
+                .entry(settlement.from_user)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.settlements.incoming += settlement.amount_cents;
+            cp.incoming += settlement.amount_cents;
+        } else if settlement.from_user == user_id {
+            let cp = by_counterparty
+                .entry(settlement.to_user)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.settlements.outgoing += settlement.amount_cents;
+            cp.outgoing += settlement.amount_cents;
+        }
+    }
+
+    for reimbursement in reimbursements {
+        if reimbursement.to_user == user_id {
+            let cp = by_counterparty
+                .entry(reimbursement.from_user)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.reimbursements.incoming += reimbursement.amount_cents;
+            cp.incoming += reimbursement.amount_cents;
+        } else if reimbursement.from_user == user_id {
+            let cp = by_counterparty
+                .entry(reimbursement.to_user)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.reimbursements.outgoing += reimbursement.amount_cents;
+            cp.outgoing += reimbursement.amount_cents;
+        }
+    }
+
+    for cp in by_counterparty.values_mut() {
+        cp.expenses.net = cp.expenses.incoming - cp.expenses.outgoing;
+        cp.payments.net = cp.payments.incoming - cp.payments.outgoing;
+        cp.settlements.net = cp.settlements.incoming - cp.settlements.outgoing;
+        cp.reimbursements.net = cp.reimbursements.incoming - cp.reimbursements.outgoing;
+        cp.net = cp.expenses.net + cp.settlements.net + cp.reimbursements.net;
+    }
+
+    let total_incoming: i32 = by_counterparty.values().map(|cp| cp.incoming).sum();
+    let total_outgoing: i32 = by_counterparty.values().map(|cp| cp.outgoing).sum();
+    let total_net: i32 = by_counterparty.values().map(|cp| cp.net).sum();
+
+    BalancesSection {
+        net: total_net,
+        incoming: total_incoming,
+        outgoing: total_outgoing,
+        by_counterparty,
     }
 }

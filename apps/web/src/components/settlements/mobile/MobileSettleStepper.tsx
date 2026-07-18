@@ -18,6 +18,7 @@ import { Stepper, type StepDefinition } from '../../shared/forms/Stepper';
 import { useSettlementStore } from '../../../stores/settlementStore';
 import { MobileExpensePicker, type SelectedExpense } from './MobileExpensePicker';
 import type { BreakdownItem } from './MobileStatsBreakdownDrawer';
+import type { TotalsSection } from '../../../api/balances.api';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -44,6 +45,7 @@ interface MobileSettleStepperProps {
   darkColor: string;
   displayName: string;
   breakdownItems?: BreakdownItem[];
+  totals?: TotalsSection;
   /** Called when settlement completes and user taps Done */
   onComplete: () => void;
   /** Called when user cancels the settle flow */
@@ -61,10 +63,12 @@ export function MobileSettleStepper({
   darkColor,
   displayName,
   breakdownItems = [],
+  totals,
   onComplete,
   onCancel,
 }: MobileSettleStepperProps) {
   const { createSettlement, error, clearError } = useSettlementStore();
+  console.log(breakdownItems)
 
   const absTotal = Math.abs(breakdownTotal);
 
@@ -76,6 +80,8 @@ export function MobileSettleStepper({
   const [settledCount, setSettledCount] = useState(0);
 
   const totalSelected = selectedExpenses.reduce((sum, exp) => sum + exp.settle_amount_cents, 0);
+
+  const totalReimbursments = totals?.reimbursements.net ?? 0;
 
   const resetSettleState = () => {
     setStep(0);
@@ -117,7 +123,7 @@ export function MobileSettleStepper({
           to_user: displayItem.user_id,
           amount_cents: selectedExpense.settle_amount_cents,
           note: note.trim() || undefined,
-          expense_id: selectedExpense.expense_id,
+          expense_id: selectedExpense.expense_id.startsWith('reimbursement-') ? undefined : selectedExpense.expense_id,
         });
         settled++;
         setSettledCount(settled);
@@ -135,7 +141,7 @@ export function MobileSettleStepper({
   };
 
   // ------------------------------------------------------------------
-  // Step 1 - Expense Selection
+  // Step 1 - Expense Selection (or Reimbursement Confirmation)
   // ------------------------------------------------------------------
   const renderExpenseSelection = () => {
     // Filter to only expense items with expense_id
@@ -146,6 +152,43 @@ export function MobileSettleStepper({
         label: item.label,
         amount_cents: Math.abs(item.amount),
       }));
+
+    // If no expenses but there are reimbursements, show reimbursement settlement UI
+    if (expenseItems.length === 0 && totalReimbursments !== 0) {
+      return (
+        <Box sx={{ py: 4, px: 2, textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.4), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
+            Reimbursement Settlement
+          </Typography>
+          <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: amountColor, mb: 2 }}>
+            {formatAmount(Math.abs(totalReimbursments), currency)}
+          </Typography>
+          <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 3 }}>
+            {direction === 'outgoing' ? 'You owe for deleted expense' : 'They owe for deleted expense'}
+          </Typography>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={() => {
+              setSelectedExpenses([{
+                expense_id: `reimbursement-${Date.now()}`,
+                label: 'Reimbursement',
+                original_amount_cents: Math.abs(totalReimbursments),
+                settle_amount_cents: Math.abs(totalReimbursments),
+              }]);
+              setStep(1);
+            }}
+            sx={{
+              height: 48, borderRadius: 2, bgcolor: amountColor, color: '#fff',
+              fontWeight: 700, letterSpacing: '0.05em',
+              '&:hover': { bgcolor: darkColor },
+            }}
+          >
+            Continue
+          </Button>
+        </Box>
+      );
+    }
 
     return (
       <MobileExpensePicker

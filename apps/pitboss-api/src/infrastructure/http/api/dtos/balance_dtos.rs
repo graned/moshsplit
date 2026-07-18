@@ -1,5 +1,7 @@
 //! DTOs for Balance-related endpoints.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -55,6 +57,8 @@ pub struct ExpenseBreakdown {
     pub expense_type: Option<String>,
     pub participants: Vec<Uuid>,
     pub created_at: DateTime<Utc>,
+    /// "incoming" if the current user paid (others owe them), "outgoing" otherwise.
+    pub direction: String,
 }
 
 /// Breakdown of a single payment for the "explain" endpoint.
@@ -95,6 +99,60 @@ pub struct ReimbursementBreakdown {
     pub created_at: DateTime<Utc>,
 }
 
+// ── Totals & Balances ─────────────────────────────────────────────────────────
+
+/// Gross incoming/outgoing totals for a single category.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct CategoryGrossTotals {
+    pub incoming: i32,
+    pub outgoing: i32,
+}
+
+/// Category totals with gross amounts and net.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct CategoryTotals {
+    pub gross: CategoryGrossTotals,
+    pub net: i32,
+}
+
+/// Aggregated totals across all categories.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct TotalsSection {
+    pub expenses: CategoryTotals,
+    pub payments: CategoryTotals,
+    pub settlements: CategoryTotals,
+    pub reimbursements: CategoryTotals,
+}
+
+/// Per-counterparty breakdown for a single category.
+#[derive(Debug, Clone, Serialize, ToSchema, Default)]
+pub struct CounterpartyCategoryTotals {
+    pub incoming: i32,
+    pub outgoing: i32,
+    pub net: i32,
+}
+
+/// Full balance breakdown for a single counterparty.
+#[derive(Debug, Clone, Serialize, ToSchema, Default)]
+pub struct CounterpartyBalance {
+    pub net: i32,
+    pub incoming: i32,
+    pub outgoing: i32,
+    pub expenses: CounterpartyCategoryTotals,
+    pub payments: CounterpartyCategoryTotals,
+    pub settlements: CounterpartyCategoryTotals,
+    pub reimbursements: CounterpartyCategoryTotals,
+}
+
+/// Per-counterparty balance section.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct BalancesSection {
+    pub net: i32,
+    pub incoming: i32,
+    pub outgoing: i32,
+    pub by_counterparty: HashMap<Uuid, CounterpartyBalance>,
+}
+
 /// Full breakdown explaining a user's balance.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ExplainBalanceResponse {
@@ -106,6 +164,8 @@ pub struct ExplainBalanceResponse {
     pub payments: Vec<PaymentBreakdown>,
     pub settlements: Vec<SettlementBreakdown>,
     pub reimbursements: Vec<ReimbursementBreakdown>,
+    pub totals: TotalsSection,
+    pub balances: BalancesSection,
 }
 
 // ── External Balance Summary ──────────────────────────────────────────────────

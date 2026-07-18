@@ -197,61 +197,69 @@ export default function MobileSettlePage() {
     if (!explainBalance || !incomingDrawerItem) return [];
     const cpId = incomingDrawerItem.user_id;
     const items: BreakdownItem[] = [];
+
     for (const expense of explainBalance.expenses) {
-      if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ expense_id: expense.expense_id, label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-      if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ expense_id: expense.expense_id, label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-      // Handle reimburse expenses
-      if (expense.expense_type === 'reimburse') {
-        if (expense.paid_by === userId) {
-          // Current user is the reimbursement payer - show as outgoing
+      if (expense.paid_by === userId && expense.direction === 'incoming') {
+        if (expense.participants?.includes(cpId)) {
           items.push({
             expense_id: expense.expense_id,
             label: expense.title,
             amount: expense.share_cents,
-            type: 'expense' as const,
-            direction: 'outgoing' as const,
+            type: 'expense',
             created_at: expense.created_at,
           });
-        } else if (expense.paid_by === cpId) {
-          // Counterparty is the reimbursement payer - show as incoming
+        }
+      } else if (expense.paid_by === cpId && expense.direction === 'outgoing') {
+        if (userId && expense.participants?.includes(userId)) {
           items.push({
             expense_id: expense.expense_id,
             label: expense.title,
-            amount: expense.share_cents,
-            type: 'expense' as const,
-            direction: 'incoming' as const,
+            amount: -expense.share_cents,
+            type: 'expense',
             created_at: expense.created_at,
           });
         }
       }
     }
+
     for (const settlement of explainBalance.settlements) {
-      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
+      if (settlement.status === 'confirmed') {
+        if (settlement.from_user === cpId && settlement.to_user === userId) {
+          items.push({
+            label: '',
+            amount: -settlement.amount_cents,
+            type: 'settlement',
+            counterparty: cpId,
+            direction: 'incoming',
+            created_at: settlement.created_at,
+          });
+        }
       }
-      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
-      }
-      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'pending') {
-        items.push({ label: 'Requested', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
+      if (settlement.status === 'pending' && settlement.from_user === userId && settlement.to_user === cpId) {
+        items.push({
+          label: 'Requested',
+          amount: settlement.amount_cents,
+          type: 'settlement',
+          counterparty: cpId,
+          direction: 'outgoing',
+          created_at: settlement.created_at,
+        });
       }
     }
-    for (const reimb of explainBalance?.reimbursements ?? []) {
-      if (reimb.to_user === cpId && reimb.from_user === userId) {
+
+    for (const reimb of explainBalance.reimbursements) {
+      if (reimb.to_user === userId && reimb.from_user === cpId) {
         items.push({
           expense_id: reimb.id,
           label: reimb.original_expense_title,
-          amount: reimb.amount_cents * -1,
+          amount: reimb.amount_cents,
           type: 'reimbursement' as const,
           direction: 'incoming' as const,
           created_at: reimb.created_at,
         });
       }
     }
+
     return items;
   }, [explainBalance, incomingDrawerItem, userId]);
 
@@ -259,53 +267,62 @@ export default function MobileSettlePage() {
     if (!explainBalance || !outgoingDrawerItem) return [];
     const cpId = outgoingDrawerItem.user_id;
     const items: BreakdownItem[] = [];
+
     for (const expense of explainBalance.expenses) {
-      if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ expense_id: expense.expense_id, label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-      if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ expense_id: expense.expense_id, label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-      // Handle reimburse expenses
-      if (expense.expense_type === 'reimburse') {
-        if (expense.paid_by === userId) {
+      if (expense.paid_by === cpId && expense.direction === 'incoming') {
+        if (userId && expense.participants?.includes(userId)) {
           items.push({
             expense_id: expense.expense_id,
             label: expense.title,
             amount: expense.share_cents,
-            type: 'expense' as const,
-            direction: 'outgoing' as const,
+            type: 'expense',
             created_at: expense.created_at,
           });
-        } else if (expense.paid_by === cpId) {
+        }
+      } else if (expense.paid_by === userId && expense.direction === 'outgoing') {
+        if (expense.participants?.includes(cpId)) {
           items.push({
             expense_id: expense.expense_id,
             label: expense.title,
-            amount: expense.share_cents,
-            type: 'expense' as const,
-            direction: 'incoming' as const,
+            amount: -expense.share_cents,
+            type: 'expense',
             created_at: expense.created_at,
           });
         }
       }
     }
+
     for (const settlement of explainBalance.settlements) {
-      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
+      if (settlement.status === 'confirmed') {
+        if (settlement.from_user === userId && settlement.to_user === cpId) {
+          items.push({
+            label: '',
+            amount: -settlement.amount_cents,
+            type: 'settlement',
+            counterparty: cpId,
+            direction: 'outgoing',
+            created_at: settlement.created_at,
+          });
+        }
       }
-      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
-      }
-      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'pending') {
-        items.push({ label: 'Requested', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
+      if (settlement.status === 'pending' && settlement.from_user === cpId && settlement.to_user === userId) {
+        items.push({
+          label: 'Requested',
+          amount: settlement.amount_cents,
+          type: 'settlement',
+          counterparty: cpId,
+          direction: 'incoming',
+          created_at: settlement.created_at,
+        });
       }
     }
-    for (const reimb of explainBalance?.reimbursements ?? []) {
-      if (reimb.to_user === userId && reimb.from_user === cpId) {
+
+    for (const reimb of explainBalance.reimbursements) {
+      if (reimb.from_user === userId && reimb.to_user === cpId) {
         items.push({
           expense_id: reimb.id,
           label: reimb.original_expense_title,
-          amount: reimb.amount_cents * -1,
+          amount: reimb.amount_cents,
           type: 'reimbursement' as const,
           direction: 'outgoing' as const,
           created_at: reimb.created_at,
@@ -321,39 +338,15 @@ export default function MobileSettlePage() {
 
   const allSettled = incomingItems.length === 0 && outgoingItems.length === 0;
 
-  const counterpartyNetMap: Record<string, number> = useMemo(() => {
-    if (!explainBalance || !userId) return {};
-    const map: Record<string, number> = {};
-    for (const expense of explainBalance.expenses) {
-      const participants = expense.participants ?? [];
-      for (const pId of participants) {
-        if (pId === userId) continue;
-        if (expense.paid_by === userId) {
-          map[pId] = (map[pId] ?? 0) + expense.share_cents;
-        }
-      }
-      if (expense.paid_by !== userId && expense.share_cents > 0) {
-        map[expense.paid_by] = (map[expense.paid_by] ?? 0) - expense.share_cents;
-      }
-    }
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.status !== 'confirmed') continue;
-      if (settlement.to_user === userId && settlement.from_user !== userId) {
-        map[settlement.from_user] = (map[settlement.from_user] ?? 0) - settlement.amount_cents;
-      }
-      if (settlement.from_user === userId && settlement.to_user !== userId) {
-        map[settlement.to_user] = (map[settlement.to_user] ?? 0) + settlement.amount_cents;
-      }
-    }
-    for (const reimb of explainBalance.reimbursements) {
-      if (reimb.from_user === userId) {
-        map[reimb.to_user] = (map[reimb.to_user] ?? 0) - reimb.amount_cents;
-      } else if (reimb.to_user === userId) {
-        map[reimb.from_user] = (map[reimb.from_user] ?? 0) + reimb.amount_cents;
-      }
-    }
-    return map;
-  }, [explainBalance, userId]);
+  const balances = explainBalance?.balances ?? {
+    net: 0,
+    incoming: 0,
+    outgoing: 0,
+    by_counterparty: {},
+  };
+  const totals = explainBalance?.totals;
+
+  const counterpartyNetMap: Record<string, { net: number }> = balances.by_counterparty;
 
   const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
   const currency = event?.currency || 'EUR';
@@ -562,7 +555,7 @@ export default function MobileSettlePage() {
                 <MobileBalanceCard
                   balanceItem={item}
                   userId={item.user_id}
-                  amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
+                  amountCents={Math.abs(counterpartyNetMap[item.user_id]?.net ?? item.amount_cents)}
                   isIncoming={true}
                   currency={currency}
                   onClick={() => handleOpenIncomingDrawer(item)}
@@ -611,7 +604,7 @@ export default function MobileSettlePage() {
                 <MobileBalanceCard
                   balanceItem={item}
                   userId={item.user_id}
-                  amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
+                  amountCents={Math.abs(counterpartyNetMap[item.user_id]?.net ?? item.amount_cents)}
                   isIncoming={false}
                   currency={currency}
                   reason={item.reason}
@@ -654,7 +647,8 @@ export default function MobileSettlePage() {
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={incomingBreakdownItems}
-        breakdownTotal={incomingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
+        breakdownTotal={Math.abs(balances.by_counterparty[incomingDrawerItem?.user_id ?? '']?.net ?? 0)}
+        totals={totals}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
@@ -668,7 +662,8 @@ export default function MobileSettlePage() {
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={outgoingBreakdownItems}
-        breakdownTotal={outgoingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
+        breakdownTotal={Math.abs(balances.by_counterparty[outgoingDrawerItem?.user_id ?? '']?.net ?? 0)}
+        totals={totals}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}

@@ -16,6 +16,7 @@ import { MobileDrawer } from '../../shared/MobileDrawer';
 import { useUserCache } from '../../../hooks/useUserCache';
 import type { BreakdownItem } from './MobileStatsBreakdownDrawer';
 import { MobileSettleStepper } from './MobileSettleStepper';
+import type { TotalsSection } from '../../../api/balances.api';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -49,6 +50,7 @@ interface MobileBalanceDrawerProps {
   onSettle: (userId: string, amountCents: number) => void;
   breakdownItems?: BreakdownItem[];
   breakdownTotal?: number;
+  totals?: TotalsSection;
   fullScreen?: boolean;
   eventId: string;
   currentUserId: string;
@@ -98,6 +100,7 @@ export function MobileBalanceDrawer({
   onSettle: _onSettle,
   breakdownItems = [],
   breakdownTotal = 0,
+  totals,
   fullScreen,
   eventId,
   currentUserId,
@@ -317,6 +320,7 @@ export function MobileBalanceDrawer({
             darkColor={darkColor}
             displayName={displayName}
             breakdownItems={resolvedBreakdownItems}
+            totals={totals}
             onComplete={() => setView('breakdown')}
             onCancel={() => setView('breakdown')}
           />

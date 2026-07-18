@@ -128,4 +128,33 @@ impl ReimbursementRepository {
 
         Ok(affected)
     }
+
+    /// Update the amount of a single reimbursement (when partially consumed by netting).
+    pub fn update_amount(
+        &self,
+        id: Uuid,
+        new_amount_cents: i32,
+    ) -> Result<(), RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        diesel::update(reimbursement::table.filter(reimbursement::id.eq(id)))
+            .set(reimbursement::amount_cents.eq(new_amount_cents))
+            .execute(&mut conn)
+            .map_err(RepositoryError::from)?;
+        Ok(())
+    }
+
+    /// Soft-delete a single reimbursement by ID (when fully consumed by netting).
+    pub fn soft_delete(&self, id: Uuid) -> Result<(), RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        let now = chrono::Utc::now();
+        diesel::update(reimbursement::table.filter(reimbursement::id.eq(id)))
+            .set(reimbursement::deleted_at.eq(now))
+            .execute(&mut conn)
+            .map_err(RepositoryError::from)?;
+        Ok(())
+    }
 }

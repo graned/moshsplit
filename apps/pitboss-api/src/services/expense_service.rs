@@ -17,7 +17,7 @@ use crate::infrastructure::http::api::dtos::expense_dtos::{
     ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
 };
 use crate::schema_enums::{ExpenseType, SettlementStatus, SplitType};
-use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare, Reimbursement};
+use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare, Reimbursement, Settlement};
 use moshsplit_balance_engine::redistribute_shares;
 
 pub struct ExpenseService {
@@ -360,6 +360,8 @@ impl ExpenseService {
             )));
         }
 
+        self.apply_reimbursements_to_expenses(event_id)?;
+
         Ok(self.get_expense(expense_id)?)
     }
 
@@ -653,6 +655,9 @@ impl ExpenseService {
         self.settlement_repo.soft_delete_for_expense(expense_id)?;
 
         self.expense_repo.soft_delete(expense_id, now)?;
+
+        self.apply_reimbursements_to_expenses(event_id)?;
+
         Ok(())
     }
 
@@ -754,5 +759,130 @@ impl ExpenseService {
         }
 
         Ok(redistributed)
+    }
+
+    /// Apply active reimbursements against active expenses to auto-create confirmed settlements.
+    ///
+    /// For each reimbursement (from_user=debtor, to_user=creditor), finds expenses where:
+    /// - expense.paid_by == reimbursement.to_user (creditor paid the expense)
+    /// - reimbursement.from_user (debtor) is a participant with share > 0
+    /// - expense is not deleted
+    ///
+    /// Creates confirmed settlements to net out the debt, reducing/deleting reimbursements.
+    pub fn apply_reimbursements_to_expenses(
+        &self,
+        event_id: Uuid,
+    ) -> Result<(), ServiceError> {
+        let reimbursements = self.reimbursement_repo.find_by_event_id(event_id)?;
+        if reimbursements.is_empty() {
+            return Ok(());
+        }
+
+        let active_expenses = self.expense_repo.find_all_active_for_netting(event_id)?;
+        let now = Utc::now();
+
+        for reimbursement in reimbursements {
+            if reimbursement.from_user == reimbursement.to_user {
+                continue;
+            }
+
+            let mut remaining = reimbursement.amount_cents;
+            if remaining <= 0 {
+                continue;
+            }
+
+            let mut matching_expenses: Vec<_> = active_expenses
+                .iter()
+                .filter(|e| e.paid_by == Some(reimbursement.to_user))
+                .filter(|e| {
+                    if let Some(version_id) = e.current_version_id {
+                        if let Ok(shares) =
+                            self.share_repo.find_by_expense_version_id(version_id)
+                        {
+                            shares
+                                .iter()
+                                .any(|s| s.user_id == reimbursement.from_user && s.share_cents > 0)
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                })
+                .collect();
+
+            matching_expenses.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+
+            for expense in matching_expenses {
+                if remaining <= 0 {
+                    break;
+                }
+
+                let expense_id = expense.id;
+                let version_id = match expense.current_version_id {
+                    Some(v) => v,
+                    None => continue,
+                };
+
+                let shares = self.share_repo.find_by_expense_version_id(version_id)?;
+                let participant_share = shares
+                    .iter()
+                    .find(|s| s.user_id == reimbursement.from_user)
+                    .map(|s| s.share_cents)
+                    .unwrap_or(0);
+
+                if participant_share <= 0 {
+                    continue;
+                }
+
+                let settlements = self.settlement_repo.find_by_expense_id(expense_id)?;
+                let paid_via_settlements: i32 = settlements
+                    .iter()
+                    .filter(|s| {
+                        s.status == SettlementStatus::Confirmed
+                            && s.from_user == reimbursement.from_user
+                    })
+                    .map(|s| s.amount_cents)
+                    .sum();
+
+                let unpaid_share = participant_share - paid_via_settlements;
+                if unpaid_share <= 0 {
+                    continue;
+                }
+
+                let settlement_amount = std::cmp::min(remaining, unpaid_share);
+
+                let settlement = Settlement {
+                    id: Uuid::new_v4(),
+                    event_id,
+                    from_user: reimbursement.from_user,
+                    to_user: reimbursement.to_user,
+                    amount_cents: settlement_amount,
+                    status: SettlementStatus::Confirmed,
+                    settled_at: Some(now),
+                    created_by: reimbursement.from_user,
+                    created_at: now,
+                    note: Some("Auto-settlement from reimbursement".to_string()),
+                    proof_url: None,
+                    reviewed_by: None,
+                    reviewed_at: None,
+                    rejection_note: None,
+                    expense_id: Some(expense_id),
+                    deleted_at: None,
+                };
+                self.settlement_repo.create(&settlement)?;
+
+                remaining -= settlement_amount;
+            }
+
+            if remaining == 0 {
+                self.reimbursement_repo.soft_delete(reimbursement.id)?;
+            } else if remaining < reimbursement.amount_cents {
+                self.reimbursement_repo
+                    .update_amount(reimbursement.id, remaining)?;
+            }
+        }
+
+        Ok(())
     }
 }

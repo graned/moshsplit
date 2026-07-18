@@ -39,6 +39,7 @@ export interface ExpenseBreakdown {
   expense_type?: string;
   participants?: string[];
   created_at: string;
+  direction: 'incoming' | 'outgoing';
 }
 
 export interface PaymentBreakdown {
@@ -95,6 +96,46 @@ export interface EventStats {
   top_spender_amount_cents: number | null;
 }
 
+export interface CategoryGrossTotals {
+  incoming: number;
+  outgoing: number;
+}
+
+export interface CategoryTotals {
+  gross: CategoryGrossTotals;
+  net: number;
+}
+
+export interface TotalsSection {
+  expenses: CategoryTotals;
+  payments: CategoryTotals;
+  settlements: CategoryTotals;
+  reimbursements: CategoryTotals;
+}
+
+export interface CounterpartyCategoryTotals {
+  incoming: number;
+  outgoing: number;
+  net: number;
+}
+
+export interface CounterpartyBalance {
+  net: number;
+  incoming: number;
+  outgoing: number;
+  expenses: CounterpartyCategoryTotals;
+  payments: CounterpartyCategoryTotals;
+  settlements: CounterpartyCategoryTotals;
+  reimbursements: CounterpartyCategoryTotals;
+}
+
+export interface BalancesSection {
+  net: number;
+  incoming: number;
+  outgoing: number;
+  by_counterparty: Record<string, CounterpartyBalance>;
+}
+
 export interface ExplainBalanceResponse {
   user_id: string;
   paid_cents: number;
@@ -104,6 +145,8 @@ export interface ExplainBalanceResponse {
   payments: PaymentBreakdown[];
   settlements: SettlementBreakdown[];
   reimbursements: ReimbursementBreakdown[];
+  totals: TotalsSection;
+  balances: BalancesSection;
 }
 
 export interface ExplainBalanceBetweenResponse {

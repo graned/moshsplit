@@ -81,7 +81,7 @@ export interface CreateSettlementRequest {
   amount_cents: number;
   note?: string;
   proof_url?: string;
-  expense_id: string;
+  expense_id?: string;
 }
 
 export interface UpdateSettlementStatusRequest {
