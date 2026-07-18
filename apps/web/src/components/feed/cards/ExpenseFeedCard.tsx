@@ -1,5 +1,5 @@
 import { Typography, Box, Tooltip, Avatar, alpha, useTheme, useMediaQuery } from '@mui/material';
-import { Receipt as ReceiptIcon } from '@mui/icons-material';
+import { Receipt as ReceiptIcon, Warning as WarningIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../../api/activity.api';
 import { UserInfo } from '../../../api/users.api';
 import { FeedCard } from './FeedCard';
@@ -48,6 +48,7 @@ export function ExpenseFeedCard({
 
   const createdDate = new Date(activity.created_at);
   const isValidDate = !isNaN(createdDate.getTime());
+  const isPendingDeletion = activity.deletion_status === 'pending_deletion';
 
   return (
     <FeedCard onClick={onClick} accentColor={theme.palette.primary.main}>
@@ -136,6 +137,37 @@ export function ExpenseFeedCard({
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem', mt: 0.25 }}>
             Split: {participantCount} {participantCount === 1 ? 'person' : 'people'}
           </Typography>
+        )}
+
+        {isPendingDeletion && (
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              mt: 0.5,
+              px: 0.75,
+              py: 0.35,
+              borderRadius: 1.5,
+              backgroundColor: alpha(theme.palette.warning.main, 0.1),
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+            }}
+          >
+            <WarningIcon sx={{ fontSize: isMobile ? 10 : 12, color: theme.palette.warning.main }} />
+            <Typography
+              component="span"
+              sx={{
+                fontSize: isMobile ? '0.6rem' : '0.65rem',
+                fontWeight: 700,
+                color: theme.palette.warning.main,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                lineHeight: 1,
+              }}
+            >
+              Pending Deletion
+            </Typography>
+          </Box>
         )}
       </Box>
 

@@ -1,4 +1,5 @@
 import { Card, CardContent, Typography, Box, Avatar, Tooltip, alpha, useTheme, useMediaQuery } from '@mui/material';
+import { Warning as WarningIcon } from '@mui/icons-material';
 import { ExpenseListItem } from '../../../api/expenses.api';
 import { UserInfo } from '../../../api/users.api';
 
@@ -58,6 +59,8 @@ export function ExpenseFeedCard({
   const createdDate = expense.created_at ? new Date(expense.created_at) : null;
   const isValidDate = createdDate && !isNaN(createdDate.getTime());
   const relativeTime = isValidDate ? formatRelativeTime(createdDate!) : '';
+
+  const isPendingDeletion = expense.deletion_status === 'pending_deletion';
 
   if (isMobile) {
     return (
@@ -145,6 +148,37 @@ export function ExpenseFeedCard({
               }}
             >
               "{expense.notes}"
+            </Box>
+          )}
+
+          {isPendingDeletion && (
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mt: 0.75,
+                px: 0.75,
+                py: 0.35,
+                borderRadius: 1.5,
+                backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+              }}
+            >
+              <WarningIcon sx={{ fontSize: 12, color: theme.palette.warning.main }} />
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  color: theme.palette.warning.main,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  lineHeight: 1,
+                }}
+              >
+                Pending Deletion
+              </Typography>
             </Box>
           )}
         </CardContent>
@@ -249,6 +283,37 @@ export function ExpenseFeedCard({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1.5 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                   Split among {participants.length} {participants.length === 1 ? 'person' : 'people'}
+                </Typography>
+              </Box>
+            )}
+
+            {isPendingDeletion && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  mt: 1,
+                  px: 0.75,
+                  py: 0.35,
+                  borderRadius: 1.5,
+                  backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                  border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                }}
+              >
+                <WarningIcon sx={{ fontSize: 14, color: theme.palette.warning.main }} />
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: theme.palette.warning.main,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    lineHeight: 1,
+                  }}
+                >
+                  Pending Deletion
                 </Typography>
               </Box>
             )}

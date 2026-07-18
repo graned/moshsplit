@@ -13,7 +13,8 @@
   },
   "expenseCard": {
     "split": "Split: {{count}}",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "pendingDeletion": "Pending Deletion"
   },
   "settlementCard": {
     "honorRequested": "Honor requested:",
