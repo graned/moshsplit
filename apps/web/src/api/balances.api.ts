@@ -44,12 +44,13 @@ export interface ExpenseBreakdown {
 
 export interface PaymentBreakdown {
   id: string;
-  from_user: string;
-  to_user: string;
+  creditor_id: string;
+  debtor_id: string;
   amount_cents: number;
-  recorded_at: string;
-  description?: string;
-  payment_method?: string;
+  amount_paid_cents: number;
+  reason: string;
+  status: string;
+  created_at: string;
 }
 
 export interface SettlementBreakdown {
@@ -109,8 +110,6 @@ export interface CategoryTotals {
 export interface TotalsSection {
   expenses: CategoryTotals;
   payments: CategoryTotals;
-  settlements: CategoryTotals;
-  reimbursements: CategoryTotals;
 }
 
 export interface CounterpartyCategoryTotals {
@@ -143,8 +142,6 @@ export interface ExplainBalanceResponse {
   balance_cents: number;
   expenses: ExpenseBreakdown[];
   payments: PaymentBreakdown[];
-  settlements: SettlementBreakdown[];
-  reimbursements: ReimbursementBreakdown[];
   totals: TotalsSection;
   balances: BalancesSection;
 }

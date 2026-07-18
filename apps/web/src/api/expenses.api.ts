@@ -33,6 +33,7 @@ export interface Expense {
   created_at: string;
   current_version_id?: string;
   deleted_at?: string;
+  deletion_status?: string;
   current_version?: ExpenseVersion;
 }
 
@@ -43,6 +44,7 @@ export interface ExpenseListItem {
   created_at: string;
   current_version_id?: string;
   deleted_at?: string;
+  deletion_status?: string;
   version_number: number;
   title: string;
   description?: string;
@@ -137,6 +139,11 @@ export const expensesApi = {
   // Delete an expense
   delete: async (eventId: string, expenseId: string): Promise<void> => {
     return apiClient.delete<void>(`/v1/events/${eventId}/expenses/${expenseId}`);
+  },
+
+  // Cancel pending deletion
+  cancelPendingDeletion: async (eventId: string, expenseId: string): Promise<void> => {
+    return apiClient.post<void>(`/v1/events/${eventId}/expenses/${expenseId}/cancel-deletion`);
   },
 
   // Get expense versions
