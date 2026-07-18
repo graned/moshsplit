@@ -16,7 +16,7 @@ import { MobileDrawer } from '../../shared/MobileDrawer';
 import { useUserCache } from '../../../hooks/useUserCache';
 import type { BreakdownItem } from './MobileStatsBreakdownDrawer';
 import { MobileSettleStepper } from './MobileSettleStepper';
-import type { TotalsSection } from '../../../api/balances.api';
+import type { Payment } from '../../../api/payments.api';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -50,10 +50,10 @@ interface MobileBalanceDrawerProps {
   onSettle: (userId: string, amountCents: number) => void;
   breakdownItems?: BreakdownItem[];
   breakdownTotal?: number;
-  totals?: TotalsSection;
   fullScreen?: boolean;
   eventId: string;
   currentUserId: string;
+  payment?: Payment | null;
 }
 
 const directionConfig: Record<DrawerDirection, {
@@ -100,10 +100,10 @@ export function MobileBalanceDrawer({
   onSettle: _onSettle,
   breakdownItems = [],
   breakdownTotal = 0,
-  totals,
   fullScreen,
   eventId,
   currentUserId,
+  payment,
 }: MobileBalanceDrawerProps) {
   const theme = useTheme();
   const { getUser } = useUserCache();
@@ -320,7 +320,7 @@ export function MobileBalanceDrawer({
             darkColor={darkColor}
             displayName={displayName}
             breakdownItems={resolvedBreakdownItems}
-            totals={totals}
+            payment={payment}
             onComplete={() => setView('breakdown')}
             onCancel={() => setView('breakdown')}
           />

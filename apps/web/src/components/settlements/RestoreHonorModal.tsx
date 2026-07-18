@@ -21,8 +21,8 @@ import {
   KeyboardTab as PartialIcon,
   DoneAll as DoneAllIcon,
 } from '@mui/icons-material';
-import { useSettlementStore } from '../../stores/settlementStore';
-import { CreateSettlementRequest } from '../../api/settlements.api';
+import { usePaymentStore } from '../../stores/paymentStore';
+import { CreatePaymentRequest } from '../../api/payments.api';
 import { UserInfo } from '../../api/users.api';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
@@ -61,7 +61,7 @@ export function RestoreHonorModal({
   const [amount, setAmount] = useState(totalOwedCents / 100);
   const [note, setNote] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
-  const { createSettlement, isCreating, error, clearError } = useSettlementStore();
+  const { createPayment, isCreating, error, clearError } = usePaymentStore();
 
   useEffect(() => {
     if (open) {
@@ -93,20 +93,20 @@ export function RestoreHonorModal({
     if (amount <= 0) return;
 
     try {
-      const req: CreateSettlementRequest = {
-        from_user: fromUserId,
-        to_user: toUser,
+      const req: CreatePaymentRequest = {
+        creditor_id: toUser,
+        debtor_id: fromUserId,
         amount_cents: Math.round(amount * 100),
-        note: note.trim() || undefined,
-        expense_id: expense_id ?? '',
+        reason: 'settlement',
+        expense_id: expense_id ?? undefined,
       };
 
-      await createSettlement(eventId, req);
+      await createPayment(eventId, req);
       setShowSuccess(true);
     } catch (err) {
       // Error is stored in the store's error state
     }
-  }, [amount, note, fromUserId, toUser, eventId, createSettlement, expense_id]);
+  }, [amount, note, fromUserId, toUser, eventId, createPayment, expense_id]);
 
   const handleSuccessClose = () => {
     setShowSuccess(false);
