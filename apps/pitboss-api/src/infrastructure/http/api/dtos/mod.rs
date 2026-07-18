@@ -11,6 +11,5 @@ pub mod event_image_dtos;
 pub mod expense_dtos;
 pub mod member_dtos;
 pub mod payment_dtos;
-pub mod settlement_dtos;
 pub mod stats_dtos;
 pub mod user_dtos;

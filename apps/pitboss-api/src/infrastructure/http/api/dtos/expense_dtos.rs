@@ -75,6 +75,8 @@ pub struct ExpenseResponse {
     pub current_version: Option<ExpenseVersionResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deletion_status: Option<String>,
 }
 
 /// An expense row in a list.
@@ -87,6 +89,8 @@ pub struct ExpenseListItem {
     pub current_version_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deletion_status: Option<String>,
     pub version_number: Option<i32>,
     pub title: Option<String>,
     pub amount_cents: Option<i32>,

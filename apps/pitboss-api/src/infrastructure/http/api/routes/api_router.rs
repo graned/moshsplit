@@ -31,7 +31,6 @@ use crate::infrastructure::http::api::handlers::event_image_handlers;
 use crate::infrastructure::http::api::handlers::expense_handlers;
 use crate::infrastructure::http::api::handlers::member_handlers;
 use crate::infrastructure::http::api::handlers::payment_handlers;
-use crate::infrastructure::http::api::handlers::settlement_handlers;
 use crate::infrastructure::http::api::handlers::stats_handlers;
 use crate::infrastructure::http::api::handlers::system_handlers;
 use crate::infrastructure::http::api::handlers::user_handlers;
@@ -149,6 +148,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             delete(expense_handlers::delete_expense),
         )
         .route(
+            "/v1/events/{id}/expenses/{expense_id}/cancel-deletion",
+            post(expense_handlers::cancel_pending_deletion),
+        )
+        .route(
             "/v1/events/{id}/expenses/{expense_id}/versions",
             get(expense_handlers::list_expense_versions),
         );
@@ -166,53 +169,42 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/payments/{payment_id}",
             get(payment_handlers::get_payment),
-        );
-
-    // ── Settlements ────────────────────────────────────────────────────
-    let settlement_routes = Router::new()
-        .route(
-            "/v1/events/{id}/settlements",
-            get(settlement_handlers::list_settlements),
         )
         .route(
-            "/v1/events/{id}/settlements",
-            post(settlement_handlers::propose_settlement),
+            "/v1/events/{id}/payments/{payment_id}/transactions",
+            get(payment_handlers::list_transactions),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}",
-            patch(settlement_handlers::update_settlement_status),
+            "/v1/events/{id}/payments/{payment_id}/transactions",
+            post(payment_handlers::propose_transaction),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}",
-            get(settlement_handlers::get_settlement),
+            "/v1/events/{id}/payments/transactions",
+            get(payment_handlers::list_all_transactions),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}/approve",
-            post(settlement_handlers::approve_settlement),
+            "/v1/events/{id}/payments/transactions/{transaction_id}/confirm",
+            post(payment_handlers::confirm_transaction),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}/reject",
-            post(settlement_handlers::reject_settlement),
+            "/v1/events/{id}/payments/transactions/{transaction_id}/reject",
+            post(payment_handlers::reject_transaction),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}/withdraw",
-            post(settlement_handlers::withdraw_settlement),
+            "/v1/events/{id}/payments/incoming",
+            get(payment_handlers::incoming_payments),
         )
         .route(
-            "/v1/events/{id}/settlements/incoming",
-            get(settlement_handlers::incoming_balances),
+            "/v1/events/{id}/payments/outgoing",
+            get(payment_handlers::outgoing_payments),
         )
         .route(
-            "/v1/events/{id}/settlements/outgoing",
-            get(settlement_handlers::outgoing_balances),
+            "/v1/events/{id}/payments/balance",
+            get(payment_handlers::balance_summary),
         )
         .route(
-            "/v1/events/{id}/settlements/requests",
-            get(settlement_handlers::list_settlement_requests),
-        )
-        .route(
-            "/v1/events/{id}/settlements/history",
-            get(settlement_handlers::list_settlement_history),
+            "/v1/events/{id}/payments/breakdown",
+            get(payment_handlers::payment_breakdown),
         );
 
     // ── Balances ───────────────────────────────────────────────────────
@@ -281,7 +273,6 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(member_routes)
         .merge(expense_routes)
         .merge(payment_routes)
-        .merge(settlement_routes)
         .merge(balance_routes)
         .merge(activity_routes)
         .merge(stats_routes)

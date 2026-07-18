@@ -1,4 +1,4 @@
-//! DTOs for the Payment aggregate.
+//! DTOs for the unified Payment aggregate.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -7,46 +7,103 @@ use uuid::Uuid;
 
 // ── Request DTOs ───────────────────────────────────────────────────────────────
 
-/// Payload to record a new payment.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct CreatePaymentRequest {
-    pub from_user: Uuid,
-    pub to_user: Uuid,
+    pub creditor_id: Uuid,
+    pub debtor_id: Uuid,
+    pub expense_id: Option<Uuid>,
     pub amount_cents: i32,
-    pub currency: Option<String>,
-    pub description: Option<String>,
-    pub payment_method: Option<String>,
-    pub external_ref: Option<String>,
+    pub reason: String,
 }
+
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ProposeTransactionRequest {
+    pub amount_cents: i32,
+}
+
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ConfirmTransactionRequest {}
+
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct RejectTransactionRequest {}
 
 // ── Response DTOs ──────────────────────────────────────────────────────────────
 
-/// Full payment representation.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct PaymentResponse {
     pub id: Uuid,
     pub event_id: Uuid,
-    pub from_user: Uuid,
-    pub to_user: Uuid,
+    pub creditor_id: Uuid,
+    pub debtor_id: Uuid,
+    pub expense_id: Option<Uuid>,
     pub amount_cents: i32,
-    pub currency: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_method: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub external_ref: Option<String>,
-    pub recorded_by: Uuid,
-    pub recorded_at: DateTime<Utc>,
+    pub amount_paid_cents: i32,
+    pub reason: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-/// Lightweight payment row for list views.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct PaymentListItem {
     pub id: Uuid,
-    pub from_user: Uuid,
-    pub to_user: Uuid,
+    pub creditor_id: Uuid,
+    pub debtor_id: Uuid,
     pub amount_cents: i32,
-    pub currency: String,
-    pub recorded_at: DateTime<Utc>,
+    pub amount_paid_cents: i32,
+    pub reason: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PaymentTransactionResponse {
+    pub id: Uuid,
+    pub payment_id: Uuid,
+    pub amount_cents: i32,
+    pub status: String,
+    pub proposed_by: Uuid,
+    pub confirmed_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PaymentTransactionListItem {
+    pub id: Uuid,
+    pub payment_id: Uuid,
+    pub amount_cents: i32,
+    pub status: String,
+    pub proposed_by: Uuid,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct BalanceSummary {
+    pub user_id: Uuid,
+    pub total_owed_cents: i32,
+    pub total_owing_cents: i32,
+    pub net_balance_cents: i32,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PaymentBreakdown {
+    pub incoming: Vec<PaymentListItem>,
+    pub outgoing: Vec<PaymentListItem>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct TransactionWithPaymentContext {
+    pub id: Uuid,
+    pub payment_id: Uuid,
+    pub amount_cents: i32,
+    pub status: String,
+    pub proposed_by: Uuid,
+    pub confirmed_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub creditor_id: Uuid,
+    pub debtor_id: Uuid,
+    pub payment_amount_cents: i32,
+    pub payment_reason: String,
 }
