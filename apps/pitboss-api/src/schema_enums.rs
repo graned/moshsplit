@@ -363,6 +363,7 @@ pub enum PaymentStatus {
     Open,
     Ongoing,
     Completed,
+    Cancelled,
 }
 
 impl ToSql<Text, Pg> for PaymentStatus {
@@ -371,6 +372,7 @@ impl ToSql<Text, Pg> for PaymentStatus {
             Self::Open => out.write_all(b"open")?,
             Self::Ongoing => out.write_all(b"ongoing")?,
             Self::Completed => out.write_all(b"completed")?,
+            Self::Cancelled => out.write_all(b"cancelled")?,
         }
         Ok(IsNull::No)
     }
@@ -382,6 +384,7 @@ impl FromSql<Text, Pg> for PaymentStatus {
             b"open" => Ok(Self::Open),
             b"ongoing" => Ok(Self::Ongoing),
             b"completed" => Ok(Self::Completed),
+            b"cancelled" => Ok(Self::Cancelled),
             _ => Err("Unrecognized PaymentStatus variant".into()),
         }
     }
@@ -446,6 +449,7 @@ impl FromSql<Text, Pg> for PaymentTransactionStatus {
 pub enum DeletionStatus {
     None,
     PendingDeletion,
+    Deleted,
 }
 
 impl ToSql<Text, Pg> for DeletionStatus {
@@ -453,6 +457,7 @@ impl ToSql<Text, Pg> for DeletionStatus {
         match self {
             Self::None => out.write_all(b"none")?,
             Self::PendingDeletion => out.write_all(b"pending_deletion")?,
+            Self::Deleted => out.write_all(b"deleted")?,
         }
         Ok(IsNull::No)
     }
@@ -463,7 +468,64 @@ impl FromSql<Text, Pg> for DeletionStatus {
         match value.as_bytes() {
             b"none" => Ok(Self::None),
             b"pending_deletion" => Ok(Self::PendingDeletion),
+            b"deleted" => Ok(Self::Deleted),
             _ => Err("Unrecognized DeletionStatus variant".into()),
+        }
+    }
+}
+
+// ── CreditStatus (VARCHAR-based, not a PG enum) ──────────────────────────────
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    diesel::FromSqlRow,
+    diesel::AsExpression,
+)]
+#[diesel(sql_type = Text)]
+pub enum CreditStatus {
+    Active,
+    PartiallyUsed,
+    FullyUsed,
+    ConvertedToPayment,
+}
+
+impl ToSql<Text, Pg> for CreditStatus {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match self {
+            Self::Active => out.write_all(b"active")?,
+            Self::PartiallyUsed => out.write_all(b"partially_used")?,
+            Self::FullyUsed => out.write_all(b"fully_used")?,
+            Self::ConvertedToPayment => out.write_all(b"converted_to_payment")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+impl FromSql<Text, Pg> for CreditStatus {
+    fn from_sql(value: PgValue<'_>) -> deserialize::Result<Self> {
+        match value.as_bytes() {
+            b"active" => Ok(Self::Active),
+            b"partially_used" => Ok(Self::PartiallyUsed),
+            b"fully_used" => Ok(Self::FullyUsed),
+            b"converted_to_payment" => Ok(Self::ConvertedToPayment),
+            _ => Err("Unrecognized CreditStatus variant".into()),
+        }
+    }
+}
+
+impl std::fmt::Display for CreditStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Active => write!(f, "active"),
+            Self::PartiallyUsed => write!(f, "partially_used"),
+            Self::FullyUsed => write!(f, "fully_used"),
+            Self::ConvertedToPayment => write!(f, "converted_to_payment"),
         }
     }
 }

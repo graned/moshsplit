@@ -141,6 +141,23 @@ pub mod app {
     }
 
     diesel::table! {
+        app.credit (id) {
+            id -> Uuid,
+            event_id -> Uuid,
+            creditor_id -> Uuid,
+            debtor_id -> Uuid,
+            amount_cents -> Int4,
+            amount_used_cents -> Int4,
+            source_expense_id -> Nullable<Uuid>,
+            status -> Text,
+            version -> Int4,
+            parent_credit_id -> Nullable<Uuid>,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
+
+    diesel::table! {
         app.payment_transaction (id) {
             id -> Uuid,
             payment_id -> Uuid,
@@ -150,6 +167,8 @@ pub mod app {
             confirmed_by -> Nullable<Uuid>,
             created_at -> Timestamptz,
             confirmed_at -> Nullable<Timestamptz>,
+            payment_method -> Text,
+            credit_id -> Nullable<Uuid>,
         }
     }
 
@@ -158,11 +177,15 @@ pub mod app {
     diesel::joinable!(expense -> event (event_id));
     diesel::joinable!(expense_version -> expense (expense_id));
     diesel::joinable!(expense_version_share -> expense_version (expense_version_id));
+    diesel::joinable!(credit -> event (event_id));
+    diesel::joinable!(credit -> expense (source_expense_id));
+    diesel::joinable!(payment_transaction -> credit (credit_id));
     diesel::joinable!(payment -> event (event_id));
     diesel::joinable!(payment_transaction -> payment (payment_id));
 
     diesel::allow_tables_to_appear_in_same_query!(
         audit_log,
+        credit,
         event,
         event_image,
         event_member,

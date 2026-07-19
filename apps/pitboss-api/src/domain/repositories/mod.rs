@@ -3,6 +3,7 @@
 //! All repositories live here (moved from infrastructure/persistence).
 
 pub mod balance_repo;
+pub mod credit_repo;
 pub mod event_image_repo;
 pub mod event_repo;
 pub mod expense_repo;

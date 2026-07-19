@@ -6,6 +6,7 @@ pub mod activity_dtos;
 pub mod admin_dtos;
 pub mod balance_dtos;
 pub mod common;
+pub mod credit_dtos;
 pub mod event_dtos;
 pub mod event_image_dtos;
 pub mod expense_dtos;

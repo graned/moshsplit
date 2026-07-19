@@ -7,12 +7,15 @@ import {
   ReceiptLong as WarChestIcon,
   AddShoppingCart as AddExpenseIcon,
 } from '@mui/icons-material';
+import { queryClient } from '../../main';
 import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi, GroupMember } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
 import { AddExpenseDrawer, ExpenseDetailDrawer } from '../../components/expenses';
 import { DeleteExpenseModal } from '../../components/expenses/mobile/DeleteExpenseModal';
+import { ClaimReimbursementModal } from '../../components/expenses/mobile/ClaimReimbursementModal';
+import { DeletionRequiresChoiceResponse } from '../../api/expenses.api';
 import { FilterDrawerLauncher, FilterDrawerContent } from '../../components/shared/filters';
 import { MobileFeedList } from '../../components/feed';
 import { useUsers } from '../../hooks/useUserCache';
@@ -61,6 +64,8 @@ export default function MobileExpensePage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [expenseToDeleteTitle, setExpenseToDeleteTitle] = useState<string>('');
+  const [deletionResponse, setDeletionResponse] = useState<DeletionRequiresChoiceResponse | null>(null);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
 
   const { data: event, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['event', paramEventId],
@@ -240,11 +245,16 @@ export default function MobileExpensePage() {
   const confirmDeleteExpense = useCallback(async () => {
     if (!expenseToDelete || !eventId) return;
     try {
-      await deleteExpense(eventId, expenseToDelete);
+      const result = await deleteExpense(eventId, expenseToDelete);
       setDeleteModalOpen(false);
       setExpenseToDelete(null);
       setExpenseToDeleteTitle('');
-      setSelectedExpense(null);
+      if (result?.requires_choice) {
+        setDeletionResponse(result);
+        setClaimModalOpen(true);
+      } else {
+        setSelectedExpense(null);
+      }
     } catch (err) {
       console.error('Failed to delete expense:', err);
     }
@@ -425,6 +435,36 @@ export default function MobileExpensePage() {
               setExpenseToDeleteTitle('');
             }}
             onConfirm={confirmDeleteExpense}
+          />
+          <ClaimReimbursementModal
+            open={claimModalOpen}
+            deletionResponse={deletionResponse}
+            eventId={eventId}
+            currency={currency}
+            onClose={() => {
+              setClaimModalOpen(false);
+              setDeletionResponse(null);
+            }}
+            onComplete={() => {
+              setClaimModalOpen(false);
+              setDeletionResponse(null);
+              setSelectedExpense(null);
+              if (eventId) {
+                queryClient.invalidateQueries({ queryKey: ['expenses-infinite', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
+                queryClient.refetchQueries({ queryKey: ['user-balance', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
+                queryClient.refetchQueries({ queryKey: ['explain-balance', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['event-stats', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['payments-incoming', eventId] });
+                queryClient.invalidateQueries({ queryKey: ['payments-outgoing', eventId] });
+              }
+            }}
+            formatAmount={(cents) => formatAmount(cents, currency)}
           />
           </>
         )}

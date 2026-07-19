@@ -4,17 +4,20 @@ use chrono::Utc;
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::domain::repositories::credit_repo::CreditRepository;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::payment_transaction_repo::PaymentTransactionRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::expense_dtos::{
-    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
-    ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
+    CreateExpenseRequest, DeletionRequiresChoiceResponse, ExpenseListItem, ExpenseResponse,
+    ExpenseVersionDetail, ExpenseVersionResponse, ExpenseVersionShareItem, OpenPaymentInfo,
+    UpdateExpenseRequest,
 };
-use crate::schema_enums::{ExpenseType, SplitType};
+use crate::schema_enums::{CreditStatus, ExpenseType, SplitType};
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 use moshsplit_balance_engine::redistribute_shares;
 
@@ -24,6 +27,8 @@ pub struct ExpenseService {
     version_repo: ExpenseVersionRepository,
     share_repo: ExpenseVersionShareRepository,
     payment_repo: PaymentRepository,
+    payment_transaction_repo: PaymentTransactionRepository,
+    credit_repo: CreditRepository,
 }
 
 impl ExpenseService {
@@ -33,6 +38,8 @@ impl ExpenseService {
         version_repo: ExpenseVersionRepository,
         share_repo: ExpenseVersionShareRepository,
         payment_repo: PaymentRepository,
+        payment_transaction_repo: PaymentTransactionRepository,
+        credit_repo: CreditRepository,
     ) -> Self {
         Self {
             event_repo,
@@ -40,6 +47,8 @@ impl ExpenseService {
             version_repo,
             share_repo,
             payment_repo,
+            payment_transaction_repo,
+            credit_repo,
         }
     }
 
@@ -596,7 +605,7 @@ impl ExpenseService {
         event_id: Uuid,
         expense_id: Uuid,
         user_id: Uuid,
-    ) -> Result<(), ServiceError> {
+    ) -> Result<Option<DeletionRequiresChoiceResponse>, ServiceError> {
         let expense_row = self
             .expense_repo
             .find_by_id_with_latest_version(expense_id)?
@@ -632,13 +641,32 @@ impl ExpenseService {
         if !is_pending && !open_payments.is_empty() {
             self.expense_repo
                 .set_deletion_status(expense_id, Some("pending_deletion".to_string()))?;
-            return Ok(());
+
+            let open_payment_infos: Vec<OpenPaymentInfo> = open_payments
+                .iter()
+                .map(|p| OpenPaymentInfo {
+                    payment_id: p.id,
+                    creditor_id: p.creditor_id,
+                    debtor_id: p.debtor_id,
+                    amount_cents: p.amount_cents,
+                    reason: p.reason.clone(),
+                })
+                .collect();
+
+            let total_cents = open_payments.iter().map(|p| p.amount_cents).sum();
+
+            return Ok(Some(DeletionRequiresChoiceResponse {
+                expense_id,
+                requires_choice: true,
+                open_payments: open_payment_infos,
+                total_cents,
+            }));
         }
 
         let now = Utc::now();
         self.expense_repo.soft_delete(expense_id, now)?;
 
-        Ok(())
+        Ok(None)
     }
 
     pub fn cancel_pending_deletion(
@@ -678,6 +706,104 @@ impl ExpenseService {
 
         self.expense_repo
             .set_deletion_status(expense_id, None)?;
+
+        Ok(())
+    }
+
+    pub fn claim_reimbursement(
+        &self,
+        event_id: Uuid,
+        expense_id: Uuid,
+        user_id: Uuid,
+        choice: &str,
+    ) -> Result<(), ServiceError> {
+        let expense_row = self
+            .expense_repo
+            .find_by_id_with_latest_version(expense_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
+
+        if expense_row.event_id != event_id {
+            return Err(ServiceError::NotFound(
+                "Expense not found in this event".into(),
+            ));
+        }
+
+        if expense_row.deleted_at.is_some() {
+            return Err(ServiceError::BusinessRule(
+                "Expense is already deleted".into(),
+            ));
+        }
+
+        if expense_row.deletion_status.as_deref() != Some("pending_deletion") {
+            return Err(ServiceError::BusinessRule(
+                "Expense is not pending deletion".into(),
+            ));
+        }
+
+        let open_payments = self.payment_repo.find_open_by_expense(expense_id)?;
+
+        if open_payments.is_empty() {
+            return Err(ServiceError::BusinessRule(
+                "No open payments found for this expense".into(),
+            ));
+        }
+
+        for payment in &open_payments {
+            if payment.creditor_id != user_id {
+                return Err(ServiceError::Forbidden(
+                    "Only the creditor can claim reimbursement".into(),
+                ));
+            }
+        }
+
+        match choice {
+            "credit" => {
+                for payment in &open_payments {
+                    let remaining = payment.amount_cents - payment.amount_paid_cents;
+                    if remaining > 0 {
+                        self.credit_repo.create(&crate::schema_models::Credit {
+                            id: uuid::Uuid::new_v4(),
+                            event_id,
+                            creditor_id: payment.creditor_id,
+                            debtor_id: payment.debtor_id,
+                            amount_cents: remaining,
+                            amount_used_cents: 0,
+                            source_expense_id: Some(expense_id),
+                            status: CreditStatus::Active,
+                            version: 1,
+                            parent_credit_id: None,
+                            created_at: Utc::now(),
+                            updated_at: Utc::now(),
+                        })?;
+                    }
+                }
+            }
+            "payment" => {}
+            _ => {
+                return Err(ServiceError::Validation(
+                    "Invalid choice. Must be 'credit' or 'payment'".into(),
+                ));
+            }
+        }
+
+        let now = Utc::now();
+
+        let linked_payments = self.payment_repo.find_all_by_expense(expense_id)?;
+        for linked_payment in &linked_payments {
+            self.payment_transaction_repo
+                .reject_pending_by_payment(linked_payment.id)?;
+        }
+
+        if choice == "credit" {
+            self.payment_repo.cancel_all_by_expense(expense_id)?;
+        }
+
+        self.expense_repo
+            .set_deletion_status(expense_id, Some("deleted".to_string()))?;
+
+        if choice == "credit" {
+            self.expense_repo.soft_delete(expense_id, now)?;
+        }
 
         Ok(())
     }

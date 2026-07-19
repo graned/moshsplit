@@ -127,6 +127,7 @@ impl std::fmt::Display for PaymentStatus {
             Self::Open => write!(f, "open"),
             Self::Ongoing => write!(f, "ongoing"),
             Self::Completed => write!(f, "completed"),
+            Self::Cancelled => write!(f, "cancelled"),
         }
     }
 }
@@ -138,6 +139,7 @@ impl std::str::FromStr for PaymentStatus {
             "open" => Ok(Self::Open),
             "ongoing" => Ok(Self::Ongoing),
             "completed" => Ok(Self::Completed),
+            "cancelled" => Ok(Self::Cancelled),
             _ => Err(format!("invalid payment status: {s}")),
         }
     }
@@ -170,6 +172,7 @@ impl std::fmt::Display for DeletionStatus {
         match self {
             Self::None => write!(f, "none"),
             Self::PendingDeletion => write!(f, "pending_deletion"),
+            Self::Deleted => write!(f, "deleted"),
         }
     }
 }
@@ -180,6 +183,7 @@ impl std::str::FromStr for DeletionStatus {
         match s {
             "none" => Ok(Self::None),
             "pending_deletion" => Ok(Self::PendingDeletion),
+            "deleted" => Ok(Self::Deleted),
             _ => Err(format!("invalid deletion status: {s}")),
         }
     }

@@ -189,5 +189,13 @@
   },
   "stepper": {
     "stepOf": "Passo {{current}} de {{total}}"
+  },
+  "claimReimbursement": {
+    "title": "Reembolso",
+    "description": "Esta despesa tem pagamentos que já foram feitos. Como você gostaria de lidar com os {{total}} que ainda são devidos ao pagador?",
+    "totalOpen": "{{total}} ainda são devidos ao pagador",
+    "creditChoice": "Criar Crédito",
+    "paymentChoice": "Criar Pagamento",
+    "confirm": "Confirmar"
   }
 }

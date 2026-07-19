@@ -153,3 +153,29 @@ pub struct ExpenseVersionShareItem {
     pub user_id: Uuid,
     pub share_cents: i32,
 }
+
+/// Response when expense deletion requires payer choice.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct DeletionRequiresChoiceResponse {
+    pub expense_id: Uuid,
+    pub requires_choice: bool,
+    pub open_payments: Vec<OpenPaymentInfo>,
+    pub total_cents: i32,
+}
+
+/// Info about an open payment for deletion choice.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct OpenPaymentInfo {
+    pub payment_id: Uuid,
+    pub creditor_id: Uuid,
+    pub debtor_id: Uuid,
+    pub amount_cents: i32,
+    pub reason: String,
+}
+
+/// Request to claim reimbursement for a pending deletion expense.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ClaimReimbursementRequest {
+    pub payment_id: Option<Uuid>,
+    pub choice: String,
+}

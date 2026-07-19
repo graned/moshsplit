@@ -111,6 +111,23 @@ pub struct Payment {
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]
+#[diesel(table_name = app::credit)]
+pub struct Credit {
+    pub id: uuid::Uuid,
+    pub event_id: uuid::Uuid,
+    pub creditor_id: uuid::Uuid,
+    pub debtor_id: uuid::Uuid,
+    pub amount_cents: i32,
+    pub amount_used_cents: i32,
+    pub source_expense_id: Option<uuid::Uuid>,
+    pub status: crate::schema_enums::CreditStatus,
+    pub version: i32,
+    pub parent_credit_id: Option<uuid::Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Queryable, Insertable)]
 #[diesel(table_name = app::payment_transaction)]
 pub struct PaymentTransaction {
     pub id: uuid::Uuid,
@@ -121,4 +138,6 @@ pub struct PaymentTransaction {
     pub confirmed_by: Option<uuid::Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub confirmed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub payment_method: String,
+    pub credit_id: Option<uuid::Uuid>,
 }

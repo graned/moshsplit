@@ -107,6 +107,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             expense_paid AS (
@@ -122,12 +123,12 @@ impl BalanceRepository {
             ),
             payments_out AS (
                 SELECT debtor_id AS user_id, SUM(amount_paid_cents) AS amount
-                FROM app.payment WHERE event_id = $1
+                FROM app.payment WHERE event_id = $1 AND status != 'converted_to_credit' AND status != 'cancelled'
                 GROUP BY debtor_id
             ),
             payments_in AS (
                 SELECT creditor_id AS user_id, SUM(amount_paid_cents) AS amount
-                FROM app.payment WHERE event_id = $1
+                FROM app.payment WHERE event_id = $1 AND status != 'converted_to_credit' AND status != 'cancelled'
                 GROUP BY creditor_id
             )
             SELECT
@@ -166,6 +167,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             )
             SELECT
@@ -188,10 +190,12 @@ impl BalanceRepository {
             LEFT JOIN (
                 SELECT SUM(amount_paid_cents) AS amount
                 FROM app.payment WHERE event_id = $1 AND debtor_id = $2
+                    AND status != 'converted_to_credit' AND status != 'cancelled'
             ) pmts_out ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount_paid_cents) AS amount
                 FROM app.payment WHERE event_id = $1 AND creditor_id = $2
+                    AND status != 'converted_to_credit' AND status != 'cancelled'
             ) pmts_in ON 1=1
         "#;
 
@@ -219,6 +223,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             participants AS (
@@ -269,6 +274,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             participants AS (
@@ -314,12 +320,16 @@ impl BalanceRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let sql = r#"
-            SELECT id, debtor_id as from_user, creditor_id as to_user, 
-                   amount_paid_cents as amount_cents, created_at as recorded_at, 
-                   reason as description
-            FROM app.payment
-            WHERE event_id = $1 AND (debtor_id = $2 OR creditor_id = $2)
-            ORDER BY created_at
+            SELECT p.id, p.debtor_id as from_user, p.creditor_id as to_user, 
+                   p.amount_paid_cents as amount_cents, p.created_at as recorded_at, 
+                   p.reason as description
+            FROM app.payment p
+            LEFT JOIN app.expense e ON e.id = p.expense_id
+            WHERE p.event_id = $1 AND (p.debtor_id = $2 OR p.creditor_id = $2)
+                AND p.status != 'converted_to_credit'
+                AND p.status != 'cancelled'
+                AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
+            ORDER BY p.created_at
         "#;
 
         let results = sql_query(sql)

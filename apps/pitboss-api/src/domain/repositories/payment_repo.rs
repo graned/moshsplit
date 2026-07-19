@@ -5,6 +5,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::errors::RepositoryError;
+use crate::schema::app::expense;
 use crate::schema::app::payment;
 use crate::schema_enums::PaymentStatus;
 use crate::schema_models::Payment;
@@ -34,8 +35,15 @@ impl PaymentRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let results = payment::table
+            .left_join(expense::table.on(payment::expense_id.eq(expense::id.nullable())))
             .filter(payment::event_id.eq(event_id))
             .filter(payment::creditor_id.eq(creditor_id))
+            .filter(
+                expense::deletion_status
+                    .is_null()
+                    .or(expense::deletion_status.ne("pending_deletion")),
+            )
+            .select(payment::all_columns)
             .order_by(payment::created_at.desc())
             .load(&mut conn)
             .map_err(RepositoryError::from)?;
@@ -51,8 +59,15 @@ impl PaymentRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let results = payment::table
+            .left_join(expense::table.on(payment::expense_id.eq(expense::id.nullable())))
             .filter(payment::event_id.eq(event_id))
             .filter(payment::debtor_id.eq(debtor_id))
+            .filter(
+                expense::deletion_status
+                    .is_null()
+                    .or(expense::deletion_status.ne("pending_deletion")),
+            )
+            .select(payment::all_columns)
             .order_by(payment::created_at.desc())
             .load(&mut conn)
             .map_err(RepositoryError::from)?;
@@ -101,7 +116,14 @@ impl PaymentRepository {
         let fetch_limit = std::cmp::min(limit, 100) + 1;
 
         let mut query = payment::table
+            .left_join(expense::table.on(payment::expense_id.eq(expense::id.nullable())))
             .filter(payment::event_id.eq(event_id))
+            .filter(
+                expense::deletion_status
+                    .is_null()
+                    .or(expense::deletion_status.ne("pending_deletion")),
+            )
+            .select(payment::all_columns)
             .into_boxed();
 
         if let Some(c) = cursor {
@@ -135,13 +157,60 @@ impl PaymentRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let results = payment::table
+            .left_join(expense::table.on(payment::expense_id.eq(expense::id.nullable())))
             .filter(payment::event_id.eq(event_id))
             .filter(payment::creditor_id.eq(creditor_id))
             .filter(payment::debtor_id.eq(debtor_id))
+            .filter(
+                expense::deletion_status
+                    .is_null()
+                    .or(expense::deletion_status.ne("pending_deletion")),
+            )
+            .select(payment::all_columns)
             .order_by(payment::created_at.desc())
             .load(&mut conn)
             .map_err(RepositoryError::from)?;
 
         Ok(results)
+    }
+
+    pub fn find_all_by_expense(&self, expense_id: Uuid) -> Result<Vec<Payment>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let results = payment::table
+            .filter(payment::expense_id.eq(expense_id))
+            .load(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
+    }
+
+    pub fn cancel_all_by_expense(
+        &self,
+        expense_id: Uuid,
+    ) -> Result<usize, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+        let now = Utc::now();
+
+        let changes = PaymentStatusUpdate {
+            status: Some(PaymentStatus::Cancelled),
+            amount_paid_cents: None,
+            updated_at: Some(now),
+        };
+
+        let affected = diesel::update(
+            payment::table
+                .filter(payment::expense_id.eq(expense_id))
+                .filter(
+                    payment::status
+                        .eq(PaymentStatus::Open)
+                        .or(payment::status.eq(PaymentStatus::Ongoing)),
+                ),
+        )
+        .set(&changes)
+        .execute(&mut conn)
+        .map_err(RepositoryError::from)?;
+
+        Ok(affected)
     }
 }

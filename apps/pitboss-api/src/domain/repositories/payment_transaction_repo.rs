@@ -133,15 +133,47 @@ impl PaymentTransactionRepository {
         Ok(affected)
     }
 
+    pub fn reject_pending_by_payment(
+        &self,
+        payment_id: Uuid,
+    ) -> Result<usize, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let changes = TransactionConfirmUpdate {
+            status: Some(PaymentTransactionStatus::Rejected),
+            confirmed_by: None,
+            confirmed_at: None,
+        };
+
+        let affected = diesel::update(
+            payment_transaction::table
+                .filter(payment_transaction::payment_id.eq(payment_id))
+                .filter(payment_transaction::status.eq(PaymentTransactionStatus::Pending)),
+        )
+        .set(&changes)
+        .execute(&mut conn)
+        .map_err(RepositoryError::from)?;
+
+        Ok(affected)
+    }
+
     pub fn find_by_event(
         &self,
         event_id: Uuid,
     ) -> Result<Vec<(PaymentTransaction, crate::schema_models::Payment)>, RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
+        use crate::schema::app::expense;
 
         let results = payment_transaction::table
             .inner_join(crate::schema::app::payment::table)
+            .left_join(expense::table.on(crate::schema::app::payment::expense_id.eq(expense::id.nullable())))
             .filter(crate::schema::app::payment::event_id.eq(event_id))
+            .filter(
+                expense::deletion_status
+                    .is_null()
+                    .or(expense::deletion_status.ne("pending_deletion")),
+            )
+            .select((payment_transaction::all_columns, crate::schema::app::payment::all_columns))
             .order_by(payment_transaction::created_at.desc())
             .load(&mut conn)
             .map_err(RepositoryError::from)?;

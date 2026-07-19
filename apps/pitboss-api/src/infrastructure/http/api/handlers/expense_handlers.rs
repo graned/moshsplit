@@ -11,12 +11,14 @@ use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
+use crate::domain::repositories::credit_repo::CreditRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
+use crate::domain::repositories::payment_transaction_repo::PaymentTransactionRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::common::{PaginatedResponse, PaginationMeta};
 use crate::infrastructure::http::api::dtos::expense_dtos::{
-    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
-    ListExpensesParams, UpdateExpenseRequest,
+    ClaimReimbursementRequest, CreateExpenseRequest, DeletionRequiresChoiceResponse, ExpenseListItem,
+    ExpenseResponse, ExpenseVersionDetail, ListExpensesParams, UpdateExpenseRequest,
 };
 use crate::infrastructure::http::api::extractors::CurrentUser;
 use crate::infrastructure::http::AppState;
@@ -50,6 +52,8 @@ pub async fn list_expenses(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
     let (items, has_more, next_cursor) = svc.list_expenses(
@@ -97,6 +101,8 @@ pub async fn create_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.create_expense(event_id, req, user_id)?;
@@ -127,6 +133,8 @@ pub async fn get_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.get_expense(expense_id)?;
@@ -160,6 +168,8 @@ pub async fn update_expense(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
     let expense = svc.update_expense(event_id, expense_id, req, user_id)?;
@@ -185,17 +195,23 @@ pub async fn delete_expense(
     State(state): State<Arc<AppState>>,
     Path((event_id, expense_id)): Path<(Uuid, Uuid)>,
     CurrentUser(user_id): CurrentUser,
-) -> Result<StatusCode, ServiceError> {
+) -> Result<Json<DeletionRequiresChoiceResponse>, ServiceError> {
     let svc = ExpenseService::new(
         EventRepository::new(state.db_client.clone()),
         ExpenseRepository::new(state.db_client.clone()),
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
-    svc.delete_expense(event_id, expense_id, user_id)?;
-    Ok(StatusCode::NO_CONTENT)
+    let result = svc.delete_expense(event_id, expense_id, user_id)?;
+
+    match result {
+        Some(response) => Ok(Json(response)),
+        None => Err(ServiceError::NoContent),
+    }
 }
 
 /// POST /v1/events/:id/expenses/:expense_id/cancel-deletion — cancel pending deletion.
@@ -224,6 +240,8 @@ pub async fn cancel_pending_deletion(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
     svc.cancel_pending_deletion(event_id, expense_id, user_id)?;
@@ -254,8 +272,30 @@ pub async fn list_expense_versions(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
 
     let versions = svc.get_expense_with_versions(expense_id)?;
     Ok(Json(versions))
+}
+
+pub async fn claim_reimbursement(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, expense_id)): Path<(Uuid, Uuid)>,
+    CurrentUser(user_id): CurrentUser,
+    Json(req): Json<ClaimReimbursementRequest>,
+) -> Result<StatusCode, ServiceError> {
+    let svc = ExpenseService::new(
+        EventRepository::new(state.db_client.clone()),
+        ExpenseRepository::new(state.db_client.clone()),
+        ExpenseVersionRepository::new(state.db_client.clone()),
+        ExpenseVersionShareRepository::new(state.db_client.clone()),
+        PaymentRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
+    );
+
+    svc.claim_reimbursement(event_id, expense_id, user_id, &req.choice)?;
+    Ok(StatusCode::NO_CONTENT)
 }

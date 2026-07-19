@@ -9,7 +9,7 @@ export interface Payment {
   amount_cents: number;
   amount_paid_cents: number;
   reason: 'reimbursement' | 'expense' | 'settlement';
-  status: 'open' | 'ongoing' | 'completed';
+  status: 'open' | 'ongoing' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
 }

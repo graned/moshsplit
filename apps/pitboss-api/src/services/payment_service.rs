@@ -150,6 +150,8 @@ impl PaymentService {
             confirmed_by: None,
             created_at: Utc::now(),
             confirmed_at: None,
+            payment_method: "cash".to_string(),
+            credit_id: None,
         };
 
         self.payment_transaction_repo.create(&transaction)?;

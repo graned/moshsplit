@@ -26,6 +26,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::infrastructure::http::api::handlers::activity_handlers;
 use crate::infrastructure::http::api::handlers::auth_handlers;
 use crate::infrastructure::http::api::handlers::balance_handlers;
+use crate::infrastructure::http::api::handlers::credit_handlers;
 use crate::infrastructure::http::api::handlers::event_handlers;
 use crate::infrastructure::http::api::handlers::event_image_handlers;
 use crate::infrastructure::http::api::handlers::expense_handlers;
@@ -152,6 +153,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(expense_handlers::cancel_pending_deletion),
         )
         .route(
+            "/v1/events/{id}/expenses/{expense_id}/claim-reimbursement",
+            post(expense_handlers::claim_reimbursement),
+        )
+        .route(
             "/v1/events/{id}/expenses/{expense_id}/versions",
             get(expense_handlers::list_expense_versions),
         );
@@ -205,6 +210,25 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/payments/breakdown",
             get(payment_handlers::payment_breakdown),
+        );
+
+    // ── Credits ───────────────────────────────────────────────────────
+    let credit_routes = Router::new()
+        .route(
+            "/v1/events/{id}/credits",
+            post(credit_handlers::create_credit),
+        )
+        .route(
+            "/v1/events/{id}/credits",
+            get(credit_handlers::get_available_credits),
+        )
+        .route(
+            "/v1/events/{id}/credits/summary",
+            get(credit_handlers::get_credit_summary),
+        )
+        .route(
+            "/v1/events/{id}/credits/{credit_id}/convert",
+            post(credit_handlers::convert_credit_to_payment),
         );
 
     // ── Balances ───────────────────────────────────────────────────────
@@ -273,6 +297,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(member_routes)
         .merge(expense_routes)
         .merge(payment_routes)
+        .merge(credit_routes)
         .merge(balance_routes)
         .merge(activity_routes)
         .merge(stats_routes)

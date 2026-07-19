@@ -6,6 +6,7 @@ pub mod activity_service;
 pub mod admin_stats_service;
 pub mod audit_service;
 pub mod balance_service;
+pub mod credit_service;
 pub mod event_image_service;
 pub mod event_service;
 pub mod expense_service;
