@@ -75,6 +75,8 @@ pub struct ExpenseResponse {
     pub current_version: Option<ExpenseVersionResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deletion_status: Option<String>,
 }
 
 /// An expense row in a list.
@@ -87,6 +89,8 @@ pub struct ExpenseListItem {
     pub current_version_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deletion_status: Option<String>,
     pub version_number: Option<i32>,
     pub title: Option<String>,
     pub amount_cents: Option<i32>,
@@ -148,4 +152,30 @@ pub struct ExpenseVersionDetail {
 pub struct ExpenseVersionShareItem {
     pub user_id: Uuid,
     pub share_cents: i32,
+}
+
+/// Response when expense deletion requires payer choice.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct DeletionRequiresChoiceResponse {
+    pub expense_id: Uuid,
+    pub requires_choice: bool,
+    pub open_payments: Vec<OpenPaymentInfo>,
+    pub total_cents: i32,
+}
+
+/// Info about an open payment for deletion choice.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct OpenPaymentInfo {
+    pub payment_id: Uuid,
+    pub creditor_id: Uuid,
+    pub debtor_id: Uuid,
+    pub amount_cents: i32,
+    pub reason: String,
+}
+
+/// Request to claim reimbursement for a pending deletion expense.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct ClaimReimbursementRequest {
+    pub payment_id: Option<Uuid>,
+    pub choice: String,
 }

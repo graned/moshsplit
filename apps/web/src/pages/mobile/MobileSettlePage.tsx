@@ -7,13 +7,12 @@ import { useAuthStore } from '@moshsplit/auth-react';
 
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { settlementsApi, type IncomingBalanceItem, type OutgoingBalanceItem, type SettlementListItem } from '../../api/settlements.api';
+import { paymentsApi, type Payment } from '../../api/payments.api';
 import { useUsers, useUserCache } from '../../hooks/useUserCache';
 import { MobilePageHeader } from '../../components/shared/MobilePageHeader';
 import { MobileBalanceCard } from '../../components/feed/mobile/cards/MobileBalanceCard';
 import { RestoreHonorModal } from '../../components/settlements/RestoreHonorModal';
 import { MobileBalanceDrawer } from '../../components/settlements/mobile/MobileBalanceDrawer';
-import { SettlementReviewPanel } from '../../components/settlements/SettlementReviewPanel';
 import { MobileSettlementHistoryDrawer } from '../../components/settlements/mobile/MobileSettlementHistoryDrawer';
 import { MobileStatsBreakdownDrawer, type BreakdownItem } from '../../components/settlements/mobile/MobileStatsBreakdownDrawer';
 
@@ -53,15 +52,21 @@ export default function MobileSettlePage() {
   useUsers(memberUserIds);
   useUserCache();
 
-  const { data: incomingData } = useQuery({
-    queryKey: ['settlements-incoming', eventId],
-    queryFn: () => settlementsApi.getIncomingBalances(eventId!),
+  const { data: incomingPayments = [] } = useQuery({
+    queryKey: ['payments-incoming', eventId],
+    queryFn: () => paymentsApi.getIncoming(eventId!),
     enabled: !!eventId,
   });
 
-  const { data: outgoingData } = useQuery({
-    queryKey: ['settlements-outgoing', eventId],
-    queryFn: () => settlementsApi.getOutgoingBalances(eventId!),
+  const { data: outgoingPayments = [] } = useQuery({
+    queryKey: ['payments-outgoing', eventId],
+    queryFn: () => paymentsApi.getOutgoing(eventId!),
+    enabled: !!eventId,
+  });
+
+  const { data: _paymentBalance } = useQuery({
+    queryKey: ['payments-balance', eventId],
+    queryFn: () => paymentsApi.getBalance(eventId!),
     enabled: !!eventId,
   });
 
@@ -77,15 +82,21 @@ export default function MobileSettlePage() {
     enabled: !!eventId && !!userId,
   });
 
-  const { data: requestsPage } = useQuery({
-    queryKey: ['settlements-requests-count', eventId],
-    queryFn: () => settlementsApi.listSettlementRequests(eventId!, undefined),
+  const { data: _breakdown } = useQuery({
+    queryKey: ['payments-breakdown', eventId],
+    queryFn: () => paymentsApi.getBreakdown(eventId!),
+    enabled: !!eventId,
+  });
+
+  const { data: allTransactions = [] } = useQuery({
+    queryKey: ['payments-transactions', eventId],
+    queryFn: () => paymentsApi.getAllTransactions(eventId!),
     enabled: !!eventId,
   });
 
   const pendingRequestCount = useMemo(
-    () => requestsPage?.data.filter((s) => s.status === 'pending').length ?? 0,
-    [requestsPage],
+    () => allTransactions.filter((t) => t.status === 'pending' && t.proposed_by !== userId).length,
+    [allTransactions, userId],
   );
 
   const oweToYouItems: BreakdownItem[] = useMemo(() => {
@@ -129,122 +140,129 @@ export default function MobileSettlePage() {
       }
     }
 
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.status !== 'confirmed') continue;
-      if (settlement.to_user === userId) {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.from_user, direction: 'incoming', created_at: settlement.created_at });
-      } else if (settlement.from_user === userId) {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: settlement.to_user, direction: 'outgoing', created_at: settlement.created_at });
-      }
-    }
     return items;
   }, [explainBalance, userId]);
 
-  const [incomingDrawerItem, setIncomingDrawerItem] = useState<IncomingBalanceItem | null>(null);
+  const [incomingDrawerItem, setIncomingDrawerItem] = useState<Payment | null>(null);
   const [incomingDrawerOpen, setIncomingDrawerOpen] = useState(false);
 
-  const [outgoingDrawerItem, setOutgoingDrawerItem] = useState<OutgoingBalanceItem | null>(null);
+  const [outgoingDrawerItem, setOutgoingDrawerItem] = useState<Payment | null>(null);
   const [outgoingDrawerOpen, setOutgoingDrawerOpen] = useState(false);
 
   const [breakdownCard, setBreakdownCard] = useState<'owe-to-you' | 'you-owe' | 'settled' | null>(null);
 
   const incomingBreakdownItems: BreakdownItem[] = useMemo(() => {
     if (!explainBalance || !incomingDrawerItem) return [];
-    const cpId = incomingDrawerItem.user_id;
+    const cpId = incomingDrawerItem.debtor_id;
     const items: BreakdownItem[] = [];
+
     for (const expense of explainBalance.expenses) {
-      if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-      if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+      if (expense.paid_by === userId && expense.direction === 'incoming') {
+        if (expense.participants?.includes(cpId)) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense',
+            created_at: expense.created_at,
+          });
+        }
+      } else if (expense.paid_by === cpId && expense.direction === 'outgoing') {
+        if (userId && expense.participants?.includes(userId)) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: -expense.share_cents,
+            type: 'expense',
+            created_at: expense.created_at,
+          });
+        }
       }
     }
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
-      }
-      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
+
+    for (const payment of explainBalance.payments) {
+      if (payment.creditor_id === userId && payment.debtor_id === cpId) {
+        items.push({
+          label: '',
+          amount: -payment.amount_cents,
+          type: 'settlement',
+          counterparty: cpId,
+          direction: 'incoming',
+          created_at: payment.created_at,
+        });
       }
     }
+
     return items;
   }, [explainBalance, incomingDrawerItem, userId]);
 
   const outgoingBreakdownItems: BreakdownItem[] = useMemo(() => {
     if (!explainBalance || !outgoingDrawerItem) return [];
-    const cpId = outgoingDrawerItem.user_id;
+    const cpId = outgoingDrawerItem.creditor_id;
     const items: BreakdownItem[] = [];
+
     for (const expense of explainBalance.expenses) {
-      if (expense.paid_by === cpId && expense.share_cents > 0) {
-        items.push({ label: expense.title, amount: expense.share_cents, type: 'expense', created_at: expense.created_at });
-      }
-      if (expense.paid_by === userId && (expense.participants ?? []).includes(cpId)) {
-        items.push({ label: expense.title, amount: -expense.share_cents, type: 'expense', created_at: expense.created_at });
+      if (expense.paid_by === cpId && expense.direction === 'outgoing') {
+        if (userId && expense.participants?.includes(userId)) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: expense.share_cents,
+            type: 'expense',
+            created_at: expense.created_at,
+          });
+        }
+      } else if (expense.paid_by === userId && expense.direction === 'incoming') {
+        if (expense.participants?.includes(cpId)) {
+          items.push({
+            expense_id: expense.expense_id,
+            label: expense.title,
+            amount: -expense.share_cents,
+            type: 'expense',
+            created_at: expense.created_at,
+          });
+        }
       }
     }
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.from_user === userId && settlement.to_user === cpId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: -settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'outgoing', created_at: settlement.created_at });
-      }
-      if (settlement.from_user === cpId && settlement.to_user === userId && settlement.status === 'confirmed') {
-        items.push({ label: '', amount: settlement.amount_cents, type: 'settlement', counterparty: cpId, direction: 'incoming', created_at: settlement.created_at });
+
+    for (const payment of explainBalance.payments) {
+      if (payment.debtor_id === userId && payment.creditor_id === cpId) {
+        items.push({
+          label: '',
+          amount: -payment.amount_cents,
+          type: 'settlement',
+          counterparty: cpId,
+          direction: 'outgoing',
+          created_at: payment.created_at,
+        });
       }
     }
+
     return items;
   }, [explainBalance, outgoingDrawerItem, userId]);
 
-  const incomingItems: IncomingBalanceItem[] = incomingData?.items ?? [];
-  const outgoingItems: OutgoingBalanceItem[] = outgoingData?.items ?? [];
+  const incomingItems: Payment[] = incomingPayments;
+  const outgoingItems: Payment[] = outgoingPayments;
 
   const allSettled = incomingItems.length === 0 && outgoingItems.length === 0;
-
-  const counterpartyNetMap: Record<string, number> = useMemo(() => {
-    if (!explainBalance || !userId) return {};
-    const map: Record<string, number> = {};
-    for (const expense of explainBalance.expenses) {
-      const participants = expense.participants ?? [];
-      for (const pId of participants) {
-        if (pId === userId) continue;
-        if (expense.paid_by === userId) {
-          map[pId] = (map[pId] ?? 0) + expense.share_cents;
-        }
-      }
-      if (expense.paid_by !== userId && expense.share_cents > 0) {
-        map[expense.paid_by] = (map[expense.paid_by] ?? 0) - expense.share_cents;
-      }
-    }
-    for (const settlement of explainBalance.settlements) {
-      if (settlement.status !== 'confirmed') continue;
-      if (settlement.to_user === userId && settlement.from_user !== userId) {
-        map[settlement.from_user] = (map[settlement.from_user] ?? 0) - settlement.amount_cents;
-      }
-      if (settlement.from_user === userId && settlement.to_user !== userId) {
-        map[settlement.to_user] = (map[settlement.to_user] ?? 0) + settlement.amount_cents;
-      }
-    }
-    return map;
-  }, [explainBalance, userId]);
 
   const bannerUrl = event?.images?.banner?.url ?? event?.images?.gallery?.[0]?.url;
   const currency = event?.currency || 'EUR';
 
   const [restoreHonorOpen, setRestoreHonorOpen] = useState(false);
   const [restoreHonorTarget, setRestoreHonorTarget] = useState<{ userId: string; amountCents: number } | null>(null);
-  const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
-  const [reviewSettlement, setReviewSettlement] = useState<SettlementListItem | null>(null);
 
   const handleOpenRestoreHonor = (userId: string, amountCents: number) => {
     setRestoreHonorTarget({ userId, amountCents });
     setRestoreHonorOpen(true);
   };
 
-  const handleOpenIncomingDrawer = (item: IncomingBalanceItem) => {
+  const handleOpenIncomingDrawer = (item: Payment) => {
     setIncomingDrawerItem(item);
     setIncomingDrawerOpen(true);
   };
 
-  const handleOpenOutgoingDrawer = (item: OutgoingBalanceItem) => {
+  const handleOpenOutgoingDrawer = (item: Payment) => {
     setOutgoingDrawerItem(item);
     setOutgoingDrawerOpen(true);
   };
@@ -252,11 +270,6 @@ export default function MobileSettlePage() {
   const handleRestoreHonorSuccess = () => {
     setRestoreHonorOpen(false);
     setRestoreHonorTarget(null);
-  };
-
-  const handleReviewSuccess = () => {
-    setReviewPanelOpen(false);
-    setReviewSettlement(null);
   };
 
   if (eventLoading) {
@@ -431,13 +444,13 @@ export default function MobileSettlePage() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {incomingItems.map((item) => (
                 <MobileBalanceCard
-                  balanceItem={item}
-                  userId={item.user_id}
-                  amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
+                  balanceItem={{ user_id: item.debtor_id, amount_cents: item.amount_cents - item.amount_paid_cents }}
+                  userId={item.debtor_id}
+                  amountCents={item.amount_cents - item.amount_paid_cents}
                   isIncoming={true}
                   currency={currency}
                   onClick={() => handleOpenIncomingDrawer(item)}
-                  key={item.user_id}
+                  key={item.id}
                 />
               ))}
             </Box>
@@ -480,13 +493,14 @@ export default function MobileSettlePage() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {outgoingItems.map((item) => (
                 <MobileBalanceCard
-                  balanceItem={item}
-                  userId={item.user_id}
-                  amountCents={Math.abs(counterpartyNetMap[item.user_id] ?? item.amount_cents)}
+                  balanceItem={{ user_id: item.creditor_id, amount_cents: item.amount_cents - item.amount_paid_cents }}
+                  userId={item.creditor_id}
+                  amountCents={item.amount_cents - item.amount_paid_cents}
                   isIncoming={false}
                   currency={currency}
+                  reason={item.reason}
                   onClick={() => handleOpenOutgoingDrawer(item)}
-                  key={item.user_id}
+                  key={item.id}
                 />
               ))}
             </Box>
@@ -519,44 +533,32 @@ export default function MobileSettlePage() {
       <MobileBalanceDrawer
         open={incomingDrawerOpen}
         onClose={() => setIncomingDrawerOpen(false)}
-        balanceItem={incomingDrawerItem}
+        balanceItem={incomingDrawerItem ? { user_id: incomingDrawerItem.debtor_id, amount_cents: incomingDrawerItem.amount_cents - incomingDrawerItem.amount_paid_cents } : null}
         direction="incoming"
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={incomingBreakdownItems}
-        breakdownTotal={incomingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
+        breakdownTotal={incomingDrawerItem ? incomingDrawerItem.amount_cents - incomingDrawerItem.amount_paid_cents : 0}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
+        payment={incomingDrawerItem}
       />
 
       <MobileBalanceDrawer
         open={outgoingDrawerOpen}
         onClose={() => setOutgoingDrawerOpen(false)}
-        balanceItem={outgoingDrawerItem}
+        balanceItem={outgoingDrawerItem ? { user_id: outgoingDrawerItem.creditor_id, amount_cents: outgoingDrawerItem.amount_cents - outgoingDrawerItem.amount_paid_cents } : null}
         direction="outgoing"
         currency={currency}
         onSettle={handleOpenRestoreHonor}
         breakdownItems={outgoingBreakdownItems}
-        breakdownTotal={outgoingBreakdownItems.reduce((sum, i) => sum + i.amount, 0)}
+        breakdownTotal={outgoingDrawerItem ? outgoingDrawerItem.amount_cents - outgoingDrawerItem.amount_paid_cents : 0}
         fullScreen
         eventId={eventId!}
         currentUserId={userId!}
+        payment={outgoingDrawerItem}
       />
-
-      {reviewSettlement && (
-        <SettlementReviewPanel
-          open={reviewPanelOpen}
-          onClose={() => setReviewPanelOpen(false)}
-          onSuccess={handleReviewSuccess}
-          settlement={reviewSettlement}
-          fromUserInfo={undefined}
-          toUserInfo={undefined}
-          currency={currency}
-          eventId={eventId!}
-          currentUserId={userId!}
-        />
-      )}
 
       <MobileSettlementHistoryDrawer
         open={historyDrawerOpen}

@@ -9,12 +9,13 @@ use uuid::Uuid;
 
 use crate::domain::repositories::balance_repo::BalanceRepository;
 use crate::domain::repositories::event_repo::EventRepository;
+use crate::domain::repositories::credit_repo::CreditRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::member_repo::EventMemberRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
-use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::domain::repositories::payment_transaction_repo::PaymentTransactionRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::member_dtos::{AddMemberRequest, MemberListItem};
 use crate::infrastructure::http::api::extractors::CurrentUser;
@@ -105,7 +106,8 @@ pub async fn remove_member(
         ExpenseVersionRepository::new(state.db_client.clone()),
         ExpenseVersionShareRepository::new(state.db_client.clone()),
         PaymentRepository::new(state.db_client.clone()),
-        SettlementRepository::new(state.db_client.clone()),
+        PaymentTransactionRepository::new(state.db_client.clone()),
+        CreditRepository::new(state.db_client.clone()),
     );
     expense_svc.redistribute_expenses_for_member_removal(event_id, user_id, actor_id)?;
 

@@ -12,7 +12,6 @@ import {
   TrendingUp as IncomingIcon,
   TrendingDown as OutgoingIcon,
   Pending as PendingIcon,
-  CheckCircle as ConfirmIcon,
   SwapHoriz as SettleIcon,
   Payment as PaymentIcon,
   Gavel as GavelIcon,
@@ -21,11 +20,10 @@ import {
 import { MobileFeedCard } from '../../feed/mobile/MobileFeedCard';
 import { useUserCache, useUser } from '../../../hooks/useUserCache';
 import { UserInfo } from '../../../api/users.api';
-import { ExpenseBreakdown, SettlementBreakdown, PaymentBreakdown } from '../../../api/balances.api';
-import { SettlementListItem } from '../../../api/settlements.api';
+import { ExpenseBreakdown, SettlementBreakdown, PaymentBreakdown as BalancePaymentBreakdown } from '../../../api/balances.api';
+import { Payment } from '../../../api/payments.api';
 import { GroupMember } from '../../../api/groups.api';
 import { RestoreHonorModal } from '../../settlements/RestoreHonorModal';
-import { SettlementReviewPanel } from '../../settlements/SettlementReviewPanel';
 import { MobileRelationshipCard } from '../../feed/mobile/cards/MobileRelationshipCard';
 import { MobileCardList } from '../../shared/lists/MobileCardList';
 import { RelationshipDetailDrawer } from '../mobile/RelationshipDetailDrawer';
@@ -70,42 +68,36 @@ export interface RelationshipSummary {
   totalCents: number;
   expenses: ExpenseBreakdown[];
   settlements: SettlementBreakdown[];
-  payments: PaymentBreakdown[];
+  payments: BalancePaymentBreakdown[];
   rawExpenseCents: number;
   rawSettlementCents: number;
   rawPaymentCents: number;
-  isIncoming: boolean; // true = they owe me, false = I owe them
+  isIncoming: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
-interface SettlementCardsProps {
+interface PaymentCardsProps {
   activeTab?: 'incoming' | 'outgoing' | 'requests' | 'history';
   onTabChange?: (tab: 'incoming' | 'outgoing' | 'requests' | 'history') => void;
   relationships: RelationshipSummary[];
   currentUserId: string;
   currency: string;
   members: GroupMember[];
-  settlementRequests: SettlementListItem[];
-  onSettlementSuccess?: () => void;
+  payments: Payment[];
+  onPaymentSuccess?: () => void;
   eventId: string;
-  settlements?: SettlementBreakdown[];
-  payments?: PaymentBreakdown[];
 }
 
-export function SettlementCards({
+export function PaymentCards({
   activeTab: controlledActiveTab,
   onTabChange,
   relationships,
   currentUserId,
   currency,
   members,
-  settlementRequests,
-  onSettlementSuccess,
+  payments,
+  onPaymentSuccess,
   eventId,
-}: SettlementCardsProps) {
+}: PaymentCardsProps) {
   const internalActiveTab = useState<'incoming' | 'outgoing' | 'requests' | 'history'>('incoming');
   const [internalTab, setInternalTab] = internalActiveTab;
 
@@ -137,22 +129,26 @@ export function SettlementCards({
     return map;
   }, [allUsers]);
 
-  // Restore Honor Modal state
+  const incoming = relationships.filter((r) => r.isIncoming);
+  const outgoing = relationships.filter((r) => !r.isIncoming);
+  const openPayments = payments.filter((p) => p.status === 'open');
+
+  const paymentsToConfirm = openPayments.filter((p) => p.creditor_id === currentUserId);
+  const paymentsISent = openPayments.filter((p) => p.debtor_id === currentUserId);
+
   const [restoreHonorOpen, setRestoreHonorOpen] = useState(false);
   const [restoreHonorTarget, setRestoreHonorTarget] = useState<{ userId: string; amountCents: number } | null>(null);
 
-  // Settlement Review Panel state
-  const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
-  const [reviewSettlement, setReviewSettlement] = useState<SettlementListItem | null>(null);
+  const handleOpenRestoreHonor = (userId: string, amountCents: number) => {
+    setRestoreHonorTarget({ userId, amountCents });
+    setRestoreHonorOpen(true);
+  };
 
-  const incoming = relationships.filter((r) => r.isIncoming);
-  const outgoing = relationships.filter((r) => !r.isIncoming);
-  const pendingRequests = settlementRequests.filter((s) => s.status === 'pending');
-
-  // Requests where I need to confirm (someone sent me a settlement)
-  const requestsToConfirm = pendingRequests.filter((s) => s.to_user === currentUserId);
-  // Requests I sent (waiting for confirmation)
-  const requestsISent = pendingRequests.filter((s) => s.from_user === currentUserId);
+  const handleRestoreHonorSuccess = () => {
+    setRestoreHonorOpen(false);
+    setRestoreHonorTarget(null);
+    onPaymentSuccess?.();
+  };
 
   const displayList = activeTab === 'incoming' ? incoming : activeTab === 'outgoing' ? outgoing : [];
 
@@ -169,28 +165,6 @@ export function SettlementCards({
   const getMemberInitial = (userId: string): string => {
     const name = getMemberName(userId);
     return name.charAt(0).toUpperCase();
-  };
-
-  const handleOpenRestoreHonor = (userId: string, amountCents: number) => {
-    setRestoreHonorTarget({ userId, amountCents });
-    setRestoreHonorOpen(true);
-  };
-
-  const handleOpenReviewPanel = (settlement: SettlementListItem) => {
-    setReviewSettlement(settlement);
-    setReviewPanelOpen(true);
-  };
-
-  const handleRestoreHonorSuccess = () => {
-    setRestoreHonorOpen(false);
-    setRestoreHonorTarget(null);
-    onSettlementSuccess?.();
-  };
-
-  const handleReviewSuccess = () => {
-    setReviewPanelOpen(false);
-    setReviewSettlement(null);
-    onSettlementSuccess?.();
   };
 
   const targetUser = restoreHonorTarget ? userMap.get(restoreHonorTarget.userId) : undefined;
@@ -236,8 +210,8 @@ export function SettlementCards({
             onClick={() => setActiveTab('requests')}
             icon={<PendingIcon sx={{ fontSize: 16 }} />}
             label="Requests"
-            count={requestsToConfirm.length + requestsISent.length}
-            total={requestsToConfirm.reduce((sum, r) => sum + r.amount_cents, 0)}
+            count={paymentsToConfirm.length + paymentsISent.length}
+            total={paymentsToConfirm.reduce((sum, p) => sum + (p.amount_cents - p.amount_paid_cents), 0)}
             currency={currency}
           />
           <TabButton
@@ -252,23 +226,21 @@ export function SettlementCards({
         </Box>
       )}
 
-      {/* Requests tab content */}
       {activeTab === 'requests' && (
-        <MobileCardList<SettlementListItem>
-          items={pendingRequests}
-          renderItem={(req) => (
-            <SettlementRequestCard
-              key={req.id}
-              settlement={req}
+        <MobileCardList<Payment>
+          items={openPayments}
+          renderItem={(payment) => (
+            <PaymentRequestCard
+              key={payment.id}
+              payment={payment}
               currency={currency}
-              isConfirming={req.to_user === currentUserId}
-              onReview={req.to_user === currentUserId ? () => handleOpenReviewPanel(req) : undefined}
+              isConfirming={payment.creditor_id === currentUserId}
             />
           )}
           emptyState={
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <Typography variant="body1" color="text.secondary">
-                No pending settlement requests.
+                No pending payment requests.
               </Typography>
             </Box>
           }
@@ -354,22 +326,6 @@ export function SettlementCards({
         />
       )}
 
-      {/* Settlement Review Panel */}
-      {reviewSettlement && (
-        <SettlementReviewPanel
-          open={reviewPanelOpen}
-          onClose={() => setReviewPanelOpen(false)}
-          onSuccess={handleReviewSuccess}
-          settlement={reviewSettlement}
-          fromUserInfo={userMap.get(reviewSettlement.from_user)}
-          toUserInfo={userMap.get(reviewSettlement.to_user)}
-          currency={currency}
-          eventId={eventId}
-          currentUserId={currentUserId}
-        />
-      )}
-
-      {/* Breakdown drawer */}
       <MobileStatsBreakdownDrawer
         open={breakdownDrawerOpen}
         onClose={() => setBreakdownDrawerOpen(false)}
@@ -457,29 +413,28 @@ function TabButton({
 // Settlement Request Card
 // ---------------------------------------------------------------------------
 
-function SettlementRequestCard({
-  settlement,
+function PaymentRequestCard({
+  payment,
   currency,
   isConfirming,
-  onReview,
 }: {
-  settlement: SettlementListItem;
+  payment: Payment;
   currency: string;
   isConfirming: boolean;
-  onReview?: () => void;
 }) {
   const theme = useTheme();
-  const otherUserId = isConfirming ? settlement.from_user : settlement.to_user;
+  const otherUserId = isConfirming ? payment.debtor_id : payment.creditor_id;
   const user = useUser(otherUserId);
   const displayName = user
     ? `${user.firstName} ${user.lastName}`.trim() || user.email
     : otherUserId.slice(0, 8);
 
-  const time = new Date(settlement.created_at).toLocaleDateString('en-US', {
+  const time = new Date(payment.created_at).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
 
+  const remainingAmount = payment.amount_cents - payment.amount_paid_cents;
   const accentColor = isConfirming ? theme.palette.warning.main : theme.palette.primary.main;
   const icon = isConfirming ? <GavelIcon sx={{ fontSize: 18 }} /> : <HourglassIcon sx={{ fontSize: 18 }} />;
 
@@ -487,7 +442,6 @@ function SettlementRequestCard({
     <MobileFeedCard
       accentColor={accentColor}
       icon={icon}
-      onClick={isConfirming ? onReview : undefined}
       rightContent={
         <Box>
           <Typography
@@ -498,7 +452,7 @@ function SettlementRequestCard({
               lineHeight: 1.2,
             }}
           >
-            {formatAmount(settlement.amount_cents, currency)}
+            {formatAmount(remainingAmount, currency)}
           </Typography>
           <Typography
             sx={{
@@ -521,52 +475,22 @@ function SettlementRequestCard({
         }}
       >
         <Box component="span" color={accentColor}>
-          {isConfirming ? 'Review settlement' : 'Awaiting verdict'}
+          {isConfirming ? 'Confirm payment' : 'Awaiting confirmation'}
         </Box>
         {' — '}
         <Box component="span" color="text.primary">
           {displayName}
         </Box>
       </Typography>
-
-      {isConfirming && onReview && (
-        <Box
-          onClick={(e) => {
-            e.stopPropagation();
-            onReview();
-          }}
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            px: 1,
-            py: 0.5,
-            borderRadius: 1,
-            bgcolor: alpha(accentColor, 0.15),
-            border: '1px solid',
-            borderColor: alpha(accentColor, 0.3),
-            cursor: 'pointer',
-            '&:hover': { bgcolor: alpha(accentColor, 0.2) },
-            '&:active': { transform: 'scale(0.97)' },
-            transition: 'all 0.15s ease',
-            mt: 0.25,
-          }}
-        >
-          <ConfirmIcon sx={{ fontSize: 14, color: accentColor }} />
-          <Typography
-            sx={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: accentColor,
-              textTransform: 'uppercase',
-              letterSpacing: '0.03em',
-              lineHeight: 1,
-            }}
-          >
-            Review
-          </Typography>
-        </Box>
-      )}
+      <Typography
+        sx={{
+          fontSize: '0.7rem',
+          color: 'text.secondary',
+          textTransform: 'capitalize',
+        }}
+      >
+        {payment.reason}
+      </Typography>
     </MobileFeedCard>
   );
 }
@@ -641,20 +565,20 @@ function TransactionHistoryList({
       }
 
       for (const payment of rel.payments) {
-        const isOutgoing = payment.from_user === currentUserId;
+        const isOutgoing = payment.debtor_id === currentUserId;
         rawItems.push({
           tx: {
             id: payment.id || `payment-${idx++}`,
             type: 'payment',
-            date: new Date(payment.recorded_at),
+            date: new Date(payment.created_at),
             amountCents: payment.amount_cents,
             counterpartyUserId: rel.userId,
             counterpartyName,
             counterpartyInitial,
-            note: payment.description || undefined,
+            note: payment.reason || undefined,
             isOutgoing,
           },
-          date: new Date(payment.recorded_at),
+          date: new Date(payment.created_at),
         });
       }
     }

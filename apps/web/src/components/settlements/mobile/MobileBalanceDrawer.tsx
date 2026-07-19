@@ -9,12 +9,14 @@ import {
 import {
   Receipt as ReceiptIcon,
   Handshake as HandshakeIcon,
+  Undo as UndoIcon,
 } from '@mui/icons-material';
 
 import { MobileDrawer } from '../../shared/MobileDrawer';
 import { useUserCache } from '../../../hooks/useUserCache';
 import type { BreakdownItem } from './MobileStatsBreakdownDrawer';
 import { MobileSettleStepper } from './MobileSettleStepper';
+import type { Payment } from '../../../api/payments.api';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -51,6 +53,7 @@ interface MobileBalanceDrawerProps {
   fullScreen?: boolean;
   eventId: string;
   currentUserId: string;
+  payment?: Payment | null;
 }
 
 const directionConfig: Record<DrawerDirection, {
@@ -100,6 +103,7 @@ export function MobileBalanceDrawer({
   fullScreen,
   eventId,
   currentUserId,
+  payment,
 }: MobileBalanceDrawerProps) {
   const theme = useTheme();
   const { getUser } = useUserCache();
@@ -182,9 +186,11 @@ export function MobileBalanceDrawer({
                 const youPaid: typeof resolvedBreakdownItems = [];
                 const theyPaid: typeof resolvedBreakdownItems = [];
                 const settlements: typeof resolvedBreakdownItems = [];
-
+                const reimbursements: typeof resolvedBreakdownItems = [];
                 for (const item of resolvedBreakdownItems) {
-                  if (item.type === 'settlement') {
+                  if (item.type === 'reimbursement') {
+                    reimbursements.push(item);
+                  } else if (item.type === 'settlement') {
                     settlements.push(item);
                   } else if (direction === 'incoming') {
                     if (item.amount >= 0) {
@@ -208,6 +214,7 @@ export function MobileBalanceDrawer({
                   if (youPaid.length > 0) groups.push({ title: 'You Paid', items: youPaid });
                 }
                 if (settlements.length > 0) groups.push({ title: 'Settlements', items: settlements });
+                if (reimbursements.length > 0) groups.push({ title: 'Reimbursements', items: reimbursements });
 
                 return groups.map((section, si) => (
                   <React.Fragment key={section.title}>
@@ -223,6 +230,8 @@ export function MobileBalanceDrawer({
                     {section.items.map((item, idx) => {
                       const isPositive = item.amount >= 0;
                       const isSettlement = item.type === 'settlement';
+                      const isReimbursement = item.type === 'reimbursement';
+                      const isOutgoing = item.direction === 'outgoing';
                       return (
                         <Box
                           key={`${item.label}-${idx}`}
@@ -231,16 +240,18 @@ export function MobileBalanceDrawer({
                             borderBottom: idx < section.items.length - 1 ? `1px solid ${alpha('#fff', 0.05)}` : 'none',
                           }}
                         >
-                          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isSettlement ? alpha('#F59E0B', 0.12) : alpha(amountColor, 0.12), flexShrink: 0 }}>
+                          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isSettlement ? alpha('#F59E0B', 0.12) : isReimbursement ? alpha('#8b5cf6', 0.12) : alpha(amountColor, 0.12), flexShrink: 0 }}>
                             {isSettlement ? (
                               <HandshakeIcon sx={{ fontSize: 14, color: alpha('#F59E0B', 0.7) }} />
+                            ) : isReimbursement ? (
+                              <UndoIcon sx={{ fontSize: 14, color: alpha('#8b5cf6', 0.7) }} />
                             ) : (
                               <ReceiptIcon sx={{ fontSize: 14, color: amountColor }} />
                             )}
                           </Box>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.primary', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {item.label}
+                              {isReimbursement && isOutgoing ? 'You owe for deleted expense' : item.label}
                             </Typography>
                             <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.1 }}>
                               {item.created_at && (
@@ -253,10 +264,15 @@ export function MobileBalanceDrawer({
                                   · Settlement
                                 </Typography>
                               )}
+                              {isReimbursement && (
+                                <Typography component="span" sx={{ fontSize: '0.55rem', fontWeight: 600, color: alpha('#8b5cf6', 0.6), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  · Reimbursement
+                                </Typography>
+                              )}
                             </Typography>
                           </Box>
                           <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                            {isPositive ? '' : '−'}{formatAmount(item.amount, currency)}
+                            {isReimbursement && isOutgoing ? '−' : (isPositive ? '' : '−')}{formatAmount(item.amount, currency)}
                           </Typography>
                         </Box>
                       );
@@ -303,6 +319,8 @@ export function MobileBalanceDrawer({
             amountColor={amountColor}
             darkColor={darkColor}
             displayName={displayName}
+            breakdownItems={resolvedBreakdownItems}
+            payment={payment}
             onComplete={() => setView('breakdown')}
             onCancel={() => setView('breakdown')}
           />

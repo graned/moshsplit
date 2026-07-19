@@ -1,6 +1,6 @@
 import { Drawer, Box, Typography, IconButton, alpha, useTheme, useMediaQuery, Divider } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { RelationshipSummary } from '../shared/SettlementCards';
+import { RelationshipSummary } from '../shared/PaymentCards';
 import { ExpenseBreakdown, SettlementBreakdown, PaymentBreakdown } from '../../../api/balances.api';
 import {
   LocalBar as BeerIcon,
@@ -160,7 +160,7 @@ function PaymentRow({
   payment: PaymentBreakdown;
   currency: string;
 }) {
-  const recordedDate = new Date(payment.recorded_at).toLocaleDateString('en-US', {
+  const recordedDate = new Date(payment.created_at).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
@@ -191,7 +191,7 @@ function PaymentRow({
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-            {payment.description || 'Payment'}
+            {payment.reason || 'Payment'}
           </Typography>
         </Box>
         <Typography variant="caption" color="text.secondary">

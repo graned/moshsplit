@@ -293,29 +293,26 @@ pub async fn external_summary(
         .external_expense_breakdown(user_id)
         .map_err(ServiceError::from)?;
 
-    // Step 5 — get the full balance row for compute_balance (paid/owes/payments/settlements)
+    // Step 5 — get the full balance row for compute_balance (paid/owes/payments)
     let balance_row = balance_repo
         .user_balance(event_id, user_id)
         .map_err(ServiceError::from)?;
 
-    let (paid_cents, owes_cents, payments_out, payments_in, settlements_out, settlements_in) =
-        match balance_row {
-            Some(row) => (
-                row.paid_cents,
-                row.owes_cents,
-                row.payments_out_cents,
-                row.payments_in_cents,
-                row.settlements_out_cents,
-                row.settlements_in_cents,
-            ),
-            None => (0, 0, 0, 0, 0, 0),
-        };
+    let (paid_cents, owes_cents, payments_out, payments_in) = match balance_row {
+        Some(row) => (
+            row.paid_cents,
+            row.owes_cents,
+            row.payments_out_cents,
+            row.payments_in_cents,
+        ),
+        None => (0, 0, 0, 0),
+    };
 
     let total_balance_cents = moshsplit_balance_engine::compute_balance(
         paid_cents,
         owes_cents,
-        payments_out + settlements_out,
-        payments_in + settlements_in,
+        payments_out,
+        payments_in,
     );
 
     // Step 6 — build per-expense items

@@ -66,7 +66,7 @@ export function MobileExpenseUpdatedCard({
     ? EXPENSE_TYPE_LABELS[activity.expense_type] || activity.expense_type
     : null;
   const categoryColor = activity.expense_type
-    ? EXPENSE_TYPE_COLORS[activity.expense_type]
+    ? (EXPENSE_TYPE_COLORS[activity.expense_type] ?? theme.palette.primary.main)
     : theme.palette.primary.main;
 
   return (

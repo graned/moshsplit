@@ -1,5 +1,6 @@
 use crate::schema_enums::{
-    EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType,
+    DeletionStatus, EventImageType, EventMemberRole, EventStatus, ExpenseType, PaymentStatus,
+    PaymentTransactionStatus, SplitType,
 };
 
 impl std::fmt::Display for EventStatus {
@@ -68,30 +69,6 @@ impl std::str::FromStr for SplitType {
     }
 }
 
-impl std::fmt::Display for SettlementStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Pending => write!(f, "pending"),
-            Self::Confirmed => write!(f, "confirmed"),
-            Self::Disputed => write!(f, "disputed"),
-            Self::Rejected => write!(f, "rejected"),
-        }
-    }
-}
-
-impl std::str::FromStr for SettlementStatus {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "pending" => Ok(Self::Pending),
-            "confirmed" => Ok(Self::Confirmed),
-            "disputed" => Ok(Self::Disputed),
-            "rejected" => Ok(Self::Rejected),
-            _ => Err(format!("invalid settlement status: {s}")),
-        }
-    }
-}
-
 impl std::fmt::Display for ExpenseType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -140,6 +117,74 @@ impl std::str::FromStr for EventImageType {
             "banner" => Ok(Self::Banner),
             "gallery" => Ok(Self::Gallery),
             _ => Err(format!("invalid image type: {s}")),
+        }
+    }
+}
+
+impl std::fmt::Display for PaymentStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Open => write!(f, "open"),
+            Self::Ongoing => write!(f, "ongoing"),
+            Self::Completed => write!(f, "completed"),
+            Self::Cancelled => write!(f, "cancelled"),
+        }
+    }
+}
+
+impl std::str::FromStr for PaymentStatus {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "open" => Ok(Self::Open),
+            "ongoing" => Ok(Self::Ongoing),
+            "completed" => Ok(Self::Completed),
+            "cancelled" => Ok(Self::Cancelled),
+            _ => Err(format!("invalid payment status: {s}")),
+        }
+    }
+}
+
+impl std::fmt::Display for PaymentTransactionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Pending => write!(f, "pending"),
+            Self::Confirmed => write!(f, "confirmed"),
+            Self::Rejected => write!(f, "rejected"),
+        }
+    }
+}
+
+impl std::str::FromStr for PaymentTransactionStatus {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pending" => Ok(Self::Pending),
+            "confirmed" => Ok(Self::Confirmed),
+            "rejected" => Ok(Self::Rejected),
+            _ => Err(format!("invalid payment transaction status: {s}")),
+        }
+    }
+}
+
+impl std::fmt::Display for DeletionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => write!(f, "none"),
+            Self::PendingDeletion => write!(f, "pending_deletion"),
+            Self::Deleted => write!(f, "deleted"),
+        }
+    }
+}
+
+impl std::str::FromStr for DeletionStatus {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "none" => Ok(Self::None),
+            "pending_deletion" => Ok(Self::PendingDeletion),
+            "deleted" => Ok(Self::Deleted),
+            _ => Err(format!("invalid deletion status: {s}")),
         }
     }
 }

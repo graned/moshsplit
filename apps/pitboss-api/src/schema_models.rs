@@ -4,9 +4,6 @@
 // ---------------------------------------------------------------------------
 
 use crate::schema::app;
-use crate::schema_enums::{
-    EventImageType, EventMemberRole, EventStatus, ExpenseType, SettlementStatus, SplitType,
-};
 use diesel::prelude::*;
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -67,6 +64,7 @@ pub struct Expense {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub current_version_id: Option<uuid::Uuid>,
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub deletion_status: Option<String>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]
@@ -101,34 +99,45 @@ pub struct ExpenseVersionShare {
 pub struct Payment {
     pub id: uuid::Uuid,
     pub event_id: uuid::Uuid,
-    pub from_user: uuid::Uuid,
-    pub to_user: uuid::Uuid,
+    pub creditor_id: uuid::Uuid,
+    pub debtor_id: uuid::Uuid,
+    pub expense_id: Option<uuid::Uuid>,
     pub amount_cents: i32,
-    pub currency: String,
-    pub description: Option<String>,
-    pub payment_method: Option<String>,
-    pub external_ref: Option<String>,
-    pub recorded_by: uuid::Uuid,
-    pub recorded_at: chrono::DateTime<chrono::Utc>,
+    pub amount_paid_cents: i32,
+    pub reason: String,
+    pub status: crate::schema_enums::PaymentStatus,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable)]
-#[diesel(table_name = app::settlement)]
-pub struct Settlement {
+#[diesel(table_name = app::credit)]
+pub struct Credit {
     pub id: uuid::Uuid,
     pub event_id: uuid::Uuid,
-    pub from_user: uuid::Uuid,
-    pub to_user: uuid::Uuid,
+    pub creditor_id: uuid::Uuid,
+    pub debtor_id: uuid::Uuid,
     pub amount_cents: i32,
-    pub status: crate::schema_enums::SettlementStatus,
-    pub settled_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub created_by: uuid::Uuid,
+    pub amount_used_cents: i32,
+    pub source_expense_id: Option<uuid::Uuid>,
+    pub status: crate::schema_enums::CreditStatus,
+    pub version: i32,
+    pub parent_credit_id: Option<uuid::Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    pub note: Option<String>,
-    pub proof_url: Option<String>,
-    pub reviewed_by: Option<uuid::Uuid>,
-    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub rejection_note: Option<String>,
-    pub expense_id: Option<uuid::Uuid>,
-    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Queryable, Insertable)]
+#[diesel(table_name = app::payment_transaction)]
+pub struct PaymentTransaction {
+    pub id: uuid::Uuid,
+    pub payment_id: uuid::Uuid,
+    pub amount_cents: i32,
+    pub status: crate::schema_enums::PaymentTransactionStatus,
+    pub proposed_by: uuid::Uuid,
+    pub confirmed_by: Option<uuid::Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub confirmed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub payment_method: String,
+    pub credit_id: Option<uuid::Uuid>,
 }

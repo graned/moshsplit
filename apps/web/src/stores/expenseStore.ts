@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { queryClient } from '../main';
-import { expensesApi, Expense, CreateExpenseRequest, UpdateExpenseRequest } from '../api/expenses.api';
+import {
+  expensesApi,
+  Expense,
+  CreateExpenseRequest,
+  UpdateExpenseRequest,
+  DeletionRequiresChoiceResponse,
+} from '../api/expenses.api';
 
 interface ExpenseState {
   isCreating: boolean;
@@ -9,7 +15,7 @@ interface ExpenseState {
   error: string | null;
   createExpense: (eventId: string, data: CreateExpenseRequest) => Promise<Expense>;
   updateExpense: (eventId: string, expenseId: string, data: UpdateExpenseRequest) => Promise<Expense>;
-  deleteExpense: (eventId: string, expenseId: string) => Promise<void>;
+  deleteExpense: (eventId: string, expenseId: string) => Promise<DeletionRequiresChoiceResponse | null>;
   clearError: () => void;
 }
 
@@ -68,18 +74,21 @@ export const useExpenseStore = create<ExpenseState>((set) => ({
   deleteExpense: async (eventId, expenseId) => {
     set({ isDeleting: true, error: null });
     try {
-      await expensesApi.delete(eventId, expenseId);
-      queryClient.invalidateQueries({ queryKey: ['expenses-infinite', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
-      queryClient.refetchQueries({ queryKey: ['user-balance', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
-      queryClient.refetchQueries({ queryKey: ['explain-balance', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
-      queryClient.invalidateQueries({ queryKey: ['event-stats', eventId] });
+      const result = await expensesApi.delete(eventId, expenseId);
+      if (!result) {
+        queryClient.invalidateQueries({ queryKey: ['expenses-infinite', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['user-balance', eventId] });
+        queryClient.refetchQueries({ queryKey: ['user-balance', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['explain-balance', eventId] });
+        queryClient.refetchQueries({ queryKey: ['explain-balance', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['settlements-incoming', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['settlements-outgoing', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['settlements-requests-count', eventId] });
+        queryClient.invalidateQueries({ queryKey: ['event-stats', eventId] });
+      }
       set({ isDeleting: false });
+      return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete expense';
       set({ error: message, isDeleting: false });

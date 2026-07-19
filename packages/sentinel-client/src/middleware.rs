@@ -6,10 +6,7 @@
 use axum::{
     body::Body,
     extract::Request,
-    http::{
-        header::AUTHORIZATION,
-        StatusCode,
-    },
+    http::{header::AUTHORIZATION, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
@@ -28,7 +25,7 @@ pub struct AuthErrorResponse {
 }
 
 /// Auth middleware for Axum.
-/// 
+///
 /// Extracts the Bearer token from the Authorization header,
 /// validates it against Sentinel, and stores the AuthenticatedUser
 /// in request extensions for downstream handlers.
@@ -60,10 +57,12 @@ impl AuthMiddleware {
             Ok(user) => {
                 // Store authenticated user in extensions
                 request.extensions_mut().insert(user);
-                let user_id = request.extensions().get::<AuthenticatedUser>()
-            .map(|u| u.user_id.as_str())
-            .unwrap_or("unknown");
-        tracing::debug!("Authenticated user: {}", user_id);
+                let user_id = request
+                    .extensions()
+                    .get::<AuthenticatedUser>()
+                    .map(|u| u.user_id.as_str())
+                    .unwrap_or("unknown");
+                tracing::debug!("Authenticated user: {}", user_id);
                 next.run(request).await
             }
             Err(e) => {
@@ -115,7 +114,9 @@ fn error_response(status: StatusCode, code: &str, message: &str) -> Response {
 /// Map SentinelError to HTTP status.
 fn status_from_error(error: &SentinelError) -> StatusCode {
     match error {
-        SentinelError::Api { status, .. } => StatusCode::from_u16(*status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+        SentinelError::Api { status, .. } => {
+            StatusCode::from_u16(*status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+        }
         SentinelError::Network(e) => e.status().unwrap_or(StatusCode::SERVICE_UNAVAILABLE),
         SentinelError::InvalidToken(_) => StatusCode::UNAUTHORIZED,
         SentinelError::MissingToken => StatusCode::UNAUTHORIZED,
@@ -164,7 +165,7 @@ mod tests {
     fn test_middleware_builder() {
         let sentinel = SentinelClient::default().unwrap();
         let middleware = AuthMiddleware::new(sentinel);
-        
+
         // Just verify it constructs correctly
         assert!(std::mem::size_of_val(&middleware) > 0);
     }

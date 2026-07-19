@@ -189,6 +189,10 @@ export function MobileFeedList({
 
       const item = displayItem.item;
 
+      if (!item) {
+        return null;
+      }
+
       if (isExpenseActivity(item)) {
         const paidBy = getUser(item.paid_by);
 

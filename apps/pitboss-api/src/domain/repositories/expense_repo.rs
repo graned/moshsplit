@@ -29,6 +29,7 @@ pub struct ExpenseListItem {
     pub created_at: DateTime<chrono::Utc>,
     pub current_version_id: Option<Uuid>,
     pub deleted_at: Option<DateTime<chrono::Utc>>,
+    pub deletion_status: Option<String>,
     pub version_number: Option<i32>,
     pub title: Option<String>,
     pub amount_cents: Option<i32>,
@@ -54,6 +55,8 @@ struct ExpenseListItemRow {
     current_version_id: Option<Uuid>,
     #[diesel(sql_type = Nullable<Timestamptz>)]
     deleted_at: Option<DateTime<chrono::Utc>>,
+    #[diesel(sql_type = Nullable<Text>)]
+    deletion_status: Option<String>,
     #[diesel(sql_type = Nullable<Integer>)]
     version_number: Option<i32>,
     #[diesel(sql_type = Nullable<Text>)]
@@ -81,6 +84,7 @@ impl ExpenseListItemRow {
             created_at: self.created_at,
             current_version_id: self.current_version_id,
             deleted_at: self.deleted_at,
+            deletion_status: self.deletion_status,
             version_number: self.version_number,
             title: self.title,
             amount_cents: self.amount_cents,
@@ -118,6 +122,7 @@ impl ExpenseRepository {
                 e.created_at,
                 e.current_version_id,
                 e.deleted_at,
+                e.deletion_status,
                 ev.version_number,
                 ev.title,
                 ev.amount_cents,
@@ -187,6 +192,7 @@ impl ExpenseRepository {
                 e.created_at,
                 e.current_version_id,
                 e.deleted_at,
+                e.deletion_status,
                 ev.version_number,
                 ev.title,
                 ev.amount_cents,
@@ -224,6 +230,22 @@ impl ExpenseRepository {
         let mut conn = self.db_client.get_conn()?;
         let affected = diesel::update(expense::table.filter(expense::id.eq(expense_id)))
             .set(expense::deleted_at.eq(deleted_at))
+            .execute(&mut conn)
+            .map_err(RepositoryError::from)?;
+        Ok(affected)
+    }
+
+    /// Set the deletion_status on an expense (e.g., "pending_deletion" or null to clear).
+    pub fn set_deletion_status(
+        &self,
+        expense_id: Uuid,
+        status: Option<String>,
+    ) -> Result<usize, RepositoryError> {
+        use diesel::ExpressionMethods;
+
+        let mut conn = self.db_client.get_conn()?;
+        let affected = diesel::update(expense::table.filter(expense::id.eq(expense_id)))
+            .set(expense::deletion_status.eq(status))
             .execute(&mut conn)
             .map_err(RepositoryError::from)?;
         Ok(affected)
@@ -302,6 +324,31 @@ impl ExpenseRepository {
 
         Ok(result.map(|r| r.id))
     }
+
+    /// Find all active (non-deleted) expenses in an event with paid_by and version info.
+    /// Used for reimbursement netting to match expenses against reimbursements.
+    pub fn find_all_active_for_netting(
+        &self,
+        event_id: Uuid,
+    ) -> Result<Vec<ActiveExpenseForNetting>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let sql = r#"
+            SELECT e.id, ev.paid_by, e.current_version_id, e.created_at
+            FROM app.expense e
+            LEFT JOIN app.expense_version ev ON ev.id = e.current_version_id
+            WHERE e.event_id = $1
+              AND e.deleted_at IS NULL
+            ORDER BY e.created_at ASC
+        "#;
+
+        let results = diesel::sql_query(sql)
+            .bind::<diesel::sql_types::Uuid, _>(event_id)
+            .load::<ActiveExpenseForNetting>(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
+    }
 }
 
 /// Helper row for simple expense ID queries.
@@ -309,4 +356,17 @@ impl ExpenseRepository {
 struct ExpenseIdRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
+}
+
+/// Lightweight row for reimbursement netting: expense ID, payer, version, creation time.
+#[derive(Debug, Clone, QueryableByName)]
+pub struct ActiveExpenseForNetting {
+    #[diesel(sql_type = DUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = Nullable<DUuid>)]
+    pub paid_by: Option<Uuid>,
+    #[diesel(sql_type = Nullable<DUuid>)]
+    pub current_version_id: Option<Uuid>,
+    #[diesel(sql_type = Timestamptz)]
+    pub created_at: DateTime<chrono::Utc>,
 }

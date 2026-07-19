@@ -1,6 +1,6 @@
 // Balances Shared
-export { SettlementCards } from './shared/SettlementCards';
-export type { RelationshipSummary } from './shared/SettlementCards';
+export { PaymentCards } from './shared/PaymentCards';
+export type { RelationshipSummary } from './shared/PaymentCards';
 
 // Balances Desktop
 export { LiveIntelPanel } from './desktop/LiveIntelPanel';

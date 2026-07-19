@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc};
 use moshsplit_balance_engine::{compute_balance, simplified_debts, UserBalance};
 use uuid::Uuid;
 
@@ -10,12 +9,9 @@ use crate::domain::repositories::balance_repo::{BalanceRepository, UserBalanceRo
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::balance_dtos::{
-    BalancesResponse, DebtTransfer, ExpenseBreakdown, ExplainBalanceBetweenResponse,
-    ExplainBalanceResponse, PaymentBreakdown, SettlementBreakdown, SimplifiedDebtsResponse,
-    UserBalanceItem, UserBalanceResponse,
-};
-use crate::infrastructure::http::api::dtos::settlement_dtos::{
-    IncomingBalanceItem, IncomingBalancesResponse, OutgoingBalanceItem, OutgoingBalancesResponse,
+    BalancesResponse, BalancesSection, CategoryGrossTotals, CategoryTotals, CounterpartyBalance,
+    DebtTransfer, ExpenseBreakdown, ExplainBalanceBetweenResponse, ExplainBalanceResponse,
+    PaymentBreakdown, SimplifiedDebtsResponse, TotalsSection, UserBalanceItem, UserBalanceResponse,
 };
 
 pub struct BalanceService {
@@ -31,17 +27,15 @@ impl BalanceService {
         }
     }
 
-    /// Compute the net balance for a user balance row.
     fn calculate_balance(row: &UserBalanceRow) -> i32 {
         compute_balance(
             row.paid_cents,
             row.owes_cents,
-            row.payments_out_cents + row.settlements_out_cents,
-            row.payments_in_cents + row.settlements_in_cents,
+            row.payments_out_cents,
+            row.payments_in_cents,
         )
     }
 
-    /// Get all user balances for an event.
     pub fn all_balances(&self, event_id: Uuid) -> Result<BalancesResponse, ServiceError> {
         self.event_repo
             .find_by_id(event_id)?
@@ -62,7 +56,6 @@ impl BalanceService {
         Ok(BalancesResponse { balances })
     }
 
-    /// Get balance for a single user.
     pub fn user_balance(
         &self,
         event_id: Uuid,
@@ -87,7 +80,6 @@ impl BalanceService {
         })
     }
 
-    /// Compute the minimal set of debt transfers using a greedy algorithm.
     pub fn simplified_debts(
         &self,
         event_id: Uuid,
@@ -124,7 +116,6 @@ impl BalanceService {
         })
     }
 
-    /// Explain a single user's balance in detail.
     pub fn explain_balance(
         &self,
         event_id: Uuid,
@@ -144,15 +135,24 @@ impl BalanceService {
         let expense_rows = self.balance_repo.expense_breakdown(event_id, user_id)?;
         let expenses: Vec<ExpenseBreakdown> = expense_rows
             .into_iter()
-            .map(|r| ExpenseBreakdown {
-                title: r.title,
-                amount_cents: r.amount_cents,
-                paid_cents: r.paid_cents,
-                share_cents: r.share_cents,
-                paid_by: r.paid_by,
-                expense_type: r.expense_type,
-                participants: r.participants,
-                created_at: r.created_at,
+            .map(|r| {
+                let direction = if r.paid_by == user_id {
+                    "incoming"
+                } else {
+                    "outgoing"
+                };
+                ExpenseBreakdown {
+                    expense_id: r.expense_id,
+                    title: r.title,
+                    amount_cents: r.amount_cents,
+                    paid_cents: r.paid_cents,
+                    share_cents: r.share_cents,
+                    paid_by: r.paid_by,
+                    expense_type: r.expense_type,
+                    participants: r.participants,
+                    created_at: r.created_at,
+                    direction: direction.to_string(),
+                }
             })
             .collect();
 
@@ -161,29 +161,18 @@ impl BalanceService {
             .into_iter()
             .map(|r| PaymentBreakdown {
                 id: r.id,
-                from_user: r.from_user,
-                to_user: r.to_user,
+                creditor_id: r.to_user,
+                debtor_id: r.from_user,
                 amount_cents: r.amount_cents,
-                recorded_at: r.recorded_at,
-                description: r.description,
-                payment_method: r.payment_method,
+                amount_paid_cents: r.amount_cents,
+                reason: r.description.unwrap_or_default(),
+                status: "confirmed".to_string(),
+                created_at: r.recorded_at,
             })
             .collect();
 
-        let settlement_rows = self.balance_repo.settlement_breakdown(event_id, user_id)?;
-        let settlements: Vec<SettlementBreakdown> = settlement_rows
-            .into_iter()
-            .map(|r| SettlementBreakdown {
-                id: r.id,
-                from_user: r.from_user,
-                to_user: r.to_user,
-                amount_cents: r.amount_cents,
-                status: r.status,
-                created_at: r.created_at,
-                settled_at: r.settled_at,
-                note: r.note,
-            })
-            .collect();
+        let totals = calculate_totals(&expenses, &payments, user_id);
+        let balances = calculate_balances(&expenses, &payments, user_id);
 
         Ok(ExplainBalanceResponse {
             user_id: balance.user_id,
@@ -192,11 +181,11 @@ impl BalanceService {
             balance_cents: Self::calculate_balance(&balance),
             expenses,
             payments,
-            settlements,
+            totals,
+            balances,
         })
     }
 
-    /// Get expense breakdown between two users.
     pub fn explain_balance_between(
         &self,
         event_id: Uuid,
@@ -211,15 +200,24 @@ impl BalanceService {
             .balance_repo
             .expense_breakdown_between(event_id, user_id, counterparty_id)?
             .into_iter()
-            .map(|r| ExpenseBreakdown {
-                title: r.title,
-                amount_cents: r.amount_cents,
-                paid_cents: r.paid_cents,
-                share_cents: r.share_cents,
-                paid_by: r.paid_by,
-                expense_type: r.expense_type,
-                participants: r.participants,
-                created_at: r.created_at,
+            .map(|r| {
+                let direction = if r.paid_by == user_id {
+                    "incoming"
+                } else {
+                    "outgoing"
+                };
+                ExpenseBreakdown {
+                    expense_id: r.expense_id,
+                    title: r.title,
+                    amount_cents: r.amount_cents,
+                    paid_cents: r.paid_cents,
+                    share_cents: r.share_cents,
+                    paid_by: r.paid_by,
+                    expense_type: r.expense_type,
+                    participants: r.participants,
+                    created_at: r.created_at,
+                    direction: direction.to_string(),
+                }
             })
             .collect();
 
@@ -230,7 +228,6 @@ impl BalanceService {
         })
     }
 
-    /// Recalculate a single user's balance (convenience wrapper for cache invalidation).
     pub fn recalculate_user_balance(
         &self,
         event_id: Uuid,
@@ -239,7 +236,6 @@ impl BalanceService {
         self.user_balance(event_id, user_id)
     }
 
-    /// Recalculate all event balances (convenience wrapper for cache invalidation).
     pub fn recalculate_event_balances(
         &self,
         event_id: Uuid,
@@ -247,124 +243,127 @@ impl BalanceService {
         self.all_balances(event_id)
     }
 
-    /// Get incoming balances — users who owe the current user money.
     pub fn incoming_balances(
         &self,
         event_id: Uuid,
         user_id: Uuid,
-    ) -> Result<IncomingBalancesResponse, ServiceError> {
-        self.event_repo
-            .find_by_id(event_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
-
-        let explanation = self.explain_balance(event_id, user_id)?;
-
-        let mut balances: HashMap<Uuid, i32> = HashMap::new();
-        let mut latest_timestamps: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
-
-        for expense in &explanation.expenses {
-            let is_payer = expense.paid_by == user_id;
-            let share_cents = expense.share_cents;
-
-            if is_payer {
-                for participant in &expense.participants {
-                    if *participant != user_id {
-                        *balances.entry(*participant).or_insert(0) += share_cents;
-                        latest_timestamps
-                            .entry(*participant)
-                            .and_modify(|t| *t = (*t).max(expense.created_at))
-                            .or_insert(expense.created_at);
-                    }
-                }
-            } else {
-                // Non-payer owes the payer their share — negative balance
-                *balances.entry(expense.paid_by).or_insert(0) -= share_cents;
-                latest_timestamps
-                    .entry(expense.paid_by)
-                    .and_modify(|t| *t = (*t).max(expense.created_at))
-                    .or_insert(expense.created_at);
-            }
-        }
-
-        let incoming: Vec<(Uuid, i32)> = balances
-            .into_iter()
-            .filter(|(_, balance)| *balance > 0)
-            .map(|(user_id, balance)| (user_id, balance))
-            .collect();
-
-        let total_cents: i32 = incoming.iter().map(|(_, b)| b).sum();
-
-        let items: Vec<IncomingBalanceItem> = incoming
-            .into_iter()
-            .map(|(user_id, amount_cents)| IncomingBalanceItem {
-                user_id,
-                amount_cents,
-                created_at: latest_timestamps
-                    .remove(&user_id)
-                    .unwrap_or_else(chrono::Utc::now),
-            })
-            .collect();
-
-        Ok(IncomingBalancesResponse { items, total_cents })
+    ) -> Result<ExplainBalanceResponse, ServiceError> {
+        self.explain_balance(event_id, user_id)
     }
 
-    /// Get outgoing balances — users the current user owes money to.
     pub fn outgoing_balances(
         &self,
         event_id: Uuid,
         user_id: Uuid,
-    ) -> Result<OutgoingBalancesResponse, ServiceError> {
-        self.event_repo
-            .find_by_id(event_id)?
-            .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
+    ) -> Result<ExplainBalanceResponse, ServiceError> {
+        self.explain_balance(event_id, user_id)
+    }
+}
 
-        let explanation = self.explain_balance(event_id, user_id)?;
+fn calculate_totals(
+    expenses: &[ExpenseBreakdown],
+    payments: &[PaymentBreakdown],
+    user_id: Uuid,
+) -> TotalsSection {
+    let exp_incoming: i32 = expenses
+        .iter()
+        .filter(|e| e.paid_by == user_id && e.direction == "incoming")
+        .map(|e| e.amount_cents - e.share_cents)
+        .sum();
 
-        let mut balances: HashMap<Uuid, i32> = HashMap::new();
-        let mut latest_timestamps: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
+    let exp_outgoing: i32 = expenses
+        .iter()
+        .filter(|e| e.paid_by != user_id && e.direction == "outgoing")
+        .map(|e| e.share_cents)
+        .sum();
 
-        for expense in &explanation.expenses {
-            let is_payer = expense.paid_by == user_id;
-            let share_cents = expense.share_cents;
+    let pay_incoming: i32 = payments
+        .iter()
+        .filter(|p| p.creditor_id == user_id)
+        .map(|p| p.amount_paid_cents)
+        .sum();
 
-            if is_payer {
-                for participant in &expense.participants {
-                    if *participant != user_id {
-                        *balances.entry(*participant).or_insert(0) += share_cents;
-                        latest_timestamps
-                            .entry(*participant)
-                            .and_modify(|t| *t = (*t).max(expense.created_at))
-                            .or_insert(expense.created_at);
-                    }
+    let pay_outgoing: i32 = payments
+        .iter()
+        .filter(|p| p.debtor_id == user_id)
+        .map(|p| p.amount_paid_cents)
+        .sum();
+
+    TotalsSection {
+        expenses: CategoryTotals {
+            gross: CategoryGrossTotals {
+                incoming: exp_incoming,
+                outgoing: exp_outgoing,
+            },
+            net: exp_incoming - exp_outgoing,
+        },
+        payments: CategoryTotals {
+            gross: CategoryGrossTotals {
+                incoming: pay_incoming,
+                outgoing: pay_outgoing,
+            },
+            net: pay_incoming - pay_outgoing,
+        },
+    }
+}
+
+fn calculate_balances(
+    expenses: &[ExpenseBreakdown],
+    payments: &[PaymentBreakdown],
+    user_id: Uuid,
+) -> BalancesSection {
+    let mut by_counterparty: HashMap<Uuid, CounterpartyBalance> = HashMap::new();
+
+    for expense in expenses {
+        if expense.paid_by == user_id {
+            for participant in &expense.participants {
+                if *participant != user_id {
+                    let cp = by_counterparty
+                        .entry(*participant)
+                        .or_insert_with(CounterpartyBalance::default);
+                    cp.expenses.incoming += expense.share_cents;
+                    cp.incoming += expense.share_cents;
                 }
-            } else {
-                *balances.entry(expense.paid_by).or_insert(0) -= share_cents;
-                latest_timestamps
-                    .entry(expense.paid_by)
-                    .and_modify(|t| *t = (*t).max(expense.created_at))
-                    .or_insert(expense.created_at);
             }
+        } else {
+            let cp = by_counterparty
+                .entry(expense.paid_by)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.expenses.outgoing += expense.share_cents;
+            cp.outgoing += expense.share_cents;
         }
+    }
 
-        let outgoing: Vec<(Uuid, i32)> = balances
-            .into_iter()
-            .filter(|(_, balance)| *balance < 0)
-            .map(|(user_id, balance)| (user_id, balance.abs()))
-            .collect();
+    for payment in payments {
+        if payment.creditor_id == user_id {
+            let cp = by_counterparty
+                .entry(payment.debtor_id)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.payments.incoming += payment.amount_paid_cents;
+            cp.incoming += payment.amount_paid_cents;
+        } else if payment.debtor_id == user_id {
+            let cp = by_counterparty
+                .entry(payment.creditor_id)
+                .or_insert_with(CounterpartyBalance::default);
+            cp.payments.outgoing += payment.amount_paid_cents;
+            cp.outgoing += payment.amount_paid_cents;
+        }
+    }
 
-        let total_cents: i32 = outgoing.iter().map(|(_, b)| b).sum();
+    for cp in by_counterparty.values_mut() {
+        cp.expenses.net = cp.expenses.incoming - cp.expenses.outgoing;
+        cp.payments.net = cp.payments.incoming - cp.payments.outgoing;
+        cp.net = cp.expenses.net + cp.payments.net;
+    }
 
-        let items: Vec<OutgoingBalanceItem> = outgoing
-            .into_iter()
-            .map(|(user_id, amount_cents)| OutgoingBalanceItem {
-                user_id,
-                amount_cents,
-                created_at: latest_timestamps
-                    .remove(&user_id)
-                    .unwrap_or_else(chrono::Utc::now),
-            })
-            .collect();
+    let total_incoming: i32 = by_counterparty.values().map(|cp| cp.incoming).sum();
+    let total_outgoing: i32 = by_counterparty.values().map(|cp| cp.outgoing).sum();
+    let total_net: i32 = by_counterparty.values().map(|cp| cp.net).sum();
 
-        Ok(OutgoingBalancesResponse { items, total_cents })
+    BalancesSection {
+        net: total_net,
+        incoming: total_incoming,
+        outgoing: total_outgoing,
+        by_counterparty,
     }
 }

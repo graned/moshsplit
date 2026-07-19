@@ -26,12 +26,12 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::infrastructure::http::api::handlers::activity_handlers;
 use crate::infrastructure::http::api::handlers::auth_handlers;
 use crate::infrastructure::http::api::handlers::balance_handlers;
+use crate::infrastructure::http::api::handlers::credit_handlers;
 use crate::infrastructure::http::api::handlers::event_handlers;
 use crate::infrastructure::http::api::handlers::event_image_handlers;
 use crate::infrastructure::http::api::handlers::expense_handlers;
 use crate::infrastructure::http::api::handlers::member_handlers;
 use crate::infrastructure::http::api::handlers::payment_handlers;
-use crate::infrastructure::http::api::handlers::settlement_handlers;
 use crate::infrastructure::http::api::handlers::stats_handlers;
 use crate::infrastructure::http::api::handlers::system_handlers;
 use crate::infrastructure::http::api::handlers::user_handlers;
@@ -149,6 +149,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             delete(expense_handlers::delete_expense),
         )
         .route(
+            "/v1/events/{id}/expenses/{expense_id}/cancel-deletion",
+            post(expense_handlers::cancel_pending_deletion),
+        )
+        .route(
+            "/v1/events/{id}/expenses/{expense_id}/claim-reimbursement",
+            post(expense_handlers::claim_reimbursement),
+        )
+        .route(
             "/v1/events/{id}/expenses/{expense_id}/versions",
             get(expense_handlers::list_expense_versions),
         );
@@ -166,53 +174,61 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/v1/events/{id}/payments/{payment_id}",
             get(payment_handlers::get_payment),
+        )
+        .route(
+            "/v1/events/{id}/payments/{payment_id}/transactions",
+            get(payment_handlers::list_transactions),
+        )
+        .route(
+            "/v1/events/{id}/payments/{payment_id}/transactions",
+            post(payment_handlers::propose_transaction),
+        )
+        .route(
+            "/v1/events/{id}/payments/transactions",
+            get(payment_handlers::list_all_transactions),
+        )
+        .route(
+            "/v1/events/{id}/payments/transactions/{transaction_id}/confirm",
+            post(payment_handlers::confirm_transaction),
+        )
+        .route(
+            "/v1/events/{id}/payments/transactions/{transaction_id}/reject",
+            post(payment_handlers::reject_transaction),
+        )
+        .route(
+            "/v1/events/{id}/payments/incoming",
+            get(payment_handlers::incoming_payments),
+        )
+        .route(
+            "/v1/events/{id}/payments/outgoing",
+            get(payment_handlers::outgoing_payments),
+        )
+        .route(
+            "/v1/events/{id}/payments/balance",
+            get(payment_handlers::balance_summary),
+        )
+        .route(
+            "/v1/events/{id}/payments/breakdown",
+            get(payment_handlers::payment_breakdown),
         );
 
-    // ── Settlements ────────────────────────────────────────────────────
-    let settlement_routes = Router::new()
+    // ── Credits ───────────────────────────────────────────────────────
+    let credit_routes = Router::new()
         .route(
-            "/v1/events/{id}/settlements",
-            get(settlement_handlers::list_settlements),
+            "/v1/events/{id}/credits",
+            post(credit_handlers::create_credit),
         )
         .route(
-            "/v1/events/{id}/settlements",
-            post(settlement_handlers::propose_settlement),
+            "/v1/events/{id}/credits",
+            get(credit_handlers::get_available_credits),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}",
-            patch(settlement_handlers::update_settlement_status),
+            "/v1/events/{id}/credits/summary",
+            get(credit_handlers::get_credit_summary),
         )
         .route(
-            "/v1/events/{id}/settlements/{settlement_id}",
-            get(settlement_handlers::get_settlement),
-        )
-        .route(
-            "/v1/events/{id}/settlements/{settlement_id}/approve",
-            post(settlement_handlers::approve_settlement),
-        )
-        .route(
-            "/v1/events/{id}/settlements/{settlement_id}/reject",
-            post(settlement_handlers::reject_settlement),
-        )
-        .route(
-            "/v1/events/{id}/settlements/{settlement_id}/withdraw",
-            post(settlement_handlers::withdraw_settlement),
-        )
-        .route(
-            "/v1/events/{id}/settlements/incoming",
-            get(settlement_handlers::incoming_balances),
-        )
-        .route(
-            "/v1/events/{id}/settlements/outgoing",
-            get(settlement_handlers::outgoing_balances),
-        )
-        .route(
-            "/v1/events/{id}/settlements/requests",
-            get(settlement_handlers::list_settlement_requests),
-        )
-        .route(
-            "/v1/events/{id}/settlements/history",
-            get(settlement_handlers::list_settlement_history),
+            "/v1/events/{id}/credits/{credit_id}/convert",
+            post(credit_handlers::convert_credit_to_payment),
         );
 
     // ── Balances ───────────────────────────────────────────────────────
@@ -281,7 +297,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(member_routes)
         .merge(expense_routes)
         .merge(payment_routes)
-        .merge(settlement_routes)
+        .merge(credit_routes)
         .merge(balance_routes)
         .merge(activity_routes)
         .merge(stats_routes)

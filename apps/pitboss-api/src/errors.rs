@@ -113,6 +113,9 @@ pub enum ServiceError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("No content")]
+    NoContent,
 }
 
 impl From<RepositoryError> for ServiceError {
@@ -221,6 +224,7 @@ impl From<ServiceError> for ApiError {
             ServiceError::Internal(msg) => {
                 ApiError::new("INTERNAL_ERROR", msg, StatusCode::INTERNAL_SERVER_ERROR)
             }
+            ServiceError::NoContent => ApiError::new("NO_CONTENT", "No content", StatusCode::NO_CONTENT),
         }
     }
 }

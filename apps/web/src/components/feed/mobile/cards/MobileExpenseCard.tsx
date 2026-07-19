@@ -1,6 +1,6 @@
 import { Typography, Box, useTheme, alpha } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Receipt as ReceiptIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Receipt as ReceiptIcon, Delete as DeleteIcon, Warning as WarningIcon } from '@mui/icons-material';
 import { ExpenseActivity } from '../../../../api/activity.api';
 import { UserInfo } from '../../../../api/users.api';
 import { MobileFeedCard } from '../MobileFeedCard';
@@ -60,6 +60,11 @@ export function MobileExpenseCard({
 }: MobileExpenseCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+
+  if (!activity) {
+    return null;
+  }
+
   const iconSrc = activity.expense_type ? EXPENSE_TYPE_ICONS[activity.expense_type] : null;
 
   const payerName = paidBy?.email || activity.paid_by;
@@ -72,10 +77,11 @@ export function MobileExpenseCard({
     ? EXPENSE_TYPE_LABELS[activity.expense_type] || activity.expense_type
     : null;
   const categoryColor = activity.expense_type
-    ? EXPENSE_TYPE_COLORS[activity.expense_type]
+    ? (EXPENSE_TYPE_COLORS[activity.expense_type] ?? theme.palette.primary.main)
     : theme.palette.primary.main;
 
   const isDeleted = Boolean(activity.deleted_at);
+  const isPendingDeletion = activity.deletion_status === 'pending_deletion';
   const canModify = activity.paid_by === currentUserId;
 
   return (
@@ -87,8 +93,8 @@ export function MobileExpenseCard({
           ? {
               onEdit,
               onDelete,
-              canEdit: canModify && !isDeleted,
-              canDelete: canModify && !isDeleted,
+              canEdit: canModify && !isDeleted && !isPendingDeletion,
+              canDelete: canModify && !isDeleted && !isPendingDeletion,
             }
           : undefined
       }
@@ -213,6 +219,37 @@ export function MobileExpenseCard({
             }}
           >
             {t('components.expenseCard.deleted')}
+          </Typography>
+        </Box>
+      )}
+
+      {isPendingDeletion && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            mb: 0.75,
+            px: 0.75,
+            py: 0.35,
+            borderRadius: 1.5,
+            backgroundColor: alpha(theme.palette.warning.main, 0.1),
+            border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+          }}
+        >
+          <WarningIcon sx={{ fontSize: 10, color: theme.palette.warning.main }} />
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              color: theme.palette.warning.main,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+            }}
+          >
+            {t('components.expenseCard.pendingDeletion')}
           </Typography>
         </Box>
       )}

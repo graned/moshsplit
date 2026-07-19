@@ -8,14 +8,17 @@ import {
   alpha,
 } from '@mui/material';
 import {
-  Receipt as ReceiptIcon,
   DoneAll as DoneAllIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
+  Receipt as ReceiptIcon,
 } from '@mui/icons-material';
 
 import { Stepper, type StepDefinition } from '../../shared/forms/Stepper';
-import { useSettlementStore } from '../../../stores/settlementStore';
+import { usePaymentStore } from '../../../stores/paymentStore';
+import { MobileExpensePicker, type SelectedExpense } from './MobileExpensePicker';
+import type { BreakdownItem } from './MobileStatsBreakdownDrawer';
+import type { Payment } from '../../../api/payments.api';
 
 function formatAmount(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -27,7 +30,7 @@ function formatAmount(cents: number, currency = 'EUR') {
 }
 
 const SETTLE_STEPS: StepDefinition[] = [
-  { label: 'Amount' },
+  { label: 'Expenses' },
   { label: 'Confirm' },
 ];
 
@@ -41,6 +44,8 @@ interface MobileSettleStepperProps {
   amountColor: string;
   darkColor: string;
   displayName: string;
+  breakdownItems?: BreakdownItem[];
+  payment?: Payment | null;
   /** Called when settlement completes and user taps Done */
   onComplete: () => void;
   /** Called when user cancels the settle flow */
@@ -49,40 +54,44 @@ interface MobileSettleStepperProps {
 
 export function MobileSettleStepper({
   eventId,
-  currentUserId,
   direction,
   currency = 'EUR',
   breakdownTotal,
-  displayItem,
   amountColor,
   darkColor,
   displayName,
+  breakdownItems = [],
+  payment,
   onComplete,
   onCancel,
 }: MobileSettleStepperProps) {
-  const { createSettlement, error, clearError } = useSettlementStore();
+  const { proposeTransaction, error, clearError } = usePaymentStore();
 
   const absTotal = Math.abs(breakdownTotal);
 
   const [step, setStep] = useState(0);
-  const [settleAmount, setSettleAmount] = useState(absTotal);
+  const [selectedExpenses, setSelectedExpenses] = useState<SelectedExpense[]>([]);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [settledCount, setSettledCount] = useState(0);
+
+  const totalSelected = selectedExpenses.reduce((sum, exp) => sum + exp.settle_amount_cents, 0);
 
   const resetSettleState = () => {
     setStep(0);
-    setSettleAmount(absTotal);
+    setSelectedExpenses([]);
     setNote('');
     setSubmitting(false);
     setShowSuccess(false);
+    setSettledCount(0);
     clearError();
   };
 
   const canProceed = (): boolean => {
     switch (step) {
       case 0:
-        return settleAmount > 0 && settleAmount <= absTotal;
+        return selectedExpenses.length > 0 && totalSelected > 0 && totalSelected <= absTotal;
       case 1:
         return true;
       default:
@@ -99,15 +108,15 @@ export function MobileSettleStepper({
   };
 
   const handleSubmit = async () => {
-    if (settleAmount <= 0 || settleAmount > absTotal) return;
+    if (selectedExpenses.length === 0 || !payment) return;
     setSubmitting(true);
     try {
-      await createSettlement(eventId, {
-        from_user: currentUserId,
-        to_user: displayItem.user_id,
-        amount_cents: settleAmount,
-        note: note.trim() || undefined,
-      });
+      let settled = 0;
+      for (const selectedExpense of selectedExpenses) {
+        await proposeTransaction(eventId, payment.id, selectedExpense.settle_amount_cents);
+        settled++;
+        setSettledCount(settled);
+      }
       setShowSuccess(true);
     } finally {
       setSubmitting(false);
@@ -120,102 +129,23 @@ export function MobileSettleStepper({
     onComplete();
   };
 
-  // ------------------------------------------------------------------
-  // Step 1 - Amount (Settle All / Partial)
-  // ------------------------------------------------------------------
-  const renderAmountStep = () => {
-    const isFullAmount = settleAmount === absTotal;
+  // Step 1 - Expense Selection
+  const renderExpenseSelection = () => {
+    const expenseItems = breakdownItems
+      .filter((item) => item.type === 'expense' && item.expense_id)
+      .map((item) => ({
+        expense_id: item.expense_id!,
+        label: item.label,
+        amount_cents: Math.abs(item.amount),
+      }));
+
     return (
-      <Box sx={{ py: 2 }}>
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: alpha('#fff', 0.5), textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5, textAlign: 'center' }}>
-          Net balance
-        </Typography>
-
-        <Typography
-          sx={{ fontSize: '2.5rem', fontWeight: 800, color: amountColor, textAlign: 'center', mb: 0.5, fontVariantNumeric: 'tabular-nums' }}
-        >
-          {formatAmount(absTotal, currency)}
-        </Typography>
-
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, color: 'text.secondary', textAlign: 'center', mb: 3 }}>
-          {direction === 'outgoing' ? `You owe ${displayName}` : `${displayName} owes you`}
-        </Typography>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 3 }}>
-          <Button
-            onClick={() => setSettleAmount(absTotal)}
-            sx={{
-              p: 2, flexDirection: 'column', gap: 0.5, borderRadius: 2,
-              border: isFullAmount ? `1px solid ${alpha(amountColor, 0.5)}` : `1px solid ${alpha('#fff', 0.1)}`,
-              bgcolor: isFullAmount ? alpha(amountColor, 0.12) : 'transparent',
-              '&:hover': { bgcolor: isFullAmount ? alpha(amountColor, 0.18) : alpha('#fff', 0.04) },
-            }}
-          >
-            <DoneAllIcon sx={{ fontSize: 22, color: isFullAmount ? amountColor : 'text.secondary' }} />
-            <Typography variant="caption" fontWeight={700} color={isFullAmount ? amountColor : 'text.secondary'}>
-              Settle All
-            </Typography>
-          </Button>
-
-          <Button
-            onClick={() => setSettleAmount(0)}
-            sx={{
-              p: 2, flexDirection: 'column', gap: 0.5, borderRadius: 2,
-              border: !isFullAmount ? `1px solid ${alpha(amountColor, 0.5)}` : `1px solid ${alpha('#fff', 0.1)}`,
-              bgcolor: !isFullAmount ? alpha(amountColor, 0.12) : 'transparent',
-              '&:hover': { bgcolor: !isFullAmount ? alpha(amountColor, 0.18) : alpha('#fff', 0.04) },
-            }}
-          >
-            <ReceiptIcon sx={{ fontSize: 22, color: !isFullAmount ? amountColor : 'text.secondary' }} />
-            <Typography variant="caption" fontWeight={700} color={!isFullAmount ? amountColor : 'text.secondary'}>
-              Partial
-            </Typography>
-          </Button>
-        </Box>
-
-        {!isFullAmount && (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.4), textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-              Enter amount
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0.5 }}>
-              <Typography variant="h5" color="text.secondary" fontWeight={700}>
-                {currency}
-              </Typography>
-              <TextField
-                type="number"
-                value={settleAmount > 0 ? settleAmount / 100 : ''}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setSettleAmount(!isNaN(val) && val >= 0 ? Math.round(val * 100) : 0);
-                }}
-                inputProps={{
-                  step: '0.01', min: '0',
-                  sx: {
-                    textAlign: 'center', MozAppearance: 'textfield',
-                    '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
-                  },
-                }}
-                sx={{
-                  width: 140,
-                  '& .MuiInputBase-root': {
-                    bgcolor: 'transparent', border: 'none',
-                    '&::before, &::after, &::notched-outline': { display: 'none' },
-                  },
-                  '& .MuiInputBase-input': {
-                    color: amountColor, fontSize: '1.75rem', fontWeight: 700, p: 0,
-                  },
-                }}
-              />
-            </Box>
-            {settleAmount > absTotal && (
-              <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
-                Amount exceeds net balance
-              </Typography>
-            )}
-          </Box>
-        )}
-      </Box>
+      <MobileExpensePicker
+        items={expenseItems}
+        currency={currency}
+        amountColor={amountColor}
+        onSelectionChange={setSelectedExpenses}
+      />
     );
   };
 
@@ -239,20 +169,60 @@ export function MobileSettleStepper({
             {direction === 'outgoing' ? 'You pay' : 'They pay'}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: `1px solid ${alpha('#fff', 0.1)}` }}>
-          <Typography variant="body2" fontWeight={700} color="text.primary">Amount</Typography>
-          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: amountColor }}>
-            {formatAmount(settleAmount, currency)}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="caption" color="text.secondary">Expenses</Typography>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            {selectedExpenses.length} selected
           </Typography>
         </Box>
-        {settleAmount < absTotal && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: `1px solid ${alpha('#fff', 0.1)}` }}>
+          <Typography variant="body2" fontWeight={700} color="text.primary">Total</Typography>
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: amountColor }}>
+            {formatAmount(totalSelected, currency)}
+          </Typography>
+        </Box>
+        {totalSelected < absTotal && (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 0.5 }}>
             <Typography variant="caption" color="text.secondary">Remaining balance</Typography>
             <Typography variant="caption" fontWeight={600} color="text.secondary">
-              {formatAmount(absTotal - settleAmount, currency)}
+              {formatAmount(absTotal - totalSelected, currency)}
             </Typography>
           </Box>
         )}
+      </Box>
+
+      {/* Per-expense breakdown */}
+      <Box sx={{ mb: 2 }}>
+        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#fff', 0.4), textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+          Settlement Breakdown
+        </Typography>
+        {selectedExpenses.map((exp) => (
+          <Box
+            key={exp.expense_id}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              py: 0.75,
+              borderBottom: `1px solid ${alpha('#fff', 0.05)}`,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ReceiptIcon sx={{ fontSize: 14, color: alpha('#fff', 0.4) }} />
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                {exp.label}
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: amountColor }}>
+              {formatAmount(exp.settle_amount_cents, currency)}
+              {exp.settle_amount_cents < exp.original_amount_cents && (
+                <Typography component="span" sx={{ fontSize: '0.65rem', color: alpha('#fff', 0.4), ml: 0.5 }}>
+                  (partial)
+                </Typography>
+              )}
+            </Typography>
+          </Box>
+        ))}
       </Box>
 
       <TextField
@@ -292,8 +262,11 @@ export function MobileSettleStepper({
       <Typography variant="h5" fontWeight={700} color={amountColor} sx={{ mb: 1 }}>
         {direction === 'outgoing' ? 'Settlement Sent' : 'Settlement Requested'}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center', maxWidth: 240 }}>
-        {formatAmount(settleAmount, currency)} to {displayName}
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, textAlign: 'center', maxWidth: 280 }}>
+        {selectedExpenses.length} expense{selectedExpenses.length !== 1 ? 's' : ''} settled with {displayName}
+      </Typography>
+      <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: amountColor, mb: 3 }}>
+        {formatAmount(totalSelected, currency)}
       </Typography>
       <Button
         variant="outlined"
@@ -312,7 +285,7 @@ export function MobileSettleStepper({
       <Stepper steps={SETTLE_STEPS} activeStep={step} />
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 0.5 }}>
-        {step === 0 && renderAmountStep()}
+        {step === 0 && renderExpenseSelection()}
         {step === 1 && renderConfirmStep()}
       </Box>
 
@@ -334,12 +307,12 @@ export function MobileSettleStepper({
         ) : (
           <Button
             onClick={handleSubmit}
-            disabled={!canProceed() || submitting || settleAmount > absTotal}
+            disabled={!canProceed() || submitting || totalSelected > absTotal}
             variant="contained"
             sx={{ flex: 1, fontSize: '0.85rem', bgcolor: amountColor, color: '#fff', '&:hover': { bgcolor: darkColor }, '&:disabled': { bgcolor: alpha(amountColor, 0.4), color: alpha('#fff', 0.5) } }}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : undefined}
           >
-            {submitting ? 'Settling...' : 'Confirm Settlement'}
+            {submitting ? `Settling ${settledCount}/${selectedExpenses.length}...` : 'Confirm Settlement'}
           </Button>
         )}
       </Box>

@@ -1,9 +1,5 @@
 //! BalanceRepository — hand-written aggregation queries for computing
 //! per-user balances within an event.
-//!
-//! We use raw SQL for the complex aggregation because Diesel's type-safe
-//! query builder cannot express the `DISTINCT ON` / window-function
-//! patterns needed to efficiently compute latest-expense-version data.
 
 use chrono::{DateTime, Utc};
 use diesel::deserialize::QueryableByName;
@@ -16,10 +12,6 @@ use uuid::Uuid;
 use crate::errors::RepositoryError;
 use crate::infrastructure::clients::DbClient;
 
-/// Per-user raw balance components.
-///
-/// Balance computation is done in the service layer via
-/// `moshsplit_balance_engine::compute_balance`.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct UserBalanceRow {
     #[diesel(sql_type = DUuid)]
@@ -32,15 +24,12 @@ pub struct UserBalanceRow {
     pub payments_out_cents: i32,
     #[diesel(sql_type = Integer)]
     pub payments_in_cents: i32,
-    #[diesel(sql_type = Integer)]
-    pub settlements_out_cents: i32,
-    #[diesel(sql_type = Integer)]
-    pub settlements_in_cents: i32,
 }
 
-/// An individual expense breakdown entry for the "explain" endpoint.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct ExpenseBreakdownRow {
+    #[diesel(sql_type = DUuid)]
+    pub expense_id: Uuid,
     #[diesel(sql_type = Text)]
     pub title: String,
     #[diesel(sql_type = Integer)]
@@ -59,7 +48,6 @@ pub struct ExpenseBreakdownRow {
     pub created_at: DateTime<Utc>,
 }
 
-/// A payment breakdown entry.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct PaymentBreakdownRow {
     #[diesel(sql_type = DUuid)]
@@ -74,32 +62,8 @@ pub struct PaymentBreakdownRow {
     pub recorded_at: DateTime<Utc>,
     #[diesel(sql_type = Nullable<Text>)]
     pub description: Option<String>,
-    #[diesel(sql_type = Nullable<Text>)]
-    pub payment_method: Option<String>,
 }
 
-/// A settlement breakdown entry.
-#[derive(Debug, Clone, QueryableByName)]
-pub struct SettlementBreakdownRow {
-    #[diesel(sql_type = DUuid)]
-    pub id: Uuid,
-    #[diesel(sql_type = DUuid)]
-    pub from_user: Uuid,
-    #[diesel(sql_type = DUuid)]
-    pub to_user: Uuid,
-    #[diesel(sql_type = Integer)]
-    pub amount_cents: i32,
-    #[diesel(sql_type = Text)]
-    pub status: String,
-    #[diesel(sql_type = Timestamptz)]
-    pub created_at: DateTime<Utc>,
-    #[diesel(sql_type = Nullable<Timestamptz>)]
-    pub settled_at: Option<DateTime<Utc>>,
-    #[diesel(sql_type = Nullable<Text>)]
-    pub note: Option<String>,
-}
-
-/// A per-expense balance row for the external-summary endpoint.
 #[derive(Debug, Clone, QueryableByName)]
 pub struct ExternalExpenseBalanceRow {
     #[diesel(sql_type = DUuid)]
@@ -126,7 +90,6 @@ impl BalanceRepository {
         &self.db_client
     }
 
-    /// Compute the net balance for every active member in an event.
     pub fn all_balances_for_event(
         &self,
         event_id: Uuid,
@@ -144,6 +107,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             expense_paid AS (
@@ -158,40 +122,26 @@ impl BalanceRepository {
                 GROUP BY sh.user_id
             ),
             payments_out AS (
-                SELECT from_user AS user_id, SUM(amount_cents) AS amount
-                FROM app.payment WHERE event_id = $1
-                GROUP BY from_user
+                SELECT debtor_id AS user_id, SUM(amount_paid_cents) AS amount
+                FROM app.payment WHERE event_id = $1 AND status != 'converted_to_credit' AND status != 'cancelled'
+                GROUP BY debtor_id
             ),
             payments_in AS (
-                SELECT to_user AS user_id, SUM(amount_cents) AS amount
-                FROM app.payment WHERE event_id = $1
-                GROUP BY to_user
-            ),
-            settlements_out AS (
-                SELECT from_user AS user_id, SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
-                GROUP BY from_user
-            ),
-            settlements_in AS (
-                SELECT to_user AS user_id, SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND status = 'confirmed'
-                GROUP BY to_user
+                SELECT creditor_id AS user_id, SUM(amount_paid_cents) AS amount
+                FROM app.payment WHERE event_id = $1 AND status != 'converted_to_credit' AND status != 'cancelled'
+                GROUP BY creditor_id
             )
             SELECT
                 m.user_id,
                 COALESCE(ep.amount, 0)::INTEGER AS paid_cents,
                 COALESCE(es.amount, 0)::INTEGER AS owes_cents,
                 COALESCE(po.amount, 0)::INTEGER AS payments_out_cents,
-                COALESCE(pi.amount, 0)::INTEGER AS payments_in_cents,
-                COALESCE(so.amount, 0)::INTEGER AS settlements_out_cents,
-                COALESCE(si.amount, 0)::INTEGER AS settlements_in_cents
+                COALESCE(pi.amount, 0)::INTEGER AS payments_in_cents
             FROM active_members m
             LEFT JOIN expense_paid ep ON ep.user_id = m.user_id
             LEFT JOIN expense_shares es ON es.user_id = m.user_id
             LEFT JOIN payments_out po ON po.user_id = m.user_id
             LEFT JOIN payments_in pi ON pi.user_id = m.user_id
-            LEFT JOIN settlements_out so ON so.user_id = m.user_id
-            LEFT JOIN settlements_in si ON si.user_id = m.user_id
             ORDER BY m.user_id
         "#;
 
@@ -203,7 +153,6 @@ impl BalanceRepository {
         Ok(results)
     }
 
-    /// Compute balance for a single user in an event.
     pub fn user_balance(
         &self,
         event_id: Uuid,
@@ -218,6 +167,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             )
             SELECT
@@ -225,9 +175,7 @@ impl BalanceRepository {
                 COALESCE(paid.amount, 0)::INTEGER AS paid_cents,
                 COALESCE(shares.amount, 0)::INTEGER AS owes_cents,
                 COALESCE(pmts_out.amount, 0)::INTEGER AS payments_out_cents,
-                COALESCE(pmts_in.amount, 0)::INTEGER AS payments_in_cents,
-                COALESCE(stlmts_out.amount, 0)::INTEGER AS settlements_out_cents,
-                COALESCE(stlmts_in.amount, 0)::INTEGER AS settlements_in_cents
+                COALESCE(pmts_in.amount, 0)::INTEGER AS payments_in_cents
             FROM (SELECT $2::uuid AS user_id) m
             LEFT JOIN (
                 SELECT SUM(amount_cents) AS amount
@@ -240,21 +188,15 @@ impl BalanceRepository {
                 WHERE sh.user_id = $2
             ) shares ON 1=1
             LEFT JOIN (
-                SELECT SUM(amount_cents) AS amount
-                FROM app.payment WHERE event_id = $1 AND from_user = $2
+                SELECT SUM(amount_paid_cents) AS amount
+                FROM app.payment WHERE event_id = $1 AND debtor_id = $2
+                    AND status != 'converted_to_credit' AND status != 'cancelled'
             ) pmts_out ON 1=1
             LEFT JOIN (
-                SELECT SUM(amount_cents) AS amount
-                FROM app.payment WHERE event_id = $1 AND to_user = $2
+                SELECT SUM(amount_paid_cents) AS amount
+                FROM app.payment WHERE event_id = $1 AND creditor_id = $2
+                    AND status != 'converted_to_credit' AND status != 'cancelled'
             ) pmts_in ON 1=1
-            LEFT JOIN (
-                SELECT SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND from_user = $2 AND status = 'confirmed'
-            ) stlmts_out ON 1=1
-            LEFT JOIN (
-                SELECT SUM(amount_cents) AS amount
-                FROM app.settlement WHERE event_id = $1 AND to_user = $2 AND status = 'confirmed'
-            ) stlmts_in ON 1=1
         "#;
 
         let result = sql_query(sql)
@@ -267,7 +209,6 @@ impl BalanceRepository {
         Ok(result)
     }
 
-    /// Get expense breakdown for explaining a single user's balance.
     pub fn expense_breakdown(
         &self,
         event_id: Uuid,
@@ -282,6 +223,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             participants AS (
@@ -291,6 +233,7 @@ impl BalanceRepository {
                 GROUP BY sh.expense_version_id
             )
             SELECT
+                lv.expense_id,
                 lv.title,
                 lv.amount_cents,
                 CASE WHEN lv.paid_by = $2 THEN lv.amount_cents ELSE 0 END AS paid_cents,
@@ -316,11 +259,6 @@ impl BalanceRepository {
         Ok(results)
     }
 
-    /// Get expense breakdown between a user and a counterparty.
-    ///
-    /// Returns only expenses where the counterparty is either the payer or a participant.
-    /// The `user_id` parameter controls the LEFT JOIN on shares (to get the calling user's
-    /// share_cents and paid_cents), while `counterparty_id` filters which expenses appear.
     pub fn expense_breakdown_between(
         &self,
         event_id: Uuid,
@@ -336,6 +274,7 @@ impl BalanceRepository {
                 FROM app.expense_version ev
                 JOIN app.expense e ON e.id = ev.expense_id
                 WHERE e.event_id = $1 AND e.deleted_at IS NULL
+                    AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
                 ORDER BY ev.expense_id, ev.version_number DESC
             ),
             participants AS (
@@ -345,6 +284,7 @@ impl BalanceRepository {
                 GROUP BY sh.expense_version_id
             )
             SELECT
+                lv.expense_id,
                 lv.title,
                 lv.amount_cents,
                 CASE WHEN lv.paid_by = $2 THEN lv.amount_cents ELSE 0 END AS paid_cents,
@@ -372,7 +312,6 @@ impl BalanceRepository {
         Ok(results)
     }
 
-    /// Get payment breakdown for a user.
     pub fn payment_breakdown(
         &self,
         event_id: Uuid,
@@ -381,10 +320,16 @@ impl BalanceRepository {
         let mut conn = self.db_client.get_conn()?;
 
         let sql = r#"
-            SELECT id, from_user, to_user, amount_cents, recorded_at, description, payment_method
-            FROM app.payment
-            WHERE event_id = $1 AND (from_user = $2 OR to_user = $2)
-            ORDER BY recorded_at
+            SELECT p.id, p.debtor_id as from_user, p.creditor_id as to_user, 
+                   p.amount_paid_cents as amount_cents, p.created_at as recorded_at, 
+                   p.reason as description
+            FROM app.payment p
+            LEFT JOIN app.expense e ON e.id = p.expense_id
+            WHERE p.event_id = $1 AND (p.debtor_id = $2 OR p.creditor_id = $2)
+                AND p.status != 'converted_to_credit'
+                AND p.status != 'cancelled'
+                AND (e.deletion_status IS NULL OR e.deletion_status != 'pending_deletion')
+            ORDER BY p.created_at
         "#;
 
         let results = sql_query(sql)
@@ -396,17 +341,12 @@ impl BalanceRepository {
         Ok(results)
     }
 
-    /// Get per-expense balance summary for a user in their first active event.
-    ///
-    /// Returns the event name and a list of (title, amount_cents) for each expense
-    /// where the user's net balance is non-zero.
     pub fn external_expense_breakdown(
         &self,
         user_id: Uuid,
     ) -> Result<(Uuid, String, Vec<ExternalExpenseBalanceRow>), RepositoryError> {
         let mut conn = self.db_client.get_conn()?;
 
-        // Find the user's first active event (by creation date) and compute per-expense balances
         let sql = r#"
             WITH user_event AS (
                 SELECT e.id, e.name
@@ -445,7 +385,6 @@ impl BalanceRepository {
             .load::<ExternalExpenseBalanceRow>(&mut conn)
             .map_err(RepositoryError::from)?;
 
-        // Extract the event ID and name from the first row (all rows share the same event)
         let event_id = results.first().map(|r| r.event_id).unwrap_or_default();
         let event_name = results
             .first()
@@ -453,29 +392,5 @@ impl BalanceRepository {
             .unwrap_or_default();
 
         Ok((event_id, event_name, results))
-    }
-
-    /// Get settlement breakdown for a user.
-    pub fn settlement_breakdown(
-        &self,
-        event_id: Uuid,
-        user_id: Uuid,
-    ) -> Result<Vec<SettlementBreakdownRow>, RepositoryError> {
-        let mut conn = self.db_client.get_conn()?;
-
-        let sql = r#"
-            SELECT id, from_user, to_user, amount_cents, status, created_at, settled_at, note
-            FROM app.settlement
-            WHERE event_id = $1 AND (from_user = $2 OR to_user = $2)
-            ORDER BY created_at
-        "#;
-
-        let results = sql_query(sql)
-            .bind::<DUuid, _>(event_id)
-            .bind::<DUuid, _>(user_id)
-            .load::<SettlementBreakdownRow>(&mut conn)
-            .map_err(RepositoryError::from)?;
-
-        Ok(results)
     }
 }

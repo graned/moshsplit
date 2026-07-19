@@ -44,8 +44,18 @@ fn s1_basic_two_user_balance() {
 
     // Verify using simplified_debts
     let balances = vec![
-        UserBalance { user_id: a, paid_cents: 2000, owes_cents: 1000, balance_cents: 1000 },
-        UserBalance { user_id: b, paid_cents: 0, owes_cents: 1000, balance_cents: -1000 },
+        UserBalance {
+            user_id: a,
+            paid_cents: 2000,
+            owes_cents: 1000,
+            balance_cents: 1000,
+        },
+        UserBalance {
+            user_id: b,
+            paid_cents: 0,
+            owes_cents: 1000,
+            balance_cents: -1000,
+        },
     ];
     let transfers = simplified_debts(&balances);
     assert_eq!(transfers.len(), 1);
@@ -81,11 +91,36 @@ fn s2_core_five_user() {
 
     // Simplified debts: C/D/E (-1200 each) → A (+800) and B (+2800)
     let balances = vec![
-        UserBalance { user_id: a, paid_cents: 2000, owes_cents: 1200, balance_cents: 800 },
-        UserBalance { user_id: b, paid_cents: 4000, owes_cents: 1200, balance_cents: 2800 },
-        UserBalance { user_id: c, paid_cents: 0, owes_cents: 1200, balance_cents: -1200 },
-        UserBalance { user_id: d, paid_cents: 0, owes_cents: 1200, balance_cents: -1200 },
-        UserBalance { user_id: e, paid_cents: 0, owes_cents: 1200, balance_cents: -1200 },
+        UserBalance {
+            user_id: a,
+            paid_cents: 2000,
+            owes_cents: 1200,
+            balance_cents: 800,
+        },
+        UserBalance {
+            user_id: b,
+            paid_cents: 4000,
+            owes_cents: 1200,
+            balance_cents: 2800,
+        },
+        UserBalance {
+            user_id: c,
+            paid_cents: 0,
+            owes_cents: 1200,
+            balance_cents: -1200,
+        },
+        UserBalance {
+            user_id: d,
+            paid_cents: 0,
+            owes_cents: 1200,
+            balance_cents: -1200,
+        },
+        UserBalance {
+            user_id: e,
+            paid_cents: 0,
+            owes_cents: 1200,
+            balance_cents: -1200,
+        },
     ];
     let transfers = simplified_debts(&balances);
     // Greedy: C(1200)→B, D(1200)→B, E(400)→B, E(800)→A
@@ -113,9 +148,24 @@ fn s3_payer_not_in_split() {
     assert_eq!(compute_balance(0, 1500, 0, 0), -1500);
 
     let balances = vec![
-        UserBalance { user_id: uid("H"), paid_cents: 3000, owes_cents: 0, balance_cents: 3000 },
-        UserBalance { user_id: uid("A"), paid_cents: 0, owes_cents: 1500, balance_cents: -1500 },
-        UserBalance { user_id: uid("B"), paid_cents: 0, owes_cents: 1500, balance_cents: -1500 },
+        UserBalance {
+            user_id: uid("H"),
+            paid_cents: 3000,
+            owes_cents: 0,
+            balance_cents: 3000,
+        },
+        UserBalance {
+            user_id: uid("A"),
+            paid_cents: 0,
+            owes_cents: 1500,
+            balance_cents: -1500,
+        },
+        UserBalance {
+            user_id: uid("B"),
+            paid_cents: 0,
+            owes_cents: 1500,
+            balance_cents: -1500,
+        },
     ];
     let transfers = simplified_debts(&balances);
     assert_eq!(transfers.len(), 2);
@@ -180,8 +230,14 @@ fn s7_payment_sign_verification() {
     // B: paid=0, owes=1000, pmts_out=300 → 0-1000+300-0 = -700
     let a_bal = compute_balance(2000, 1000, 0, 300);
     let b_bal = compute_balance(0, 1000, 300, 0);
-    assert_eq!(a_bal, 700, "A should have balance 700 after receiving 300 payment");
-    assert_eq!(b_bal, -700, "B should have balance -700 after sending 300 payment");
+    assert_eq!(
+        a_bal, 700,
+        "A should have balance 700 after receiving 300 payment"
+    );
+    assert_eq!(
+        b_bal, -700,
+        "B should have balance -700 after sending 300 payment"
+    );
     assert_eq!(a_bal + b_bal, 0, "balances must conserve (sum to zero)");
 }
 
@@ -218,9 +274,24 @@ fn s8_simplified_debts_complex() {
     let c = uid("C");
 
     let balances = vec![
-        UserBalance { user_id: a, paid_cents: 0, owes_cents: 0, balance_cents: 500 },
-        UserBalance { user_id: b, paid_cents: 0, owes_cents: 0, balance_cents: 200 },
-        UserBalance { user_id: c, paid_cents: 0, owes_cents: 0, balance_cents: -700 },
+        UserBalance {
+            user_id: a,
+            paid_cents: 0,
+            owes_cents: 0,
+            balance_cents: 500,
+        },
+        UserBalance {
+            user_id: b,
+            paid_cents: 0,
+            owes_cents: 0,
+            balance_cents: 200,
+        },
+        UserBalance {
+            user_id: c,
+            paid_cents: 0,
+            owes_cents: 0,
+            balance_cents: -700,
+        },
     ];
 
     let transfers = simplified_debts(&balances);
@@ -241,8 +312,18 @@ fn s8_simplified_debts_all_debtors() {
     let a = uid("A");
     let b = uid("B");
     let balances = vec![
-        UserBalance { user_id: a, paid_cents: 0, owes_cents: 100, balance_cents: -100 },
-        UserBalance { user_id: b, paid_cents: 0, owes_cents: 200, balance_cents: -200 },
+        UserBalance {
+            user_id: a,
+            paid_cents: 0,
+            owes_cents: 100,
+            balance_cents: -100,
+        },
+        UserBalance {
+            user_id: b,
+            paid_cents: 0,
+            owes_cents: 200,
+            balance_cents: -200,
+        },
     ];
     // Sum != 0, but that's an input error. The algorithm still works:
     // no creditors → no transfers
@@ -264,9 +345,24 @@ fn s9_zero_balance_user() {
     let b = uid("B");
     let c = uid("C"); // zero balance
     let balances = vec![
-        UserBalance { user_id: a, paid_cents: 2000, owes_cents: 1000, balance_cents: 1000 },
-        UserBalance { user_id: b, paid_cents: 0, owes_cents: 1000, balance_cents: -1000 },
-        UserBalance { user_id: c, paid_cents: 0, owes_cents: 0, balance_cents: 0 },
+        UserBalance {
+            user_id: a,
+            paid_cents: 2000,
+            owes_cents: 1000,
+            balance_cents: 1000,
+        },
+        UserBalance {
+            user_id: b,
+            paid_cents: 0,
+            owes_cents: 1000,
+            balance_cents: -1000,
+        },
+        UserBalance {
+            user_id: c,
+            paid_cents: 0,
+            owes_cents: 0,
+            balance_cents: 0,
+        },
     ];
     let transfers = simplified_debts(&balances);
     assert_eq!(transfers.len(), 1);
@@ -302,9 +398,12 @@ fn s11_single_member() {
     // A pays 1000, owes 1000 (split with self) → 0
     assert_eq!(compute_balance(1000, 1000, 0, 0), 0);
 
-    let balances = vec![
-        UserBalance { user_id: a, paid_cents: 1000, owes_cents: 1000, balance_cents: 0 },
-    ];
+    let balances = vec![UserBalance {
+        user_id: a,
+        paid_cents: 1000,
+        owes_cents: 1000,
+        balance_cents: 0,
+    }];
     let transfers = simplified_debts(&balances);
     assert!(transfers.is_empty());
 }

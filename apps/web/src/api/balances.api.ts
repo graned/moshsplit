@@ -30,6 +30,7 @@ export interface UserBalanceResponse {
 }
 
 export interface ExpenseBreakdown {
+  expense_id: string;
   title: string;
   amount_cents: number;
   paid_cents: number;
@@ -38,16 +39,18 @@ export interface ExpenseBreakdown {
   expense_type?: string;
   participants?: string[];
   created_at: string;
+  direction: 'incoming' | 'outgoing';
 }
 
 export interface PaymentBreakdown {
   id: string;
-  from_user: string;
-  to_user: string;
+  creditor_id: string;
+  debtor_id: string;
   amount_cents: number;
-  recorded_at: string;
-  description?: string;
-  payment_method?: string;
+  amount_paid_cents: number;
+  reason: string;
+  status: string;
+  created_at: string;
 }
 
 export interface SettlementBreakdown {
@@ -59,6 +62,17 @@ export interface SettlementBreakdown {
   created_at: string;
   settled_at?: string;
   note?: string;
+}
+
+export interface ReimbursementBreakdown {
+  id: string;
+  ref_expense_id: string;
+  settlement_id: string;
+  from_user: string;
+  to_user: string;
+  amount_cents: number;
+  original_expense_title: string;
+  created_at: string;
 }
 
 export interface SettlementProgress {
@@ -83,6 +97,44 @@ export interface EventStats {
   top_spender_amount_cents: number | null;
 }
 
+export interface CategoryGrossTotals {
+  incoming: number;
+  outgoing: number;
+}
+
+export interface CategoryTotals {
+  gross: CategoryGrossTotals;
+  net: number;
+}
+
+export interface TotalsSection {
+  expenses: CategoryTotals;
+  payments: CategoryTotals;
+}
+
+export interface CounterpartyCategoryTotals {
+  incoming: number;
+  outgoing: number;
+  net: number;
+}
+
+export interface CounterpartyBalance {
+  net: number;
+  incoming: number;
+  outgoing: number;
+  expenses: CounterpartyCategoryTotals;
+  payments: CounterpartyCategoryTotals;
+  settlements: CounterpartyCategoryTotals;
+  reimbursements: CounterpartyCategoryTotals;
+}
+
+export interface BalancesSection {
+  net: number;
+  incoming: number;
+  outgoing: number;
+  by_counterparty: Record<string, CounterpartyBalance>;
+}
+
 export interface ExplainBalanceResponse {
   user_id: string;
   paid_cents: number;
@@ -90,13 +142,15 @@ export interface ExplainBalanceResponse {
   balance_cents: number;
   expenses: ExpenseBreakdown[];
   payments: PaymentBreakdown[];
-  settlements: SettlementBreakdown[];
+  totals: TotalsSection;
+  balances: BalancesSection;
 }
 
 export interface ExplainBalanceBetweenResponse {
   user_id: string;
   counterparty_id: string;
   expenses: ExpenseBreakdown[];
+  reimbursements: ReimbursementBreakdown[];
 }
 
 // API calls

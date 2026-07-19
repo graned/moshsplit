@@ -30,6 +30,7 @@ pub struct IncomingBalancesResponse {
 pub struct OutgoingBalanceItem {
     pub user_id: Uuid,
     pub amount_cents: i32,
+    pub reason: Option<String>,
     /// `created_at` of the most recent expense/settlement that contributed to this balance.
     pub created_at: DateTime<Utc>,
 }

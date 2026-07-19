@@ -1,6 +1,6 @@
 import { Typography, Box, useTheme, alpha } from '@mui/material';
 import { Person as PersonIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
-import { RelationshipSummary } from '../../../balances/shared/SettlementCards';
+import { RelationshipSummary } from '../../../balances/shared/PaymentCards';
 
 const formatAmount = (cents: number, currency = 'EUR') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Math.abs(cents) / 100);

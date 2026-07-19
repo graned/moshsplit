@@ -323,8 +323,8 @@ impl SettlementRepository {
         Ok((rows, has_more))
     }
 
-    /// Soft-delete rejected settlements linked to a specific expense.
-    /// Sets deleted_at to now() for all rejected settlements with the given expense_id.
+    /// Soft-delete all settlements linked to a specific expense.
+    /// Sets deleted_at to now() for all settlements (confirmed + pending) with the given expense_id.
     pub fn soft_delete_for_expense(&self, expense_id: Uuid) -> Result<usize, RepositoryError> {
         use diesel::ExpressionMethods;
 
@@ -334,7 +334,6 @@ impl SettlementRepository {
         let affected = diesel::update(
             settlement::table
                 .filter(settlement::expense_id.eq(expense_id))
-                .filter(settlement::status.eq(SettlementStatus::Rejected))
                 .filter(settlement::deleted_at.is_null()),
         )
         .set(settlement::deleted_at.eq(now))
@@ -342,5 +341,18 @@ impl SettlementRepository {
         .map_err(RepositoryError::from)?;
 
         Ok(affected)
+    }
+
+    /// Find all settlements for a specific expense.
+    pub fn find_by_expense_id(&self, expense_id: Uuid) -> Result<Vec<Settlement>, RepositoryError> {
+        let mut conn = self.db_client.get_conn()?;
+
+        let results = settlement::table
+            .filter(settlement::expense_id.eq(expense_id))
+            .filter(settlement::deleted_at.is_null())
+            .load(&mut conn)
+            .map_err(RepositoryError::from)?;
+
+        Ok(results)
     }
 }

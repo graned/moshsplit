@@ -13,7 +13,8 @@
   },
   "expenseCard": {
     "split": "Split: {{count}}",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "pendingDeletion": "Pending Deletion"
   },
   "settlementCard": {
     "honorRequested": "Honor requested:",
@@ -188,5 +189,13 @@
   },
   "stepper": {
     "stepOf": "Step {{current}} of {{total}}"
+  },
+  "claimReimbursement": {
+    "title": "Reimbursement",
+    "description": "This expense has payments that were already made. How would you like to handle the {{total}} still owed to the payer?",
+    "totalOpen": "{{total}} still owed to the payer",
+    "creditChoice": "Create Credit",
+    "paymentChoice": "Create Payment",
+    "confirm": "Confirm"
   }
 }

@@ -2,7 +2,11 @@ import { Typography, Box, alpha } from '@mui/material';
 import { TrendingUp as TrendingUpIcon, TrendingDown as TrendingDownIcon } from '@mui/icons-material';
 import { useUsers } from '../../../../hooks/useUserCache';
 import { MobileFeedCard } from '../MobileFeedCard';
-import type { IncomingBalanceItem, OutgoingBalanceItem } from '../../../../api/settlements.api';
+
+interface BalanceItem {
+  user_id: string;
+  amount_cents: number;
+}
 
 const formatAmount = (cents: number, currency = 'EUR') =>
   new Intl.NumberFormat('en-US', {
@@ -13,11 +17,12 @@ const formatAmount = (cents: number, currency = 'EUR') =>
   }).format(cents / 100);
 
 interface MobileBalanceCardProps {
-  balanceItem?: IncomingBalanceItem | OutgoingBalanceItem;
+  balanceItem?: BalanceItem;
   userId: string;
   amountCents: number;
   isIncoming: boolean;
   currency?: string;
+  reason?: string;
   onClick?: () => void;
 }
 
@@ -27,6 +32,7 @@ export function MobileBalanceCard({
   amountCents,
   isIncoming,
   currency = 'EUR',
+  reason,
   onClick,
 }: MobileBalanceCardProps) {
   const userMap = useUsers([userId]);
@@ -120,6 +126,11 @@ export function MobileBalanceCard({
       <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
         {isIncoming ? 'owes you' : 'you owe'}
       </Typography>
+      {reason && (
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', mt: 0.25 }}>
+          {reason}
+        </Typography>
+      )}
     </MobileFeedCard>
     </Box>
   );

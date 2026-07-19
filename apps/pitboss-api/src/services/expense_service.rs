@@ -4,18 +4,20 @@ use chrono::Utc;
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::domain::repositories::credit_repo::CreditRepository;
 use crate::domain::repositories::event_repo::EventRepository;
 use crate::domain::repositories::expense_repo::ExpenseRepository;
 use crate::domain::repositories::expense_version_repo::ExpenseVersionRepository;
 use crate::domain::repositories::expense_version_share_repo::ExpenseVersionShareRepository;
 use crate::domain::repositories::payment_repo::PaymentRepository;
-use crate::domain::repositories::settlement_repo::SettlementRepository;
+use crate::domain::repositories::payment_transaction_repo::PaymentTransactionRepository;
 use crate::errors::ServiceError;
 use crate::infrastructure::http::api::dtos::expense_dtos::{
-    CreateExpenseRequest, ExpenseListItem, ExpenseResponse, ExpenseVersionDetail,
-    ExpenseVersionResponse, ExpenseVersionShareItem, UpdateExpenseRequest,
+    CreateExpenseRequest, DeletionRequiresChoiceResponse, ExpenseListItem, ExpenseResponse,
+    ExpenseVersionDetail, ExpenseVersionResponse, ExpenseVersionShareItem, OpenPaymentInfo,
+    UpdateExpenseRequest,
 };
-use crate::schema_enums::{ExpenseType, SplitType};
+use crate::schema_enums::{CreditStatus, ExpenseType, SplitType};
 use crate::schema_models::{Expense, ExpenseVersion, ExpenseVersionShare};
 use moshsplit_balance_engine::redistribute_shares;
 
@@ -25,7 +27,8 @@ pub struct ExpenseService {
     version_repo: ExpenseVersionRepository,
     share_repo: ExpenseVersionShareRepository,
     payment_repo: PaymentRepository,
-    settlement_repo: SettlementRepository,
+    payment_transaction_repo: PaymentTransactionRepository,
+    credit_repo: CreditRepository,
 }
 
 impl ExpenseService {
@@ -35,7 +38,8 @@ impl ExpenseService {
         version_repo: ExpenseVersionRepository,
         share_repo: ExpenseVersionShareRepository,
         payment_repo: PaymentRepository,
-        settlement_repo: SettlementRepository,
+        payment_transaction_repo: PaymentTransactionRepository,
+        credit_repo: CreditRepository,
     ) -> Self {
         Self {
             event_repo,
@@ -43,11 +47,11 @@ impl ExpenseService {
             version_repo,
             share_repo,
             payment_repo,
-            settlement_repo,
+            payment_transaction_repo,
+            credit_repo,
         }
     }
 
-    /// Parse a split_type string into a SplitType enum.
     fn parse_split_type(s: &str) -> Result<SplitType, ServiceError> {
         match s {
             "equal" => Ok(SplitType::Equal),
@@ -61,7 +65,6 @@ impl ExpenseService {
         }
     }
 
-    /// Parse an expense_type string into an ExpenseType enum.
     fn parse_expense_type(s: &str) -> Result<ExpenseType, ServiceError> {
         match s {
             "food" => Ok(ExpenseType::Food),
@@ -79,10 +82,6 @@ impl ExpenseService {
         }
     }
 
-    /// Extract member IDs from split_data based on split_type.
-    /// "equal"     → split_data.shares is an array of UUID strings.
-    /// "custom"/"shares" → split_data.shares is an object keyed by UUID.
-    /// "percentage" → split_data.percentages is an object keyed by UUID.
     fn extract_member_ids(
         split_type: &SplitType,
         split_data: &Value,
@@ -130,7 +129,6 @@ impl ExpenseService {
         }
     }
 
-    /// Compute per-member shares based on split type and data.
     fn compute_shares(
         amount_cents: i32,
         split_type: &SplitType,
@@ -263,7 +261,6 @@ impl ExpenseService {
             }
         };
 
-        // Validate sum matches
         let sum: i32 = result.iter().map(|(_, s)| s).sum();
         if sum != amount_cents {
             return Err(ServiceError::BusinessRule(format!(
@@ -275,14 +272,12 @@ impl ExpenseService {
         Ok(result)
     }
 
-    /// Create an expense with version 1 and computed shares.
     pub fn create_expense(
         &self,
         event_id: Uuid,
         req: CreateExpenseRequest,
         created_by: Uuid,
     ) -> Result<ExpenseResponse, ServiceError> {
-        // Verify event exists
         self.event_repo
             .find_by_id(event_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Event {} not found", event_id)))?;
@@ -294,13 +289,8 @@ impl ExpenseService {
             .map(Self::parse_expense_type)
             .transpose()?;
 
-        // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
-        // F4: Allow payer not in split — paid_by can be any event member
-        // The paid_by user does not need to be in the split member list.
-
-        // Compute shares
         let shares =
             Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
 
@@ -308,7 +298,6 @@ impl ExpenseService {
         let expense_id = Uuid::new_v4();
         let version_id = Uuid::new_v4();
 
-        // Create expense
         let expense = Expense {
             id: expense_id,
             event_id,
@@ -316,10 +305,10 @@ impl ExpenseService {
             created_at: now,
             current_version_id: Some(version_id),
             deleted_at: None,
+            deletion_status: Some("none".to_string()),
         };
         self.expense_repo.create(&expense)?;
 
-        // Create version 1
         let version = ExpenseVersion {
             id: version_id,
             expense_id,
@@ -337,7 +326,6 @@ impl ExpenseService {
         };
         self.version_repo.create(&version)?;
 
-        // Create shares
         let share_rows: Vec<ExpenseVersionShare> = shares
             .into_iter()
             .map(|(user_id, share_cents)| ExpenseVersionShare {
@@ -356,10 +344,29 @@ impl ExpenseService {
             )));
         }
 
+        // Create payment records for each participant (except the payer)
+        for share in &share_rows {
+            if share.user_id != req.paid_by && share.share_cents > 0 {
+                let payment = crate::schema_models::Payment {
+                    id: Uuid::new_v4(),
+                    event_id,
+                    creditor_id: req.paid_by,
+                    debtor_id: share.user_id,
+                    expense_id: Some(expense_id),
+                    amount_cents: share.share_cents,
+                    amount_paid_cents: 0,
+                    reason: "expense".to_string(),
+                    status: crate::schema_enums::PaymentStatus::Open,
+                    created_at: now,
+                    updated_at: now,
+                };
+                self.payment_repo.create(&payment)?;
+            }
+        }
+
         Ok(self.get_expense(expense_id)?)
     }
 
-    /// Update an expense by creating a new version.
     pub fn update_expense(
         &self,
         event_id: Uuid,
@@ -367,7 +374,6 @@ impl ExpenseService {
         req: UpdateExpenseRequest,
         created_by: Uuid,
     ) -> Result<ExpenseResponse, ServiceError> {
-        // Verify expense exists and belongs to event
         let expense = self
             .expense_repo
             .find_by_id(expense_id)?
@@ -383,6 +389,11 @@ impl ExpenseService {
                 "Cannot update a deleted expense".into(),
             ));
         }
+        if expense.deletion_status.as_deref() == Some("pending_deletion") {
+            return Err(ServiceError::BusinessRule(
+                "Cannot update an expense that is pending deletion".into(),
+            ));
+        }
 
         let split_type = Self::parse_split_type(&req.split_type)?;
         let expense_type = req
@@ -391,11 +402,8 @@ impl ExpenseService {
             .map(Self::parse_expense_type)
             .transpose()?;
 
-        // Extract member IDs from split_data (subset of event members)
         let member_ids = Self::extract_member_ids(&split_type, &req.split_data)?;
 
-        // F4: Allow payer not in split
-        // Compute shares
         let shares =
             Self::compute_shares(req.amount_cents, &split_type, &req.split_data, &member_ids)?;
 
@@ -403,7 +411,6 @@ impl ExpenseService {
         let version_id = Uuid::new_v4();
         let next_version = self.version_repo.next_version_number(expense_id)?;
 
-        // Create new version
         let version = ExpenseVersion {
             id: version_id,
             expense_id,
@@ -421,7 +428,6 @@ impl ExpenseService {
         };
         self.version_repo.create(&version)?;
 
-        // Create shares for this version
         let share_rows: Vec<ExpenseVersionShare> = shares
             .into_iter()
             .map(|(user_id, share_cents)| ExpenseVersionShare {
@@ -440,14 +446,12 @@ impl ExpenseService {
             )));
         }
 
-        // Update current_version_id on expense
         self.expense_repo
             .set_current_version(expense_id, version_id)?;
 
         Ok(self.get_expense(expense_id)?)
     }
 
-    /// List expenses for an event.
     pub fn list_expenses(
         &self,
         event_id: Uuid,
@@ -479,6 +483,7 @@ impl ExpenseService {
                 created_at: r.created_at,
                 current_version_id: r.current_version_id,
                 deleted_at: r.deleted_at,
+                deletion_status: r.deletion_status,
                 version_number: r.version_number,
                 title: r.title,
                 amount_cents: r.amount_cents,
@@ -499,7 +504,6 @@ impl ExpenseService {
         Ok((items, has_more, next_cursor))
     }
 
-    /// Get a single expense with latest version.
     pub fn get_expense(&self, expense_id: Uuid) -> Result<ExpenseResponse, ServiceError> {
         let row = self
             .expense_repo
@@ -547,15 +551,14 @@ impl ExpenseService {
             created_at: row.created_at,
             current_version: latest_version,
             deleted_at: row.deleted_at,
+            deletion_status: row.deletion_status,
         })
     }
 
-    /// Get expense with full version details.
     pub fn get_expense_with_versions(
         &self,
         expense_id: Uuid,
     ) -> Result<Vec<ExpenseVersionDetail>, ServiceError> {
-        // Validate expense exists
         self.expense_repo
             .find_by_id(expense_id)?
             .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
@@ -602,7 +605,7 @@ impl ExpenseService {
         event_id: Uuid,
         expense_id: Uuid,
         user_id: Uuid,
-    ) -> Result<(), ServiceError> {
+    ) -> Result<Option<DeletionRequiresChoiceResponse>, ServiceError> {
         let expense_row = self
             .expense_repo
             .find_by_id_with_latest_version(expense_id)?
@@ -625,104 +628,192 @@ impl ExpenseService {
             ));
         }
 
-        let expense_owner = expense_row.created_by;
-        let original_title = expense_row
-            .title
-            .unwrap_or_else(|| "Deleted Expense".to_string());
-        let now = Utc::now();
+        let open_payments = self.payment_repo.find_open_by_expense(expense_id)?;
+        let is_pending = expense_row.deletion_status.as_deref() == Some("pending_deletion");
 
-        let payments = self
-            .payment_repo
-            .find_by_event_id_and_to_user(event_id, expense_owner)?;
-
-        for payment in payments {
-            let original_payer = payment.from_user;
-            let amount = payment.amount_cents;
-
-            let expense_id = Uuid::new_v4();
-            let version_id = Uuid::new_v4();
-
-            let expense = Expense {
-                id: expense_id,
-                event_id,
-                created_by: expense_owner,
-                created_at: now,
-                current_version_id: Some(version_id),
-                deleted_at: None,
-            };
-            self.expense_repo.create(&expense)?;
-
-            let split_data = serde_json::json!({
-                "shares": [expense_owner.to_string(), original_payer.to_string()]
-            });
-
-            let version = ExpenseVersion {
-                id: version_id,
-                expense_id,
-                version_number: 1,
-                title: format!("Reimbursement for {}", original_title),
-                description: Some("Original expense deleted by owner".to_string()),
-                amount_cents: amount,
-                paid_by: expense_owner,
-                split_type: SplitType::Equal,
-                split_data,
-                notes: None,
-                created_by: expense_owner,
-                created_at: now,
-                expense_type: Some(ExpenseType::Reimburse),
-            };
-            self.version_repo.create(&version)?;
-
-            let half = amount / 2;
-            let owner_share = half;
-            let payer_share = amount - half;
-
-            let share_rows = vec![
-                ExpenseVersionShare {
-                    id: Uuid::new_v4(),
-                    expense_version_id: version_id,
-                    user_id: expense_owner,
-                    share_cents: owner_share,
-                },
-                ExpenseVersionShare {
-                    id: Uuid::new_v4(),
-                    expense_version_id: version_id,
-                    user_id: original_payer,
-                    share_cents: payer_share,
-                },
-            ];
-
-            let affected = self.share_repo.bulk_insert(&share_rows)?;
-            if affected != share_rows.len() {
-                return Err(ServiceError::Internal(format!(
-                    "Failed to insert reimbursement shares: expected {}, got {}",
-                    share_rows.len(),
-                    affected
-                )));
-            }
+        if is_pending && !open_payments.is_empty() {
+            return Err(ServiceError::BusinessRule(
+                "Expense is pending deletion but still has open payments. Complete or cancel payments first."
+                    .into(),
+            ));
         }
 
-        self.settlement_repo.soft_delete_for_expense(expense_id)?;
+        if !is_pending && !open_payments.is_empty() {
+            self.expense_repo
+                .set_deletion_status(expense_id, Some("pending_deletion".to_string()))?;
 
+            let open_payment_infos: Vec<OpenPaymentInfo> = open_payments
+                .iter()
+                .map(|p| OpenPaymentInfo {
+                    payment_id: p.id,
+                    creditor_id: p.creditor_id,
+                    debtor_id: p.debtor_id,
+                    amount_cents: p.amount_cents,
+                    reason: p.reason.clone(),
+                })
+                .collect();
+
+            let total_cents = open_payments.iter().map(|p| p.amount_cents).sum();
+
+            return Ok(Some(DeletionRequiresChoiceResponse {
+                expense_id,
+                requires_choice: true,
+                open_payments: open_payment_infos,
+                total_cents,
+            }));
+        }
+
+        let now = Utc::now();
         self.expense_repo.soft_delete(expense_id, now)?;
+
+        Ok(None)
+    }
+
+    pub fn cancel_pending_deletion(
+        &self,
+        event_id: Uuid,
+        expense_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<(), ServiceError> {
+        let expense_row = self
+            .expense_repo
+            .find_by_id_with_latest_version(expense_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
+
+        if expense_row.event_id != event_id {
+            return Err(ServiceError::NotFound(
+                "Expense not found in this event".into(),
+            ));
+        }
+
+        if expense_row.deleted_at.is_some() {
+            return Err(ServiceError::BusinessRule(
+                "Expense is already deleted".into(),
+            ));
+        }
+
+        if expense_row.created_by != user_id {
+            return Err(ServiceError::Forbidden(
+                "Only the expense creator can cancel pending deletion".into(),
+            ));
+        }
+
+        if expense_row.deletion_status.as_deref() != Some("pending_deletion") {
+            return Err(ServiceError::BusinessRule(
+                "Expense is not pending deletion".into(),
+            ));
+        }
+
+        self.expense_repo
+            .set_deletion_status(expense_id, None)?;
+
         Ok(())
     }
 
-    /// When a member is removed from an event, redistribute their share
-    /// of each expense they participate in among the remaining participants.
-    ///
-    /// For each expense where the departing user is a participant, a new
-    /// version is created with the user removed from the split and the
-    /// total amount redistributed equally among the rest.
-    ///
-    /// Returns the number of expenses that were redistributed.
+    pub fn claim_reimbursement(
+        &self,
+        event_id: Uuid,
+        expense_id: Uuid,
+        user_id: Uuid,
+        choice: &str,
+    ) -> Result<(), ServiceError> {
+        let expense_row = self
+            .expense_repo
+            .find_by_id_with_latest_version(expense_id)?
+            .ok_or_else(|| ServiceError::NotFound(format!("Expense {} not found", expense_id)))?;
+
+        if expense_row.event_id != event_id {
+            return Err(ServiceError::NotFound(
+                "Expense not found in this event".into(),
+            ));
+        }
+
+        if expense_row.deleted_at.is_some() {
+            return Err(ServiceError::BusinessRule(
+                "Expense is already deleted".into(),
+            ));
+        }
+
+        if expense_row.deletion_status.as_deref() != Some("pending_deletion") {
+            return Err(ServiceError::BusinessRule(
+                "Expense is not pending deletion".into(),
+            ));
+        }
+
+        let open_payments = self.payment_repo.find_open_by_expense(expense_id)?;
+
+        if open_payments.is_empty() {
+            return Err(ServiceError::BusinessRule(
+                "No open payments found for this expense".into(),
+            ));
+        }
+
+        for payment in &open_payments {
+            if payment.creditor_id != user_id {
+                return Err(ServiceError::Forbidden(
+                    "Only the creditor can claim reimbursement".into(),
+                ));
+            }
+        }
+
+        match choice {
+            "credit" => {
+                for payment in &open_payments {
+                    let remaining = payment.amount_cents - payment.amount_paid_cents;
+                    if remaining > 0 {
+                        self.credit_repo.create(&crate::schema_models::Credit {
+                            id: uuid::Uuid::new_v4(),
+                            event_id,
+                            creditor_id: payment.creditor_id,
+                            debtor_id: payment.debtor_id,
+                            amount_cents: remaining,
+                            amount_used_cents: 0,
+                            source_expense_id: Some(expense_id),
+                            status: CreditStatus::Active,
+                            version: 1,
+                            parent_credit_id: None,
+                            created_at: Utc::now(),
+                            updated_at: Utc::now(),
+                        })?;
+                    }
+                }
+            }
+            "payment" => {}
+            _ => {
+                return Err(ServiceError::Validation(
+                    "Invalid choice. Must be 'credit' or 'payment'".into(),
+                ));
+            }
+        }
+
+        let now = Utc::now();
+
+        let linked_payments = self.payment_repo.find_all_by_expense(expense_id)?;
+        for linked_payment in &linked_payments {
+            self.payment_transaction_repo
+                .reject_pending_by_payment(linked_payment.id)?;
+        }
+
+        if choice == "credit" {
+            self.payment_repo.cancel_all_by_expense(expense_id)?;
+        }
+
+        self.expense_repo
+            .set_deletion_status(expense_id, Some("deleted".to_string()))?;
+
+        if choice == "credit" {
+            self.expense_repo.soft_delete(expense_id, now)?;
+        }
+
+        Ok(())
+    }
+
     pub fn redistribute_expenses_for_member_removal(
         &self,
         event_id: Uuid,
         departing_user_id: Uuid,
         actor_id: Uuid,
     ) -> Result<usize, ServiceError> {
-        // Find all expense IDs where the departing user is a participant
         let expense_ids = self
             .expense_repo
             .find_expense_ids_by_participant(event_id, departing_user_id)?;
@@ -731,20 +822,16 @@ impl ExpenseService {
         let mut redistributed = 0usize;
 
         for expense_id in &expense_ids {
-            // Get current version info
             let current = self.version_repo.find_by_expense_id(*expense_id)?;
 
-            // Get the latest version (highest version_number)
             let latest_version = current.into_iter().max_by_key(|v| v.version_number);
             let version = match latest_version {
                 Some(v) => v,
                 None => continue,
             };
 
-            // Get current shares
             let shares = self.share_repo.find_by_expense_version_id(version.id)?;
 
-            // Filter out the departing user, keep remaining participants
             let remaining: Vec<(Uuid, i32)> = shares
                 .iter()
                 .filter(|s| s.user_id != departing_user_id)
@@ -752,14 +839,11 @@ impl ExpenseService {
                 .collect();
 
             if remaining.is_empty() {
-                // All participants are leaving — nothing to redistribute
                 continue;
             }
 
-            // Compute new shares using the balance-engine
             let new_shares = redistribute_shares(&remaining, version.amount_cents);
 
-            // Create new version
             let next_version = self.version_repo.next_version_number(*expense_id)?;
             let version_id = Uuid::new_v4();
 
@@ -780,7 +864,6 @@ impl ExpenseService {
             };
             self.version_repo.create(&new_version)?;
 
-            // Create new share rows
             let share_rows: Vec<ExpenseVersionShare> = new_shares
                 .into_iter()
                 .map(|(user_id, share_cents)| ExpenseVersionShare {
@@ -799,7 +882,6 @@ impl ExpenseService {
                 )));
             }
 
-            // Update expense's current version
             self.expense_repo
                 .set_current_version(*expense_id, version_id)?;
             redistributed += 1;

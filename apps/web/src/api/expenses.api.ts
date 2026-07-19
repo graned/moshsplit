@@ -1,6 +1,5 @@
 import { apiClient } from './client';
 
-// Types for expenses
 export interface ExpenseVersion {
   id: string;
   expense_id: string;
@@ -33,6 +32,7 @@ export interface Expense {
   created_at: string;
   current_version_id?: string;
   deleted_at?: string;
+  deletion_status?: string;
   current_version?: ExpenseVersion;
 }
 
@@ -43,6 +43,7 @@ export interface ExpenseListItem {
   created_at: string;
   current_version_id?: string;
   deleted_at?: string;
+  deletion_status?: string;
   version_number: number;
   title: string;
   description?: string;
@@ -78,9 +79,27 @@ export interface UpdateExpenseRequest {
   expense_type?: string;
 }
 
-// API calls
+export interface OpenPaymentInfo {
+  payment_id: string;
+  creditor_id: string;
+  debtor_id: string;
+  amount_cents: number;
+  reason: string;
+}
+
+export interface DeletionRequiresChoiceResponse {
+  expense_id: string;
+  requires_choice: boolean;
+  open_payments: OpenPaymentInfo[];
+  total_cents: number;
+}
+
+export interface ClaimReimbursementRequest {
+  payment_id: string;
+  choice: 'credit' | 'payment';
+}
+
 export const expensesApi = {
-  // List expenses for an event
   list: async (
     eventId: string,
     userId: string,
@@ -106,7 +125,6 @@ export const expensesApi = {
     };
   },
 
-  // Get a single expense
   get: async (eventId: string, expenseId: string): Promise<Expense> => {
     const response = await apiClient.get<{ success: boolean; data: Expense; error: unknown }>(
       `/v1/events/${eventId}/expenses/${expenseId}`
@@ -117,7 +135,6 @@ export const expensesApi = {
     return response.data;
   },
 
-  // Create a new expense
   create: async (eventId: string, data: CreateExpenseRequest): Promise<Expense> => {
     const response = await apiClient.post<{ success: boolean; data: Expense; error: unknown }>(
       `/v1/events/${eventId}/expenses`,
@@ -129,17 +146,45 @@ export const expensesApi = {
     return response.data;
   },
 
-  // Update an expense
   update: async (eventId: string, expenseId: string, data: UpdateExpenseRequest): Promise<Expense> => {
     return apiClient.patch<Expense>(`/v1/events/${eventId}/expenses/${expenseId}`, data);
   },
 
-  // Delete an expense
-  delete: async (eventId: string, expenseId: string): Promise<void> => {
-    return apiClient.delete<void>(`/v1/events/${eventId}/expenses/${expenseId}`);
+  delete: async (
+    eventId: string,
+    expenseId: string
+  ): Promise<DeletionRequiresChoiceResponse | null> => {
+    const response = await fetch(
+      `${(apiClient as unknown as { baseUrl: string }).baseUrl}/v1/events/${eventId}/expenses/${expenseId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiClient.getToken() ? { Authorization: `Bearer ${apiClient.getToken()}` } : {}),
+        },
+      }
+    );
+    if (response.status === 204) return null;
+    if (response.ok) {
+      const envelope = await response.json();
+      return envelope.data as DeletionRequiresChoiceResponse;
+    }
+    const body = await response.json().catch(() => ({}));
+    throw { message: body.message || 'Failed to delete expense', status: response.status, ...body };
   },
 
-  // Get expense versions
+  claimReimbursement: async (
+    eventId: string,
+    expenseId: string,
+    data: ClaimReimbursementRequest
+  ): Promise<void> => {
+    await apiClient.post(`/v1/events/${eventId}/expenses/${expenseId}/claim-reimbursement`, data);
+  },
+
+  cancelPendingDeletion: async (eventId: string, expenseId: string): Promise<void> => {
+    await apiClient.post(`/v1/events/${eventId}/expenses/${expenseId}/cancel-deletion`);
+  },
+
   listVersions: async (eventId: string, expenseId: string): Promise<ExpenseVersionDetail[]> => {
     return apiClient.get<ExpenseVersionDetail[]>(`/v1/events/${eventId}/expenses/${expenseId}/versions`);
   },

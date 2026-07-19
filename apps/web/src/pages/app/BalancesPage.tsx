@@ -19,8 +19,8 @@ import {
 import { useAuthStore } from '@moshsplit/auth-react';
 import { groupsApi } from '../../api/groups.api';
 import { balancesApi } from '../../api/balances.api';
-import { settlementsApi } from '../../api/settlements.api';
-import { SettlementCards, RelationshipSummary, LiveIntelPanel } from '../../components/balances';
+import { paymentsApi } from '../../api/payments.api';
+import { PaymentCards, RelationshipSummary, LiveIntelPanel } from '../../components/balances';
 import { MobilePageHeader } from '../../components/shared';
 
 export default function BalancesPage() {
@@ -64,10 +64,10 @@ export default function BalancesPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch settlement requests
-  const { data: settlementsData } = useQuery({
-    queryKey: ['settlements', eventId, userId],
-    queryFn: () => settlementsApi.list(eventId!, userId!, undefined, 50),
+  // Fetch payments
+  const { data: paymentsData } = useQuery({
+    queryKey: ['payments', eventId, userId],
+    queryFn: () => paymentsApi.list(eventId!),
     enabled: !!eventId && !!userId,
     staleTime: 1000 * 60 * 2,
   });
@@ -137,34 +137,15 @@ export default function BalancesPage() {
       }
     }
 
-    // Process settlements: reduce amounts
-    for (const settlement of explainData.settlements) {
-      if (settlement.status !== 'confirmed') continue;
-
-      if (settlement.from_user === userId) {
-        // I paid a settlement — reduces what I owe
-        const rel = expenseMap.get(settlement.to_user);
-        if (rel && !rel.isIncoming) {
-          rel.totalCents -= settlement.amount_cents;
-        }
-      } else if (settlement.to_user === userId) {
-        // Someone paid me a settlement — reduces what they owe
-        const rel = expenseMap.get(settlement.from_user);
-        if (rel && rel.isIncoming) {
-          rel.totalCents -= settlement.amount_cents;
-        }
-      }
-    }
-
     // Process payments: reduce amounts
     for (const payment of explainData.payments) {
-      if (payment.from_user === userId) {
-        const rel = expenseMap.get(payment.to_user);
+      if (payment.debtor_id === userId) {
+        const rel = expenseMap.get(payment.creditor_id);
         if (rel && !rel.isIncoming) {
           rel.totalCents -= payment.amount_cents;
         }
-      } else if (payment.to_user === userId) {
-        const rel = expenseMap.get(payment.from_user);
+      } else if (payment.creditor_id === userId) {
+        const rel = expenseMap.get(payment.debtor_id);
         if (rel && rel.isIncoming) {
           rel.totalCents -= payment.amount_cents;
         }
@@ -271,12 +252,12 @@ export default function BalancesPage() {
         <Grid container spacing={3}>
           {/* Left: Settlement Cards */}
           <Grid size={{ xs: 12, lg: 8 }}>
-            <SettlementCards
+            <PaymentCards
               relationships={relationships}
               currentUserId={userId!}
               currency={currency}
               members={members}
-              settlementRequests={settlementsData?.data || []}
+              payments={paymentsData || []}
               eventId={eventId!}
             />
           </Grid>

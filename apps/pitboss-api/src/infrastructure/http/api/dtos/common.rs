@@ -33,21 +33,6 @@ impl ListEventsParams {
     }
 }
 
-/// Query parameters for listing settlements.
-#[derive(Debug, Clone, Deserialize)]
-pub struct ListSettlementsParams {
-    pub cursor: Option<String>,
-    pub limit: Option<i64>,
-    /// Filter by settlement status.
-    pub status: Option<String>,
-}
-
-impl ListSettlementsParams {
-    pub fn limit(&self) -> i64 {
-        self.limit.unwrap_or(20).clamp(1, 100)
-    }
-}
-
 /// Metadata included in paginated list responses.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct PaginationMeta {

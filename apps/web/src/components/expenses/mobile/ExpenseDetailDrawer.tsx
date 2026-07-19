@@ -1,12 +1,13 @@
 import { useRef, useMemo } from 'react';
-import { Box, Typography, alpha, useTheme, Divider, Skeleton, Avatar, IconButton, Tooltip } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { Box, Typography, alpha, useTheme, Divider, Skeleton, Avatar, IconButton, Tooltip, Button } from '@mui/material';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Person as PersonIcon,
   CalendarToday as CalendarIcon,
   Notes as NotesIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 
 import { MobileDrawer } from '../../shared/MobileDrawer';
@@ -85,6 +86,7 @@ export function ExpenseDetailDrawer({
 }: ExpenseDetailDrawerProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const cachedExpense = useRef(expense);
   if (expense) cachedExpense.current = expense;
   const displayExpense = expense || cachedExpense.current;
@@ -96,11 +98,19 @@ export function ExpenseDetailDrawer({
     staleTime: 1000 * 60,
   });
 
+  const cancelDeletionMutation = useMutation({
+    mutationFn: () => expensesApi.cancelPendingDeletion(eventId!, displayExpense!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expense', eventId, displayExpense?.id] });
+      queryClient.invalidateQueries({ queryKey: ['activity-feed', eventId] });
+    },
+  });
+
   const categoryLabel = displayExpense?.expense_type
     ? EXPENSE_TYPE_LABELS[displayExpense.expense_type] || displayExpense.expense_type
     : null;
   const categoryColor = displayExpense?.expense_type
-    ? EXPENSE_TYPE_COLORS[displayExpense.expense_type]
+    ? (EXPENSE_TYPE_COLORS[displayExpense.expense_type] ?? theme.palette.primary.main)
     : theme.palette.primary.main;
 
   const notes = fullExpense?.current_version?.notes;
@@ -139,7 +149,9 @@ export function ExpenseDetailDrawer({
   const count = shares.length > 0 ? shares.length : (displayExpense?.participant_count ?? 0);
   const countLabel = count === 1 ? t('components.expenseDetail.person', { count }) : t('components.expenseDetail.people', { count });
   
-  const canDelete = fullExpense?.created_by === currentUserId;
+  const isPendingDeletion = fullExpense?.deletion_status === 'pending_deletion';
+  const canDelete = fullExpense?.created_by === currentUserId && !isPendingDeletion;
+  const canEdit = !isPendingDeletion;
 
   const handleDelete = () => {
     if (!displayExpense) return;
@@ -175,7 +187,7 @@ export function ExpenseDetailDrawer({
           <Tooltip title={t('components.expenseDetail.edit')}>
             <IconButton
               onClick={handleEdit}
-              disabled={isLoading}
+              disabled={isLoading || !canEdit}
               sx={{
                 color: theme.palette.primary.main,
                 bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -206,6 +218,49 @@ export function ExpenseDetailDrawer({
               pt: 1,
             }}
           >
+            {/* Pending Deletion Banner */}
+            {isPendingDeletion && (
+              <Box
+                sx={{
+                  mx: 1,
+                  mb: 2,
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: alpha(theme.palette.warning.main, 0.12),
+                  border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: theme.palette.warning.main,
+                  }}
+                >
+                  Pending Deletion
+                </Typography>
+                <Button
+                  size="small"
+                  startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
+                  onClick={() => cancelDeletionMutation.mutate()}
+                  disabled={cancelDeletionMutation.isPending}
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: theme.palette.warning.main,
+                    textTransform: 'none',
+                    minWidth: 'auto',
+                    py: 0,
+                  }}
+                >
+                  {cancelDeletionMutation.isPending ? 'Cancelling...' : 'Cancel'}
+                </Button>
+              </Box>
+            )}
+
             {/* Category pill + title */}
             <Box sx={{ textAlign: 'center', mb: 2 }}>
               {categoryLabel && (
